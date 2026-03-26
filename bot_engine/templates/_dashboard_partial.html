@@ -1,0 +1,278 @@
+{% load static %}
+{% if posters %}
+<table id="dashboard-table" data-dashboard-table class="max-xl:tw-block max-xl:!tw-min-w-0 max-xl:!tw-max-w-full">
+    <thead class="max-xl:tw-hidden">
+        <tr>
+            <th style="width: 20px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
+            <th style="width: 32px;" class="sortable-th" data-sort="date" onclick="sortColumn('date')">
+                ID
+                <span class="sort-arrow {% if sort_by == 'date' %}active{% endif %}">
+                    {% if sort_by == 'date' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}
+                </span>
+            </th>
+            <th style="min-width: 163px;" class="sortable-th" data-sort="title" onclick="sortColumn('title')">
+                Article Name
+                <span class="sort-arrow {% if sort_by == 'title' %}active{% endif %}">{% if sort_by == 'title' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span>
+            </th>
+            <th style="width: 120px; white-space: nowrap;" class="sortable-th" data-sort="category" onclick="sortColumn('category')">
+                Category <span class="sort-arrow {% if sort_by == 'category' %}active{% endif %}">{% if sort_by == 'category' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span>
+            </th>
+            <th style="width: 200px; text-align: center;">Links &amp; Poster</th>
+            <th style="min-width: 290px;" >Summary</th>
+            <th style="min-width: 200px;">Why Useful</th>
+            <th style="width: 100px;" class="sortable-th" data-sort="status" onclick="sortColumn('status')">
+                Status <span class="sort-arrow {% if sort_by == 'status' %}active{% endif %}">{% if sort_by == 'status' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span>
+            </th>
+            <th style="width: 90px; text-align: center; padding-right: 20px;">Actions</th>
+        </tr>
+    </thead>
+    <tbody class="max-xl:tw-block max-xl:tw-w-full">
+        {% for poster in posters %}
+        <tr class="row-{{ poster.validation_status }}{% if poster.is_new %} row-new{% endif %}{% if poster.is_incomplete %} row-incomplete{% endif %}{% if poster.analysis_status == 'failed' %} row-analysis-failed{% elif poster.analysis_status == 'processing' %} row-analysis-processing{% endif %} max-xl:tw-block max-xl:tw-w-full max-xl:tw-relative max-xl:tw-overflow-hidden max-xl:tw-mb-2.5 max-xl:tw-p-[14px_16px] max-xl:tw-bg-[var(--bg-card)] max-xl:tw-rounded-xl max-xl:tw-shadow-[0_1px_4px_rgba(0,0,0,0.08)] max-xl:tw-border max-xl:tw-border-solid max-xl:tw-border-[var(--border-card)]"
+            data-poster-id="{{ poster.id }}"
+            data-analysis-status="{{ poster.analysis_status }}">
+
+            {# ── TD1: Checkbox — absolute top-right on mobile ── #}
+            <td class="max-xl:tw-block max-xl:tw-absolute max-xl:tw-right-3 max-xl:tw-top-3 max-xl:tw-w-auto max-xl:tw-z-[2] max-xl:tw-p-0 max-xl:tw-border-b-0"><input type="checkbox" class="bulk-checkbox max-xl:tw-w-5 max-xl:tw-h-5 max-xl:tw-p-2.5 max-xl:-tw-m-2.5 max-xl:tw-cursor-pointer" value="{{ poster.id }}" onchange="updateBulkBar()"></td>
+
+            {# ── TD2: ID cell — flex row on mobile ── #}
+            <td class="max-xl:tw-flex max-xl:tw-items-center max-xl:tw-gap-1.5 max-xl:tw-mb-1.5 max-xl:tw-pr-[36px] max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
+                <div class="id-cell">
+                    <div class="id-cell-top">
+                        <span class="id-badge max-xl:tw-text-[0.78em] max-xl:tw-py-[3px] max-xl:tw-px-2 max-xl:tw-rounded-md max-xl:tw-min-w-0">{{ poster.id }}</span>
+                        {% if poster.is_new %}<span class="new-badge max-xl:tw-text-[0.68em] max-xl:tw-ml-0 max-xl:tw-py-[3px] max-xl:tw-px-2">NEW</span>{% endif %}
+                    </div>
+                    {% if poster.is_incomplete and poster.analysis_status == 'ok' or poster.is_favorite %}
+                    <div class="id-cell-indicators">
+                        {% if poster.is_incomplete and poster.analysis_status == 'ok' %}
+                            <svg class="id-cell-icon icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" title="Missing paper link or GitHub link">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        {% endif %}
+                        {% if poster.is_favorite %}
+                            <svg class="id-cell-icon icon-star" viewBox="0 0 1024 1024" fill="currentColor" title="Starred">
+                                <path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/>
+                            </svg>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </td>
+
+            {# ── TD3: Title + authors ── #}
+            <td class="max-xl:tw-block max-xl:tw-mb-2 max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
+                <div class="article-title max-xl:tw-text-[0.95em] max-xl:tw-font-semibold max-xl:tw-break-words max-xl:tw-whitespace-normal max-xl:tw-leading-[1.35] max-xl:tw-mb-1">
+                    <a href="{% url 'poster_detail' poster.id %}" class="article-title-link max-xl:tw-no-underline max-xl:tw-text-inherit">{{ poster.title }}</a>
+                    {% if poster.analysis_status == 'failed' %}
+                        <span class="analysis-status-badge analysis-status-failed">&#9888; Failed</span>
+                    {% elif poster.analysis_status == 'processing' %}
+                        <span class="analysis-status-badge analysis-status-processing">&#9203; Analyzing&hellip;</span>
+                    {% endif %}
+                </div>
+                {% if poster.is_incomplete and poster.analysis_status == 'ok' %}
+                    <div class="incomplete-note max-xl:tw-text-[0.78em] max-xl:tw-mt-1 max-xl:tw-mb-0 max-xl:tw-py-1 max-xl:tw-px-2">
+                        <svg class="btn-icon icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span class="incomplete-label">Incomplete<br>metadata</span>
+                    </div>
+                {% endif %}
+                <div class="article-authors max-xl:tw-text-[0.82em] max-xl:tw-leading-[1.3] max-xl:tw-text-[var(--text-muted)] max-xl:tw-line-clamp-1">{{ poster.authors }}</div>
+                <div class="update-time max-xl:tw-hidden">Updated: {{ poster.updated_at|timesince }} ago</div>
+            </td>
+
+            {# ── TD4: Category + tags ── #}
+            <td class="max-xl:tw-block max-xl:tw-mb-2 max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
+                <span class="category-badge category-{{ poster.category }} max-xl:tw-text-[0.78em] max-xl:tw-py-[4px] max-xl:tw-px-2.5 max-xl:tw-rounded-md max-xl:tw-mb-1">{{ poster.get_category_display }}</span>
+                {% if poster.subfields_display %}
+                    <div class="tags-container max-xl:!tw-flex max-xl:tw-flex-wrap max-xl:tw-gap-1.5 max-xl:tw-mt-1.5" style="margin-top: 6px;">
+                        {% for sf in poster.subfields_display %}<span class="tag-pill max-xl:tw-text-[0.72em] max-xl:tw-py-[3px] max-xl:tw-px-2">{{ sf }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+                {% if poster.tags %}
+                    <div class="tags-container max-xl:!tw-flex max-xl:tw-flex-wrap max-xl:tw-gap-1.5 max-xl:tw-mt-1.5">
+                        {% for tag in poster.tags_list %}<span class="tag-pill tag-pill-custom max-xl:tw-text-[0.72em] max-xl:tw-py-[3px] max-xl:tw-px-2">{{ tag }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </td>
+
+            {# ── TD5: Links — inline on mobile ── #}
+            <td class="max-xl:tw-inline-block max-xl:tw-w-auto max-xl:tw-align-middle max-xl:tw-mb-0 max-xl:tw-mr-2 max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
+                <div class="links-poster-cell">
+                    <div class="links-row">
+                        {% if poster.paper_link %}
+                            <div class="link-cell max-xl:tw-inline-flex max-xl:tw-gap-1.5 max-xl:tw-items-center">
+                                <a href="{{ poster.paper_link }}" class="link-button max-xl:tw-text-[0.78em] max-xl:tw-py-[4px] max-xl:tw-px-3 max-xl:tw-rounded-md" target="_blank">Paper</a>
+                                <button class="copy-btn max-xl:tw-min-w-[30px] max-xl:tw-h-[30px] max-xl:tw-p-0 max-xl:tw-text-[0.75em] max-xl:tw-rounded-md max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center" onclick="copyToClipboard('{{ poster.paper_link }}', this)" title="Copy link">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        {% else %}
+                            <span class="text-muted max-xl:tw-text-[0.78em]">Paper: N/A</span>
+                        {% endif %}
+                        {% if poster.github_link %}
+                            <div class="link-cell max-xl:tw-inline-flex max-xl:tw-gap-1.5 max-xl:tw-items-center">
+                                <a href="{{ poster.github_link }}" class="link-button max-xl:tw-text-[0.78em] max-xl:tw-py-[4px] max-xl:tw-px-3 max-xl:tw-rounded-md" target="_blank">GitHub</a>
+                                <button class="copy-btn max-xl:tw-min-w-[30px] max-xl:tw-h-[30px] max-xl:tw-p-0 max-xl:tw-text-[0.75em] max-xl:tw-rounded-md max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center" onclick="copyToClipboard('{{ poster.github_link }}', this)" title="Copy link">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        {% else %}
+                            <span class="text-muted max-xl:tw-text-[0.78em]">GitHub: N/A</span>
+                        {% endif %}
+                    </div>
+                    {% if poster.image %}
+                        <a href="{{ poster.image.url }}" target="_blank" class="poster-thumb-link max-xl:!tw-hidden">
+                            <img src="{{ poster.image.url }}" alt="{{ poster.title }}" class="poster-thumbnail max-xl:!tw-hidden">
+                        </a>
+                    {% endif %}
+                </div>
+            </td>
+
+            {# ── TD6: Summary — HIDDEN on mobile ── #}
+            <td class="line-height-normal max-xl:!tw-hidden">
+                {% if poster.summary %}
+                    {% if poster.summary|length > 200 %}
+                        <div class="expandable-text">
+                            <span class="text-preview" id="desc-preview-{{ poster.id }}">{{ poster.summary|slice:"0:200" }}...</span>
+                            <span class="text-full" id="desc-full-{{ poster.id }}" style="display: none;">{{ poster.summary }}</span>
+                            <a href="javascript:void(0)" class="read-more-btn" onclick="toggleText('desc', {{ poster.id }})">
+                                <span id="desc-btn-{{ poster.id }}">&#8595; Read more</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        {{ poster.summary }}
+                    {% endif %}
+                {% endif %}
+            </td>
+
+            {# ── TD7: Why Useful — HIDDEN on mobile ── #}
+            <td class="line-height-normal max-xl:!tw-hidden">
+              {% if poster.analysis_status == 'processing' %}
+                <span class="text-muted" style="font-size:0.82em; font-style:italic;">Analyzing&hellip;</span>
+              {% else %}
+                <div class="inline-notes" id="notes-container-{{ poster.id }}">
+                    {% if poster.why_useful %}
+                        <div id="why-display-{{ poster.id }}" style="margin-bottom:6px;">
+                            {% if poster.why_useful|length > 200 %}
+                                <div class="expandable-text">
+                                    <span class="text-preview" id="why-preview-{{ poster.id }}">{{ poster.why_useful|slice:"0:200" }}...</span>
+                                    <span class="text-full" id="why-full-{{ poster.id }}" style="display: none;">{{ poster.why_useful }}</span>
+                                    <a href="javascript:void(0)" class="read-more-btn" onclick="toggleText('why', {{ poster.id }})">
+                                        <span id="why-btn-{{ poster.id }}">&#8595; Read more</span>
+                                    </a>
+                                </div>
+                            {% else %}
+                                {{ poster.why_useful }}
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    {% if poster.notes %}
+                        <div id="notes-display-{{ poster.id }}" class="text-muted" style="font-size:0.82em; margin-top:4px;">&#128221; {{ poster.notes|truncatechars:120 }}</div>
+                    {% endif %}
+                    <button class="notes-toggle" onclick="toggleNotes({{ poster.id }})">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        <span id="notes-label-{{ poster.id }}">{% if poster.notes %}Edit{% else %}Add comment{% endif %}</span>
+                    </button>
+                    <div class="notes-editor" id="notes-editor-{{ poster.id }}" style="display: none;">
+                        <textarea class="notes-textarea" id="notes-text-{{ poster.id }}" maxlength="500" placeholder="Why is this paper useful?">{{ poster.notes|default_if_none:"" }}</textarea>
+                        <small class="char-counter"><span id="notes-counter-{{ poster.id }}">{{ poster.notes|default_if_none:""|length }}</span>/500</small>
+                        <div class="notes-actions">
+                            <button class="notes-save-btn" onclick="saveNotes({{ poster.id }})">Save</button>
+                            <button class="notes-cancel-btn" onclick="toggleNotes({{ poster.id }})">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+              {% endif %}
+            </td>
+
+            {# ── TD8: Status — inline-flex bottom row on mobile ── #}
+            <td class="max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-2 max-xl:tw-pt-2.5 max-xl:tw-w-full max-xl:tw-flex-wrap max-xl:tw-mt-2.5 max-xl:tw-border-t max-xl:tw-border-solid max-xl:tw-border-[var(--border)] max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
+                <div class="mobile-label max-xl:tw-hidden">Status</div>
+                <form method="post" action="{% url 'update_status' poster.id %}" class="status-form" data-poster-id="{{ poster.id }}">
+                    {% csrf_token %}
+                    <select name="status" class="status-select status-{{ poster.validation_status }} max-xl:tw-flex-1 max-xl:tw-min-w-0 max-xl:tw-min-h-[36px] max-xl:!tw-py-[6px] max-xl:!tw-pl-3 max-xl:!tw-pr-7 max-xl:!tw-text-[0.82em] max-xl:tw-rounded-lg" onchange="updateStatus(this)">
+                        <option value="pending"  {% if poster.validation_status == 'pending'  %}selected{% endif %}>&#9679; Pending</option>
+                        <option value="approved" {% if poster.validation_status == 'approved' %}selected{% endif %}>&#9679; Approved</option>
+                        <option value="rejected" {% if poster.validation_status == 'rejected' %}selected{% endif %}>&#9679; Rejected</option>
+                    </select>
+                </form>
+            </td>
+
+            {# ── TD9: Actions — inline-flex on mobile ── #}
+            <td class="max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-2 max-xl:tw-pt-1.5 max-xl:tw-w-auto max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
+                <div class="mobile-label max-xl:tw-hidden">Actions</div>
+                <div class="action-buttons max-xl:tw-flex-row max-xl:tw-flex-nowrap max-xl:tw-gap-1.5 max-xl:tw-justify-start">
+                    <button class="action-btn favorite-btn max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none {% if poster.is_favorite %}favorited{% endif %}"
+                            onclick="toggleFavorite({{ poster.id }}, this)"
+                            title="{% if poster.is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}"
+                            {% if poster.analysis_status == 'processing' %}disabled{% endif %}>
+                        {% if poster.is_favorite %}
+                            <svg class="btn-icon icon-star" viewBox="0 0 1024 1024" fill="currentColor">
+                                <path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/>
+                            </svg>
+                        {% else %}
+                            <svg class="btn-icon icon-star-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11.2691 4.41115C11.5006 3.89177 11.6164 3.63208 11.7776 3.55211C11.9176 3.48263 12.082 3.48263 12.222 3.55211C12.3832 3.63208 12.499 3.89177 12.7305 4.41115L14.5745 8.54808C14.643 8.70162 14.6772 8.77839 14.7302 8.83718C14.777 8.8892 14.8343 8.93081 14.8982 8.95929C14.9705 8.99149 15.0541 9.00031 15.2213 9.01795L19.7256 9.49336C20.2911 9.55304 20.5738 9.58288 20.6997 9.71147C20.809 9.82316 20.8598 9.97956 20.837 10.1342C20.8108 10.3122 20.5996 10.5025 20.1772 10.8832L16.8125 13.9154C16.6877 14.0279 16.6252 14.0842 16.5857 14.1527C16.5507 14.2134 16.5288 14.2807 16.5215 14.3503C16.5132 14.429 16.5306 14.5112 16.5655 14.6757L17.5053 19.1064C17.6233 19.6627 17.6823 19.9408 17.5989 20.1002C17.5264 20.2388 17.3934 20.3354 17.2393 20.3615C17.0619 20.3915 16.8156 20.2495 16.323 19.9654L12.3995 17.7024C12.2539 17.6184 12.1811 17.5765 12.1037 17.56C12.0352 17.5455 11.9644 17.5455 11.8959 17.56C11.8185 17.5765 11.7457 17.6184 11.6001 17.7024L7.67662 19.9654C7.18404 20.2495 6.93775 20.3915 6.76034 20.3615C6.60623 20.3354 6.47319 20.2388 6.40075 20.1002C6.31736 19.9408 6.37635 19.6627 6.49434 19.1064L7.4341 14.6757C7.46898 14.5112 7.48642 14.429 7.47814 14.3503C7.47081 14.2807 7.44894 14.2134 7.41394 14.1527C7.37439 14.0842 7.31195 14.0279 7.18708 13.9154L3.82246 10.8832C3.40005 10.5025 3.18884 10.3122 3.16258 10.1342C3.13978 9.97956 3.19059 9.82316 3.29993 9.71147C3.42581 9.58288 3.70856 9.55304 4.27406 9.49336L8.77835 9.01795C8.94553 9.00031 9.02911 8.99149 9.10139 8.95929C9.16534 8.93081 9.2226 8.8892 9.26946 8.83718C9.32241 8.77839 9.35663 8.70162 9.42508 8.54808L11.2691 4.41115Z"/>
+                            </svg>
+                        {% endif %}
+                    </button>
+                    {% if poster.analysis_status == 'processing' %}
+                        <button class="action-btn action-btn-stop max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" onclick="stopAnalysis({{ poster.id }}, this)" title="Stop analysis">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            </svg>
+                        </button>
+                    {% else %}
+                        <a href="{% url 'edit_poster' poster.id %}" class="action-btn max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" title="Edit">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </a>
+                        {% if poster.analysis_status == 'failed' %}
+                            <button class="action-btn action-btn-retry max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" onclick="retryAnalysis({{ poster.id }}, this)" title="Retry AI analysis">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="1 4 1 10 7 10"/>
+                                    <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+                                </svg>
+                            </button>
+                        {% endif %}
+                        <button class="action-btn delete-btn max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" onclick="confirmDelete({{ poster.id }}, '{{ poster.title|escapejs }}')" title="Delete">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </button>
+                    {% endif %}
+                </div>
+            </td>
+
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state max-xl:tw-p-6 max-xl:tw-text-center">
+    {% if has_active_filters %}
+        <p>No papers match your current filters</p>
+        <button type="button" onclick="clearAllFilters()" class="btn max-xl:tw-w-full max-xl:tw-mt-3">Clear All Filters</button>
+    {% else %}
+        <p>No research papers available</p>
+        <a href="{% url 'upload' %}" class="btn max-xl:tw-w-full max-xl:tw-mt-3">Add Your First Paper</a>
+    {% endif %}
+</div>
+{% endif %}

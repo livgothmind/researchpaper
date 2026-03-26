@@ -1,0 +1,18 @@
+<div class="subfields-grouped-widget" id="{{ widget.attrs.id }}">
+    {% for cat_slug, group_label, items in widget.grouped_choices %}
+    <div class="subfield-group">
+        <div class="subfield-group-label">{{ group_label }}</div>
+        <div class="subfield-group-options">
+            {% for value, label in items %}
+            <label class="subfield-checkbox-label{% if value in widget.selected_values %} checked{% endif %}">
+                <input type="checkbox"
+                       name="{{ widget.name }}"
+                       value="{{ value }}"
+                       {% if value in widget.selected_values %}checked{% endif %}>
+                {{ label }}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>

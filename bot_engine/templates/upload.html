@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload — PaperProject{% endblock %}
+
+{% block extra_head %}
+    <style>
+        .upload-extras { display: none; margin-top: 16px; text-align: left; }
+
+        .extras-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 20px 16px;
+        }
+
+        .extras-field { margin-bottom: 16px; }
+        .extras-field:last-of-type { margin-bottom: 0; }
+
+        .extras-label-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 8px;
+        }
+        .extras-label-text {
+            font-weight: 600;
+            font-size: 0.83em;
+            color: var(--text-heading);
+        }
+        .extras-label-text .opt {
+            font-weight: 400;
+            color: var(--text-faint);
+            margin-left: 4px;
+        }
+
+        .extras-input-wrap { position: relative; }
+
+        .upload-extras textarea,
+        .upload-extras input[type="text"] {
+            width: 100%;
+            padding: 10px 14px 10px 16px;
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius-md);
+            background: var(--bg-input);
+            font-size: 0.91em;
+            color: var(--text-strong);
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+        .upload-extras textarea { min-height: 82px; line-height: 1.6; }
+        .upload-extras textarea:focus,
+        .upload-extras input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-muted);
+        }
+        .upload-extras textarea::placeholder,
+        .upload-extras input[type="text"]::placeholder {
+            color: var(--text-faint);
+            font-style: italic;
+        }
+
+        .field-hint {
+            font-size: 0.75em;
+            color: var(--text-faint);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .field-hint::before { content: '\2192'; opacity: 0.5; }
+
+        .tag-chip-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            background: var(--primary-faint);
+            border: 1px solid var(--primary-muted);
+            border-radius: var(--radius-pill);
+            font-size: 0.76em;
+            color: var(--primary-darker);
+            font-weight: 600;
+        }
+        .tag-chip::before { content: '#'; opacity: 0.4; font-weight: 700; }
+
+        #uploadProgressWrap {
+            display: none;
+            margin-top: 16px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px 16px;
+        }
+        .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .progress-header-icon {
+            width: 28px; height: 28px;
+            border-radius: var(--radius-md);
+            background: var(--primary-faint);
+            border: 1px solid var(--primary-muted);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85em;
+            flex-shrink: 0;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82em;
+            font-weight: 600;
+            color: var(--text-heading);
+            flex: 1;
+        }
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: var(--radius-pill);
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            border-radius: var(--radius-pill);
+            transition: width 0.2s ease;
+        }
+        .progress-status {
+            margin-top: 8px;
+            font-size: 0.79em;
+            color: var(--text-muted);
+            text-align: center;
+            min-height: 1.1em;
+        }
+
+        .upload-user-bar {
+            position: absolute; top: 22px; right: 28px; z-index: 10;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.85em; color: var(--text-muted);
+        }
+        .upload-user-bar .user-name { font-weight: 600; color: var(--text-heading); }
+        .upload-user-bar .user-sep { opacity: 0.35; }
+        .upload-user-bar a {
+            color: var(--primary); text-decoration: none; font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .upload-user-bar a:hover { opacity: 0.75; }
+
+        .page-title {
+            display: block; text-align: center;
+            font-size: 1.75em; font-weight: 700;
+            margin-bottom: 6px; letter-spacing: -0.02em;
+            background: var(--gradient-hero);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .page-subtitle {
+            display: block; text-align: center;
+            font-size: 0.87em; color: var(--text-muted); margin-bottom: 28px; font-weight: 400;
+        }
+        #submitBtn {
+            width: 100%; padding: 12px; margin-top: 18px;
+            font-size: 0.95em; border-radius: var(--radius-md);
+            background: var(--gradient-brand);
+            box-shadow: 0 3px 12px var(--primary-glow);
+        }
+        #submitBtn:hover {
+            box-shadow: 0 6px 20px var(--primary-glow);
+            transform: translateY(-1px);
+        }
+        #submitBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        [data-theme="dark"] .page-subtitle { color: var(--text-muted); }
+        [data-theme="dark"] .progress-label { color: var(--text-heading); }
+        [data-theme="dark"] .progress-status { color: var(--text-muted); }
+    </style>
+{% endblock %}
+
+{% block body_class %}upload-page max-sm:tw-p-0 max-sm:tw-m-0 max-sm:tw-items-center max-sm:tw-justify-center max-sm:tw-min-h-dvh max-sm:tw-max-h-dvh max-sm:tw-overflow-hidden{% endblock %}
+
+{% block content %}
+    <div class="upload-user-bar max-sm:tw-fixed max-sm:tw-top-[max(8px,env(safe-area-inset-top,8px))] max-sm:tw-right-[max(8px,env(safe-area-inset-right,8px))] max-sm:tw-z-50 max-sm:tw-text-[0.78em]">
+        <span class="user-name">{{ user.username }}</span>
+        <span class="user-sep">|</span>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    <div class="container max-sm:tw-max-h-dvh max-sm:tw-overflow-hidden max-sm:tw-flex max-sm:tw-items-center max-sm:tw-max-w-full max-sm:tw-w-full max-sm:tw-px-0">
+        <div class="card max-sm:tw-max-h-[calc(100dvh-20px)] max-sm:tw-overflow-y-auto max-sm:[-webkit-overflow-scrolling:touch] max-sm:tw-m-2.5 max-sm:!tw-w-full max-sm:!tw-max-w-[calc(100vw-20px)] max-sm:tw-mx-auto max-sm:!tw-p-[24px_16px] max-sm:tw-rounded-[14px]">
+            <img src="{% static 'images/logo.svg' %}" alt="Unimore logo" class="unimore-logo max-sm:tw-static max-sm:tw-block max-sm:tw-mx-auto max-sm:tw-mb-2.5 max-sm:tw-h-6">
+
+            <span class="page-title max-sm:tw-text-[1.4em]">Research Poster Analyzer</span>
+            <span class="page-subtitle max-sm:tw-text-[0.8em] max-sm:tw-mb-[18px]">Upload a poster image and let AI extract all paper details</span>
+
+            {% if messaggio %}
+            <div class="message">{{ messaggio }}</div>
+            {% endif %}
+
+            <div id="uploadError" class="upload-error" style="display:none;">
+                <span class="upload-error-icon">✕</span>
+                <span id="uploadErrorMsg"></span>
+                <button type="button" class="upload-error-close" onclick="dismissError()">✕</button>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                <input type="file" name="image" id="hiddenFileInput" accept="image/*" style="display:none;">
+
+                <div class="drop-zone max-sm:tw-min-h-[160px] max-sm:tw-rounded-[10px]" id="dropZone">
+                    <div class="drop-zone-idle max-sm:tw-p-[20px_14px]" id="dropIdle">
+                        <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14.2647 15.9377L12.5473 14.2346C11.758 13.4519 11.3633 13.0605 10.9089 12.9137C10.5092 12.7845 10.079 12.7845 9.67922 12.9137C9.22485 13.0605 8.83017 13.4519 8.04082 14.2346L4.04193 18.2622M14.2647 15.9377L14.606 15.5991C15.412 14.7999 15.8149 14.4003 16.2773 14.2545C16.6839 14.1262 17.1208 14.1312 17.5244 14.2688C17.9832 14.4253 18.3769 14.834 19.1642 15.6515L20 16.5001M14.2647 15.9377L18.22 19.9628M18.22 19.9628C17.8703 20 17.4213 20 16.8 20H7.2C6.07989 20 5.51984 20 5.09202 19.782C4.7157 19.5903 4.40973 19.2843 4.21799 18.908C4.12583 18.7271 4.07264 18.5226 4.04193 18.2622M18.22 19.9628C18.5007 19.9329 18.7175 19.8791 18.908 19.782C19.2843 19.5903 19.5903 19.2843 19.782 18.908C20 18.4802 20 17.9201 20 16.8V13M11 4H7.2C6.07989 4 5.51984 4 5.09202 4.21799C4.7157 4.40973 4.40973 4.71569 4.21799 5.09202C4 5.51984 4 6.0799 4 7.2V16.8C4 17.4466 4 17.9066 4.04193 18.2622M18 9V6M18 6V3M18 6H21M18 6H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <p class="drop-zone-label">Drag &amp; drop your poster here</p>
+                        <p class="drop-zone-sub">or <span class="drop-zone-browse">click to browse</span></p>
+                        <p class="drop-zone-hint">JPG, PNG, WEBP, BMP, TIFF · max 20 MB</p>
+                    </div>
+                    <div class="drop-zone-preview" id="dropPreview" style="display:none;">
+                        <img id="previewImg" src="" alt="Preview">
+                        <button type="button" class="drop-zone-remove" id="removeFile" title="Remove">✕</button>
+                    </div>
+                </div>
+
+                <div id="fileMetaInfo" class="file-meta-info max-sm:tw-flex-col max-sm:tw-gap-[3px] max-sm:tw-text-[0.78em] max-sm:tw-p-[6px_8px]" style="display:none;">
+                    <div><strong>File:</strong> <span id="fileNameValue">-</span></div>
+                    <div><strong>Size:</strong> <span id="fileSizeValue">-</span></div>
+                    <div><strong>Dimensions:</strong> <span id="fileDimensionsValue">-</span></div>
+                </div>
+
+                <div class="upload-extras" id="uploadExtras">
+                    <div class="extras-panel">
+                        <div class="extras-field">
+                            <div class="extras-label-row">
+                                <span class="extras-label-text">Notes <span class="opt">(optional)</span></span>
+                            </div>
+                            <div class="extras-input-wrap">
+                                <textarea name="notes" id="id_notes" rows="3" maxlength="500"
+                                          placeholder="Personal notes about this paper…"></textarea>
+                                <small class="char-counter"><span id="notesCharCount">0</span>/500</small>
+                            </div>
+                        </div>
+
+                        <div class="extras-field">
+                            <div class="extras-label-row">
+                                <span class="extras-label-text">Tags <span class="opt">(optional)</span></span>
+                            </div>
+                            <div class="extras-input-wrap">
+                                <input type="text" name="tags" id="id_tags" maxlength="200"
+                                       placeholder="e.g. brain tumor, segmentation, 3D reconstruction…">
+                                <small class="char-counter"><span id="tagsCharCount">0</span>/200</small>
+                            </div>
+                            <p class="field-hint">Comma-separated — AI will match them to database categories</p>
+                            <div class="tag-chip-preview" id="tagChipPreview"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="max-sm:tw-w-full max-sm:tw-py-3 max-sm:tw-text-[0.9em] max-sm:tw-rounded-lg max-sm:tw-mt-4 max-sm:!tw-transform-none">
+                    Analyze Poster
+                </button>
+
+                <div id="uploadProgressWrap">
+                    <div class="progress-header">
+                        <span class="progress-header-icon">⬆️</span>
+                        <div class="progress-label">
+                            <span id="progressPhase">Uploading…</span>
+                            <span id="progressPct">0%</span>
+                        </div>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-status" id="progressStatus"></div>
+                </div>
+            </form>
+            <div class="text-center" style="margin-top: 20px;">
+                <a href="{% url 'dashboard' %}" class="nav-link"
+                   style="display:inline-flex; align-items:center; gap:6px; justify-content:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/upload.js' %}"></script>
+{% endblock %}

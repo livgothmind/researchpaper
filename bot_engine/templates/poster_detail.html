@@ -1,0 +1,729 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ poster.title }} — PaperProject{% endblock %}
+
+{% block extra_head %}
+<style>
+    .detail-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 0 60px;
+    }
+
+    .detail-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.86em;
+        padding: 10px 0;
+        margin-bottom: 18px;
+        transition: color 0.2s ease;
+    }
+
+    .detail-back:hover {
+        color: var(--primary);
+        text-decoration: underline;
+    }
+
+    .detail-back svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .detail-hero {
+        position: relative;
+        overflow: hidden;
+        background: var(--bg-card);
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-card);
+        box-shadow: var(--shadow-card);
+        padding: 32px 36px 28px;
+        margin-bottom: 16px;
+        animation: fadeInUp 0.4s ease-out both;
+    }
+
+    .detail-hero::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: var(--gradient-hero);
+    }
+
+    .detail-hero-top {
+        display: flex;
+        gap: 36px;
+        align-items: flex-start;
+    }
+
+    .detail-poster-wrap { flex-shrink: 0; width: 240px; }
+
+    .detail-poster-img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-md);
+        cursor: zoom-in;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .detail-poster-img:hover {
+        transform: translateY(-2px) scale(1.012);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+    }
+
+    .detail-poster-placeholder {
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        border-radius: 12px;
+        background: var(--bg-surface);
+        border: 1px dashed var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-faint);
+        font-size: 2.5em;
+    }
+
+    .detail-main-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .detail-title-row {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+    }
+
+    .detail-title-row .detail-title {
+        margin-bottom: 0;
+    }
+
+    .detail-title-badges {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .detail-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.76em;
+        font-weight: 600;
+        border: 1px solid currentColor;
+    }
+
+    .detail-status-pill.status-approved { background: var(--approved-bg); color: var(--approved-text); }
+    .detail-status-pill.status-pending  { background: var(--pending-bg);  color: var(--pending-text); }
+    .detail-status-pill.status-rejected { background: var(--rejected-bg); color: var(--rejected-text); }
+
+    .detail-alert-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.76em;
+        font-weight: 600;
+    }
+
+    .detail-alert-pill.failed    { background: var(--pending-bg); color: var(--pending-text); }
+    .detail-alert-pill.processing {
+        background: rgba(59,130,246,0.08);
+        color: #2563eb;
+    }
+
+    [data-theme="dark"] .detail-alert-pill.processing {
+        background: rgba(59,130,246,0.12);
+        color: #60a5fa;
+    }
+
+    .detail-category-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .detail-category-row .category-badge {
+        font-size: 0.72em;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 0;
+    }
+
+    .detail-fav-indicator {
+        margin-left: auto;
+        font-size: 1em;
+        color: var(--favorite);
+        display: inline-block;
+    }
+
+    .detail-fav-indicator-large {
+        position: absolute;
+        top: -18px;
+        right: -18px;
+        z-index: 2;
+        font-size: 2.2em;
+        background: var(--bg-card);
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(61,90,81,0.10);
+        padding: 4px;
+        transition: transform 0.18s;
+    }
+    .detail-fav-indicator-large svg {
+        width: 38px;
+        height: 38px;
+        display: block;
+    }
+    .detail-fav-indicator-large:hover {
+        transform: scale(1.08) rotate(-6deg);
+        box-shadow: 0 6px 18px rgba(245,158,11,0.18);
+    }
+
+    .detail-title {
+        font-size: 1.55em;
+        font-weight: 700;
+        color: var(--text-strong);
+        line-height: 1.25;
+        letter-spacing: -0.025em;
+        margin: 0 0 8px;
+        word-break: break-word;
+    }
+
+    .detail-authors {
+        font-size: 0.88em;
+        color: var(--text-muted);
+        line-height: 1.5;
+        margin-bottom: 18px;
+    }
+
+    .detail-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 0 0 16px;
+        opacity: 0.5;
+    }
+
+    .detail-tags-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 18px;
+    }
+
+    .detail-tag-item {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        border-radius: var(--radius-pill);
+        font-size: 0.76em;
+        font-weight: 600;
+        background: var(--bg-surface);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        white-space: nowrap;
+        transition: all 0.2s ease;
+        letter-spacing: 0.01em;
+    }
+
+    .detail-tag-item::before {
+        content: '#';
+        opacity: 0.35;
+        font-weight: 700;
+        margin-right: 2px;
+    }
+
+    .detail-tag-item:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-muted);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.12);
+    }
+
+    .detail-tag-item.subfield {
+        background: var(--primary-faint);
+        color: var(--primary-darker);
+        border-color: var(--primary-muted);
+    }
+
+    .detail-tag-item.subfield::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--primary);
+        opacity: 0.6;
+        margin-right: 6px;
+    }
+
+    .detail-tag-item.subfield:hover {
+        background: var(--primary-muted);
+        border-color: var(--primary);
+        color: var(--primary-dark);
+        box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    [data-theme="dark"] .detail-tag-item.subfield {
+        color: var(--text-label);
+    }
+
+    .detail-actions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
+    }
+
+    .detail-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 16px;
+        border-radius: var(--radius-sm);
+        font-size: 0.82em;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: 1.5px solid var(--border);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        transition: all 0.18s ease;
+        white-space: nowrap;
+        box-shadow: none;
+    }
+
+    .detail-action-btn::before { display: none; }
+    .detail-action-btn svg     { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .detail-action-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-1px);
+        box-shadow: none;
+    }
+
+    .detail-action-btn.primary {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        border-color: var(--border);
+        box-shadow: none;
+    }
+
+    .detail-action-btn.primary:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        box-shadow: none;
+    }
+
+    .detail-action-btn.ghost {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        border-color: var(--border);
+    }
+
+    .detail-action-btn.ghost:hover {
+        color: var(--primary);
+        border-color: var(--primary);
+        box-shadow: none;
+        transform: translateY(-1px);
+    }
+
+    .detail-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.78em;
+        color: var(--text-faint);
+        font-weight: 500;
+    }
+
+    .detail-meta-row svg { width: 12px; height: 12px; flex-shrink: 0; }
+    .detail-meta-sep     { color: var(--border); }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 16px;
+        animation: fadeInUp 0.4s ease-out 0.06s both;
+    }
+
+    .detail-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-card);
+        box-shadow: var(--shadow-card);
+        padding: 22px 24px;
+        transition: box-shadow 0.25s ease, transform 0.25s ease;
+    }
+
+    .detail-section:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+    }
+
+    .detail-section.full-width { grid-column: 1 / -1; }
+
+    .detail-section-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 0.72em;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--primary);
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .detail-section-title svg { color: var(--primary); }
+
+    .detail-section-title svg      { width: 13px; height: 13px; flex-shrink: 0; }
+    .detail-section-body           { font-size: 0.93em; color: var(--text); line-height: 1.78; }
+    .detail-section-body.empty     { color: var(--text-faint); font-style: italic; font-size: 0.88em; }
+    .detail-notes-text             { font-size: 0.93em; color: var(--text); line-height: 1.72; white-space: pre-wrap; }
+
+    .detail-action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+        animation: fadeInUp 0.4s ease-out 0.12s both;
+    }
+
+    .detail-action-bar .d-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 16px;
+        border-radius: var(--radius-sm);
+        font-size: 0.82em;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        border: 1.5px solid transparent;
+        transition: all 0.18s ease;
+        white-space: nowrap;
+        box-shadow: none;
+    }
+
+    .detail-action-bar .d-btn::before  { display: none; }
+    .detail-action-bar .d-btn svg      { width: 15px; height: 15px; flex-shrink: 0; }
+    .detail-action-bar .d-btn:hover    { transform: translateY(-1px); }
+    .detail-action-bar .d-btn:disabled,
+    .detail-action-bar .d-btn.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; transform: none !important; filter: grayscale(0.4); }
+
+    .detail-action-bar .d-btn-primary  { background: var(--gradient-brand); color: #fff; border-color: var(--primary); box-shadow: 0 2px 8px var(--primary-muted); }
+    .detail-action-bar .d-btn-primary:hover  { box-shadow: 0 4px 16px var(--primary-glow); }
+
+    .detail-action-bar .d-btn-warning  { background: transparent; color: #d97706; border-color: #d97706; }
+    .detail-action-bar .d-btn-warning:hover  { background: rgba(245,158,11,0.08); }
+
+    .detail-action-bar .d-btn-stop     { background: transparent; color: var(--rejected); border-color: var(--rejected); }
+    .detail-action-bar .d-btn-stop:hover     { background: rgba(239,68,68,0.08); }
+
+    .detail-action-bar .d-btn-danger   { background: transparent; color: var(--rejected); border-color: var(--border); }
+    .detail-action-bar .d-btn-danger:hover   { border-color: var(--rejected); background: rgba(239,68,68,0.06); }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="detail-container max-sm:tw-px-0 max-sm:tw-pb-10">
+
+        <div class="detail-back" style="margin-bottom: 10px;">
+            <a href="{% url 'dashboard' %}" class="nav-link" style="display:inline-flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="detail-hero max-md:tw-p-[20px_18px] max-sm:tw-p-[14px_12px] max-sm:tw-rounded-xl">
+            <div class="detail-hero-top max-md:tw-flex-col max-md:tw-gap-5 max-sm:tw-gap-4 max-sm:tw-items-stretch">
+
+                <div class="detail-poster-wrap max-md:tw-w-full max-md:tw-max-w-[300px] max-md:tw-mx-auto max-sm:tw-max-w-[260px]" style="position:relative;">
+                    {% if is_favorite %}
+                        <span class="detail-fav-indicator detail-fav-indicator-large" title="Starred" aria-label="starred">
+                            <svg viewBox="0 0 1024 1024" width="38" height="38" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;">
+                                <path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/>
+                            </svg>
+                        </span>
+                    {% endif %}
+                    {% if poster.image %}
+                        <a href="{{ poster.image.url }}" target="_blank">
+                            <img src="{{ poster.image.url }}" alt="{{ poster.title }}" class="detail-poster-img">
+                        </a>
+                    {% else %}
+                        <div class="detail-poster-placeholder">🖼</div>
+                    {% endif %}
+                </div>
+
+                <div class="detail-main-info">
+
+                    <div class="detail-title-row">
+                        <h1 class="detail-title max-md:tw-text-[1.3em] max-sm:tw-text-[1.05em] max-sm:tw-leading-snug">{{ poster.title }}</h1>
+                        <div class="detail-title-badges">
+                            <span class="detail-status-pill status-{{ poster.validation_status }}">
+                                <span class="status-dot dot-{{ poster.validation_status }}"></span>
+                                {{ poster.validation_status|capfirst }}
+                            </span>
+                            {% if poster.is_new %}<span class="new-badge">NEW</span>{% endif %}
+                            {% if poster.analysis_status == 'failed' %}
+                                <span class="detail-alert-pill failed">⚠ Analysis failed</span>
+                            {% elif poster.analysis_status == 'processing' %}
+                                <span class="detail-alert-pill processing">⏳ Analyzing…</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if poster.authors %}
+                        <div class="detail-authors">{{ poster.authors }}</div>
+                    {% endif %}
+
+                    <div class="detail-divider"></div>
+
+                    <div class="detail-category-row">
+                        <span class="category-badge category-{{ poster.category }}">{{ poster.get_category_display }}</span>
+                    </div>
+
+                    {% if poster.subfields_display or tags_display %}
+                        <div class="detail-tags-row max-sm:tw-gap-1 max-sm:tw-flex-wrap">
+                            {% for sf in poster.subfields_display %}
+                                <span class="detail-tag-item subfield">{{ sf }}</span>
+                            {% endfor %}
+                            {% for tag in tags_display %}
+                                <span class="detail-tag-item">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="detail-actions-row max-sm:tw-flex-row max-sm:tw-flex-wrap max-sm:tw-gap-[5px]">
+                        {% if poster.paper_link %}
+                            <a href="{{ poster.paper_link }}" target="_blank" class="detail-action-btn max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[32px] max-sm:tw-px-2.5 max-sm:tw-text-[0.74em]">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="max-sm:tw-w-3 max-sm:tw-h-3">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                View Paper
+                            </a>
+                            <button type="button" onclick="copyDetailLink('{{ poster.paper_link|escapejs }}')" class="detail-action-btn max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[32px] max-sm:tw-px-2.5 max-sm:tw-text-[0.74em]">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="max-sm:tw-w-3 max-sm:tw-h-3">
+                                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                </svg>
+                                Copy link
+                            </button>
+                        {% endif %}
+
+                        {% if poster.github_link %}
+                            <a href="{{ poster.github_link }}" target="_blank" class="detail-action-btn max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[32px] max-sm:tw-px-2.5 max-sm:tw-text-[0.74em]">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="max-sm:tw-w-3 max-sm:tw-h-3">
+                                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/>
+                                </svg>
+                                View Code
+                            </a>
+                        {% endif %}
+
+                        {% if not poster.paper_link and not poster.github_link %}
+                            <span style="font-size:0.82em; color:var(--text-faint); align-self:center;">No external links available.</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-meta-row max-sm:tw-flex-col max-sm:tw-items-start max-sm:tw-gap-[3px] max-sm:tw-text-[0.7em]">
+                        {% if poster.uploaded_by %}
+                            <span>{{ poster.uploaded_by.username }}</span>
+                            <span class="detail-meta-sep max-sm:tw-hidden">·</span>
+                        {% elif poster.upload_source == 'telegram' %}
+                            <span>via Telegram</span>
+                            <span class="detail-meta-sep max-sm:tw-hidden">·</span>
+                        {% elif poster.upload_source == 'whatsapp' %}
+                            <span>via WhatsApp</span>
+                            <span class="detail-meta-sep max-sm:tw-hidden">·</span>
+                        {% endif %}
+                        <span>Added {{ poster.created_at|date:"d M Y" }}</span>
+                        <span class="detail-meta-sep max-sm:tw-hidden">·</span>
+                        <span>Updated {{ poster.updated_at|timesince }} ago</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-grid max-md:tw-grid-cols-1 max-sm:tw-gap-2.5">
+
+            <div class="detail-section max-sm:tw-p-3 max-sm:tw-rounded-lg">
+                <div class="detail-section-title max-sm:tw-text-[0.72em]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+                        <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
+                    </svg>
+                    Summary
+                </div>
+                {% if poster.summary %}
+                    <div class="detail-section-body">{{ poster.summary }}</div>
+                {% else %}
+                    <div class="detail-section-body empty">No summary available.</div>
+                {% endif %}
+            </div>
+
+            <div class="detail-section max-sm:tw-p-3 max-sm:tw-rounded-lg">
+                <div class="detail-section-title max-sm:tw-text-[0.72em]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    Why Useful
+                </div>
+                {% if poster.why_useful %}
+                    <div class="detail-section-body">{{ poster.why_useful }}</div>
+                {% else %}
+                    <div class="detail-section-body empty">No evaluation available.</div>
+                {% endif %}
+            </div>
+
+            <div class="detail-section {% if not tags_display %}full-width{% endif %} max-md:tw-col-auto max-sm:tw-p-3 max-sm:tw-rounded-lg">
+                <div class="detail-section-title max-sm:tw-text-[0.72em]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Notes
+                </div>
+                {% if poster.notes %}
+                    <div class="detail-notes-text">{{ poster.notes }}</div>
+                {% else %}
+                    <div class="detail-section-body empty">No notes added yet.</div>
+                {% endif %}
+            </div>
+
+            {% if tags_display %}
+            <div class="detail-section max-sm:tw-p-3 max-sm:tw-rounded-lg">
+                <div class="detail-section-title max-sm:tw-text-[0.72em]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                        <line x1="7" y1="7" x2="7.01" y2="7"/>
+                    </svg>
+                    Tags
+                </div>
+                <div class="detail-tags-row">
+                    {% for tag in tags_display %}
+                        <span class="detail-tag-item">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <div class="detail-action-bar max-sm:tw-flex-row max-sm:tw-gap-2 max-sm:tw-flex-wrap max-sm:tw-mt-4 max-sm:tw-px-0.5">
+            {% if poster.analysis_status == 'failed' %}
+                <button id="retryBtn" onclick="retryAnalysisDetail({{ poster.id }})" class="d-btn d-btn-warning max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[34px] max-sm:tw-px-3 max-sm:tw-text-[0.76em]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+                    </svg>
+                    Retry Analysis
+                </button>
+            {% elif poster.analysis_status == 'processing' %}
+                <button id="stopBtn" onclick="stopAnalysisDetail({{ poster.id }})" class="d-btn d-btn-stop max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[34px] max-sm:tw-px-3 max-sm:tw-text-[0.76em]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    </svg>
+                    Stop Analysis
+                </button>
+            {% endif %}
+
+            {% if poster.analysis_status == 'processing' %}
+            <span class="d-btn d-btn-primary disabled" title="Unavailable during analysis">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit Paper
+            </span>
+            <span class="d-btn d-btn-danger disabled" title="Unavailable during analysis">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+                Delete
+            </span>
+            {% else %}
+            <a href="{% url 'edit_poster' poster.id %}" class="d-btn d-btn-primary max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[34px] max-sm:tw-px-3 max-sm:tw-text-[0.76em]">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit Paper
+            </a>
+            <button onclick="confirmDeleteDetail({{ poster.id }}, '{{ poster.title|escapejs }}')" class="d-btn d-btn-danger max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[34px] max-sm:tw-px-3 max-sm:tw-text-[0.76em]">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+                Delete
+            </button>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<div id="deleteModal" class="modal" style="display: none;" onclick="if(event.target===this)closeDeleteModal()">
+    <div class="modal-content max-sm:tw-w-full max-sm:tw-max-w-full max-sm:tw-rounded-t-2xl max-sm:tw-rounded-b-none max-sm:tw-m-0 max-sm:tw-p-5">
+        <h3>
+            <svg class="btn-icon icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9"  x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Confirm Delete
+        </h3>
+        <p>Are you sure you want to delete "<span id="deletePosterTitle"></span>"?</p>
+        <p class="text-muted" style="font-size: 0.9em;">This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button onclick="closeDeleteModal()" class="btn">Cancel</button>
+            <form id="deleteForm" method="POST" action="" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn delete-confirm-btn">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<button id="backToTop" class="scroll-top-btn" aria-label="Back to top">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"/>
+    </svg>
+</button>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/poster-detail.js' %}"></script>
+{% endblock %}

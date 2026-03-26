@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard — PaperProject{% endblock %}
+
+{% block content %}
+    {% if messages %}
+        {% for message in messages %}
+        <div class="toast toast-{{ message.tags }} max-xl:tw-top-auto max-xl:tw-right-2.5 max-xl:tw-left-2.5 max-xl:tw-bottom-[calc(12px+env(safe-area-inset-bottom,0px))] max-xl:tw-max-w-[calc(100vw-20px)] max-xl:tw-p-[14px_16px]" id="toast">
+            <span class="toast-icon">{% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}</span>
+            <div class="toast-body">
+                <span class="toast-title">{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Warning{% else %}Info{% endif %}</span>
+                <span class="toast-detail">{{ message }}</span>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.classList.add('toast-hide');setTimeout(()=>this.parentElement.remove(),300)" aria-label="Close">✕</button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="container dashboard max-xl:tw-overflow-x-hidden max-xl:tw-max-w-[100vw]">
+        <div class="dashboard-header max-xl:tw-flex-row max-xl:tw-items-center max-xl:tw-justify-between max-xl:tw-flex-nowrap max-xl:tw-gap-2.5 max-xl:tw-px-3.5 max-xl:tw-py-2.5 max-xl:tw-rounded-[10px] max-xl:tw-mb-2.5 max-xl:tw-border-l-[3px]">
+            <div class="dashboard-header-left max-xl:tw-gap-1.5 max-xl:tw-flex-1 max-xl:tw-min-w-0">
+                <div>
+                    <h1 class="dashboard-title max-xl:tw-text-[1em] max-xl:tw-mb-0 max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-text-ellipsis max-xl:tw-min-w-0">Research Papers Table</h1>
+                    <p class="dashboard-header-sub max-xl:tw-hidden">Manage, review and export your research collection</p>
+                </div>
+            </div>
+            <div class="text-center max-xl:!tw-mt-0 max-xl:tw-flex-shrink-0" style="margin-top: 24px;">
+                 <a href="{% url 'upload' %}" class="nav-link max-xl:!tw-h-8 max-xl:!tw-leading-8 max-xl:!tw-px-3.5 max-xl:!tw-text-[0.78em] max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:!tw-whitespace-nowrap max-xl:!tw-flex-shrink-0" style="display:inline-flex;align-items:center;gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Back to Upload
+                 </a>
+            </div>
+        </div>
+
+        <div class="stats-container max-xl:tw-grid-cols-5 max-xl:tw-gap-[5px] max-xl:tw-mb-2 max-sm:tw-grid-cols-3 max-sm:tw-gap-1.5" id="statsContainer">
+            <div class="stat-card max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
+                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-total">{{ stats.total }}</div>
+                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase">Total Papers</div>
+            </div>
+            <div class="stat-card stat-pending max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
+                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-pending">{{ stats.pending }}</div>
+                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase"><span class="status-dot dot-pending"></span> Pending</div>
+            </div>
+            <div class="stat-card stat-approved max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
+                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-approved">{{ stats.approved }}</div>
+                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase"><span class="status-dot dot-approved"></span> Approved</div>
+            </div>
+            <div class="stat-card stat-rejected max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
+                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-rejected">{{ stats.rejected }}</div>
+                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase"><span class="status-dot dot-rejected"></span> Rejected</div>
+            </div>
+            <a href="javascript:void(0)" onclick="toggleFilter('favorites','1')"
+               class="stat-card stat-favorites {% if favorites_filter %}stat-favorites-active{% endif %} max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none"
+               id="stat-favorites-card" title="Show only starred papers">
+                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-favorites">{{ stats.favorites }}</div>
+                <div class="stat-label"><span class="icon-star" aria-label="starred"><svg viewBox="0 0 1024 1024" width="18" height="18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span> Starred</div>
+            </a>
+        </div>
+
+        <div class="search-bar-card max-xl:tw-p-2.5 max-xl:tw-mb-2 max-xl:tw-rounded-xl">
+            <form class="search-form max-xl:tw-gap-[5px] max-sm:tw-flex-col max-sm:tw-gap-2.5" id="searchForm" onsubmit="return handleSearchSubmit(event)">
+                <div class="tw-relative tw-flex-1 tw-min-w-0 max-sm:tw-w-full">
+                    <input type="text" name="search"
+                           placeholder="Search by title, authors, tags, or summary..."
+                           value="{{ search_query }}"
+                           class="search-input tw-w-full tw-pr-8 max-xl:tw-h-[38px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-xl:tw-rounded-lg max-xl:tw-leading-tight max-sm:tw-h-11 max-sm:tw-text-sm"
+                           id="searchInput">
+                    <button type="button" id="searchClearBtn" onclick="clearSearch()" class="tw-absolute tw-right-2 tw-top-1/2 tw--translate-y-1/2 tw-border-none tw-bg-transparent tw-cursor-pointer tw-text-[var(--text-muted)] hover:tw-text-[var(--text-heading)] tw-text-lg tw-leading-none tw-p-1" style="display:none;" aria-label="Clear search">&times;</button>
+                </div>
+                <div class="tw-flex tw-gap-3 tw-flex-shrink-0 max-sm:tw-gap-2.5 max-sm:tw-w-full">
+                    <button type="submit" class="search-btn max-xl:!tw-flex-[1_1_0] max-xl:!tw-min-w-0 max-xl:!tw-w-auto max-xl:!tw-max-w-none max-xl:!tw-h-[34px] max-xl:!tw-px-3 max-xl:!tw-text-[0.78em] max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center max-xl:tw-gap-1 max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:!tw-min-h-0 max-sm:!tw-h-[36px] max-sm:!tw-text-[0.8em]">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        Search
+                    </button>
+                    <button type="button" class="advanced-toggle-btn max-xl:!tw-flex-[1_1_0] max-xl:!tw-min-w-0 max-xl:!tw-w-auto max-xl:!tw-max-w-none max-xl:!tw-h-[34px] max-xl:!tw-px-3 max-xl:!tw-text-[0.78em] max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center max-xl:tw-gap-1 max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:!tw-min-h-0 max-sm:!tw-h-[36px] max-sm:!tw-text-[0.8em]" onclick="toggleAdvancedFilters()">
+                        <span id="advancedToggleIcon">▼</span> Advanced
+                    </button>
+                </div>
+
+                <div class="advanced-filters" id="advancedFilters">
+                    <div class="advanced-filters-inner">
+                        <div class="advanced-filters-grid max-xl:tw-grid-cols-2 max-xl:tw-gap-2 max-sm:tw-grid-cols-1 max-sm:tw-gap-3">
+                            <div class="advanced-filter-field">
+                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">Author</label>
+                                <input type="text" id="filterAuthor" placeholder="Filter by author..." value="{{ author_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
+                            </div>
+                            <div class="advanced-filter-field">
+                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">Summary</label>
+                                <input type="text" id="filterSummary" placeholder="Full-text search in summary..." value="{{ summary_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
+                            </div>
+                            <div class="advanced-filter-field">
+                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">From Date</label>
+                                <input type="date" id="filterDateFrom" value="{{ date_from_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
+                            </div>
+                            <div class="advanced-filter-field">
+                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">To Date</label>
+                                <input type="date" id="filterDateTo" value="{{ date_to_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
+                            </div>
+                        </div>
+                        <div class="advanced-filters-actions max-xl:tw-gap-[5px] max-xl:tw-mt-2.5 max-sm:tw-flex-col max-sm:tw-gap-2.5">
+                            <button type="button" class="advanced-toggle-btn max-sm:tw-w-full max-sm:tw-min-h-[44px] max-sm:tw-text-[0.88em] max-sm:tw-rounded-lg" onclick="applyAdvancedFilters()">Apply Filters</button>
+                            <button type="button" class="advanced-clear-btn max-sm:tw-w-full max-sm:tw-min-h-[44px] max-sm:tw-text-[0.88em] max-sm:tw-rounded-lg" onclick="clearAllFilters()">Clear All</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <div class="export-buttons max-xl:tw-flex-row max-xl:tw-gap-[5px] max-xl:tw-mt-2 max-sm:tw-flex-row max-sm:tw-gap-1.5 max-sm:tw-mt-2">
+                <a href="{% url 'export_approved_csv' %}?{% if search_query %}search={{ search_query|urlencode }}&{% endif %}{% if category_filter %}category={{ category_filter|urlencode }}{% endif %}" class="export-btn max-xl:tw-flex-1 max-xl:tw-h-8 max-xl:tw-px-3 max-xl:tw-text-[0.75em] max-xl:tw-justify-center max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-[3px] max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-min-h-0 max-sm:tw-h-[32px] max-sm:tw-text-[0.73em]">
+                    <svg class="btn-icon max-xl:tw-w-3 max-xl:tw-h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export CSV
+                </a>
+                <a href="{% url 'export_approved_json' %}?{% if search_query %}search={{ search_query|urlencode }}&{% endif %}{% if category_filter %}category={{ category_filter|urlencode }}{% endif %}" class="export-btn max-xl:tw-flex-1 max-xl:tw-h-8 max-xl:tw-px-3 max-xl:tw-text-[0.75em] max-xl:tw-justify-center max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-[3px] max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-min-h-0 max-sm:tw-h-[32px] max-sm:tw-text-[0.73em]">
+                    <svg class="btn-icon max-xl:tw-w-3 max-xl:tw-h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export JSON
+                </a>
+            </div>
+        </div>
+
+        <div class="filter-cards-container max-xl:tw-flex-col max-xl:tw-gap-2 max-xl:tw-mb-2.5">
+
+            <div class="filter-card status-card max-xl:tw-w-full max-xl:tw-flex-none max-xl:tw-p-[8px_12px] max-xl:tw-rounded-xl max-xl:tw-border-t-2">
+                <h3 class="filter-card-title max-xl:tw-text-[0.7em] max-xl:tw-mb-[6px] max-xl:tw-uppercase max-xl:tw-tracking-wider max-xl:tw-font-bold">Status</h3>
+                <div class="filter-card-buttons max-xl:tw-flex max-xl:tw-flex-nowrap max-xl:tw-gap-[6px] max-xl:tw-overflow-x-auto max-xl:tw-pb-0.5 max-xl:[scrollbar-width:none] max-xl:[-webkit-overflow-scrolling:touch]" id="statusButtons">
+                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if not status_filter %}active{% endif %}" onclick="setFilter('status','')">All</button>
+                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if status_filter == 'pending' %}active{% endif %}"  onclick="setFilter('status','pending')"><span class="status-dot dot-pending"></span> Pending</button>
+                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if status_filter == 'approved' %}active{% endif %}" onclick="setFilter('status','approved')"><span class="status-dot dot-approved"></span> Approved</button>
+                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if status_filter == 'rejected' %}active{% endif %}" onclick="setFilter('status','rejected')"><span class="status-dot dot-rejected"></span> Rejected</button>
+                </div>
+            </div>
+
+            <div class="filter-card links-card max-xl:tw-w-full max-xl:tw-flex-none max-xl:tw-p-[8px_12px] max-xl:tw-rounded-xl max-xl:tw-border-t-2">
+                <h3 class="filter-card-title max-xl:tw-text-[0.7em] max-xl:tw-mb-[6px] max-xl:tw-uppercase max-xl:tw-tracking-wider max-xl:tw-font-bold">Links</h3>
+                <div class="filter-card-buttons max-xl:tw-flex max-xl:tw-flex-nowrap max-xl:tw-gap-[6px] max-xl:tw-overflow-x-auto max-xl:tw-pb-0.5 max-xl:[scrollbar-width:none] max-xl:[-webkit-overflow-scrolling:touch]" id="linksButtons">
+                    <button type="button" class="filter-btn links-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if not has_github_filter and not has_paper_filter and not favorites_filter %}active{% endif %}" onclick="clearLinksFilters()">All</button>
+                    <button type="button" class="filter-btn links-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if has_github_filter %}active{% endif %}" onclick="toggleFilter('has_github','1')">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                        </svg>
+                        GitHub
+                    </button>
+                    <button type="button" class="filter-btn links-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if has_paper_filter %}active{% endif %}" onclick="toggleFilter('has_paper','1')">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Paper
+                    </button>
+                    <button type="button" class="filter-btn links-filter links-filter-starred max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if favorites_filter %}active{% endif %}" onclick="toggleFilter('favorites','1')">
+                        <span class="icon-star" aria-label="starred"><svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span> Starred
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-card category-card max-xl:tw-w-full max-xl:tw-flex-none max-xl:tw-p-[8px_12px] max-xl:tw-rounded-xl max-xl:tw-border-t-2">
+                <h3 class="filter-card-title max-xl:tw-text-[0.7em] max-xl:tw-mb-[6px] max-xl:tw-uppercase max-xl:tw-tracking-wider max-xl:tw-font-bold">Category & Subfields</h3>
+                <div class="category-subfield-filter">
+                    <div class="filter-card-buttons" id="categoryButtons" style="margin-bottom: 8px;">
+                        <button type="button" class="filter-btn category-filter {% if not category_filter and not subfield_filter %}active{% endif %}" onclick="setFilter('category','')">All</button>
+                        {% for cat_value, cat_label in categories %}
+                            <button type="button" class="filter-btn category-filter {% if category_filter == cat_value %}active{% endif %}" onclick="setFilter('category','{{ cat_value }}')">{{ cat_label }}</button>
+                        {% endfor %}
+                    </div>
+                    <div class="subfield-dropdown-wrap" id="subfieldDropdownWrap" style="{% if not category_filter %}display:none{% endif %}">
+                        <button type="button" class="subfield-dropdown-btn" onclick="toggleSubfieldDropdown()">
+                            <span id="subfieldBtnLabel">
+                                {% if subfield_filter %}
+                                    {{ subfield_filter|length }} subfield{{ subfield_filter|length|pluralize }} selected
+                                {% else %}
+                                    Filter by subfield…
+                                {% endif %}
+                            </span>
+                            <span class="subfield-dropdown-arrow">▼</span>
+                        </button>
+                        <div class="subfield-dropdown-panel" id="subfieldDropdownPanel" style="display:none;">
+                            <div class="subfield-dropdown-search">
+                                <input type="text" id="subfieldSearchInput" placeholder="Search subfields..." oninput="filterSubfieldOptions(this.value)">
+                            </div>
+                            <div class="subfield-dropdown-groups" id="subfieldDropdownGroups">
+                                {% if category_filter %}
+                                    {% for cat_slug, group_label, items in subfields_grouped %}
+                                        {% if cat_slug == category_filter %}
+                                        <div class="subfield-dd-group" data-group="{{ group_label }}" data-category="{{ cat_slug }}">
+                                            <div class="subfield-dd-group-label">{{ group_label }}</div>
+                                            {% for sf_value, sf_label in items %}
+                                            <label class="subfield-dd-option" data-slug="{{ sf_value }}" data-label="{{ sf_label|lower }}">
+                                                <input type="checkbox" value="{{ sf_value }}" {% if sf_value in subfield_filter %}checked{% endif %} onchange="applySubfieldFilter()">
+                                                {{ sf_label }}
+                                            </label>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            <div class="subfield-dropdown-actions">
+                                <button type="button" class="subfield-clear-btn" onclick="clearSubfieldFilter()">Clear all</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="active-subfield-tags" id="activeSubfieldTags">
+                        {% if subfield_filter %}
+                            {% for sf in subfield_filter %}
+                                <span class="subfield-active-tag">{{ sf }} <button onclick="removeSubfield('{{ sf }}')" class="subfield-tag-remove">&times;</button></span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bulk-bar max-xl:tw-fixed max-xl:tw-left-0 max-xl:tw-right-0 max-xl:tw-bottom-0 max-xl:tw-top-auto max-xl:tw-z-[1000] max-xl:tw-m-0 max-xl:tw-p-[10px_10px_calc(10px+env(safe-area-inset-bottom,0px))] max-xl:tw-gap-2 max-xl:tw-rounded-t-[14px] max-xl:tw-rounded-b-none max-xl:tw-shadow-[0_-4px_20px_rgba(0,0,0,0.25)] max-xl:tw-flex-wrap max-xl:tw-justify-center" id="bulkBar">
+            <div class="bulk-bar-left max-xl:tw-w-auto max-xl:tw-text-center max-xl:!tw-text-[0.82em] max-xl:tw-font-bold"><span id="bulkCount">0</span> selected</div>
+            <div class="bulk-bar-actions max-xl:tw-w-full max-xl:tw-justify-center max-xl:tw-gap-1.5 max-xl:tw-flex-wrap">
+                <button class="bulk-btn bulk-btn-status max-xl:!tw-h-8 max-xl:!tw-px-3 max-xl:!tw-text-[0.75em] max-xl:!tw-rounded-lg max-xl:tw-flex-none" onclick="bulkAction('approved')"><span class="status-dot dot-approved"></span> Approve</button>
+                <button class="bulk-btn bulk-btn-status max-xl:!tw-h-8 max-xl:!tw-px-3 max-xl:!tw-text-[0.75em] max-xl:!tw-rounded-lg max-xl:tw-flex-none" onclick="bulkAction('pending')"><span class="status-dot dot-pending"></span> Pending</button>
+                <button class="bulk-btn bulk-btn-status max-xl:!tw-h-8 max-xl:!tw-px-3 max-xl:!tw-text-[0.75em] max-xl:!tw-rounded-lg max-xl:tw-flex-none" onclick="bulkAction('rejected')"><span class="status-dot dot-rejected"></span> Reject</button>
+                <button class="bulk-btn bulk-btn-fav"    onclick="bulkAction('favorite')"><span class="icon-star" aria-label="starred"><svg viewBox="0 0 1024 1024" width="18" height="18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span> Star</button>
+                <button class="bulk-btn bulk-btn-fav"    onclick="bulkAction('unfavorite')"><span class="icon-star-empty" aria-label="not starred"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M11.2691 4.41115C11.5006 3.89177 11.6164 3.63208 11.7776 3.55211C11.9176 3.48263 12.082 3.48263 12.222 3.55211C12.3832 3.63208 12.499 3.89177 12.7305 4.41115L14.5745 8.54808C14.643 8.70162 14.6772 8.77839 14.7302 8.83718C14.777 8.8892 14.8343 8.93081 14.8982 8.95929C14.9705 8.99149 15.0541 9.00031 15.2213 9.01795L19.7256 9.49336C20.2911 9.55304 20.5738 9.58288 20.6997 9.71147C20.809 9.82316 20.8598 9.97956 20.837 10.1342C20.8108 10.3122 20.5996 10.5025 20.1772 10.8832L16.8125 13.9154C16.6877 14.0279 16.6252 14.0842 16.5857 14.1527C16.5507 14.2134 16.5288 14.2807 16.5215 14.3503C16.5132 14.429 16.5306 14.5112 16.5655 14.6757L17.5053 19.1064C17.6233 19.6627 17.6823 19.9408 17.5989 20.1002C17.5264 20.2388 17.3934 20.3354 17.2393 20.3615C17.0619 20.3915 16.8156 20.2495 16.323 19.9654L12.3995 17.7024C12.2539 17.6184 12.1811 17.5765 12.1037 17.56C12.0352 17.5455 11.9644 17.5455 11.8959 17.56C11.8185 17.5765 11.7457 17.6184 11.6001 17.7024L7.67662 19.9654C7.18404 20.2495 6.93775 20.3915 6.76034 20.3615C6.60623 20.3354 6.47319 20.2388 6.40075 20.1002C6.31736 19.9408 6.37635 19.6627 6.49434 19.1064L7.4341 14.6757C7.46898 14.5112 7.48642 14.429 7.47814 14.3503C7.47081 14.2807 7.44894 14.2134 7.41394 14.1527C7.37439 14.0842 7.31195 14.0279 7.18708 13.9154L3.82246 10.8832C3.40005 10.5025 3.18884 10.3122 3.16258 10.1342C3.13978 9.97956 3.19059 9.82316 3.29993 9.71147C3.42581 9.58288 3.70856 9.55304 4.27406 9.49336L8.77835 9.01795C8.94553 9.00031 9.02911 8.99149 9.10139 8.95929C9.16534 8.93081 9.2226 8.8892 9.26946 8.83718C9.32241 8.77839 9.35663 8.70162 9.42508 8.54808L11.2691 4.41115Z"/></svg></span> Unstar</button>
+                <button class="bulk-btn bulk-btn-delete" onclick="bulkAction('delete')">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+            <button class="bulk-bar-close max-xl:tw-absolute max-xl:tw-top-2 max-xl:tw-right-2 max-xl:!tw-w-8 max-xl:!tw-h-8 max-xl:!tw-p-0 max-xl:!tw-text-base" onclick="clearSelection()">✕</button>
+        </div>
+
+        <div class="table-container max-xl:tw-w-full max-xl:tw-max-w-full max-xl:tw-overflow-x-hidden max-xl:tw-bg-transparent max-xl:tw-shadow-none max-xl:tw-rounded-none max-xl:tw-border-none max-xl:tw-px-0.5" id="tableContainer">
+            {% include '_dashboard_partial.html' %}
+        </div>
+
+        <div class="pagination-container max-xl:tw-flex-row max-xl:tw-flex-wrap max-xl:tw-justify-center max-xl:tw-gap-2.5 max-xl:tw-p-[10px_12px] max-xl:tw-mt-3 max-xl:tw-rounded-xl" id="paginationContainer">
+            {% include '_pagination_partial.html' %}
+        </div>
+
+        <div class="activity-sidebar max-xl:tw-p-3 max-xl:tw-rounded-xl max-xl:tw-mt-3" id="activitySidebar">
+            <div class="activity-header">
+                <h3 class="activity-title max-xl:tw-text-[0.9em]">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+                    </svg>
+                    Recent Activity
+                </h3>
+                <div class="activity-header-actions">
+                    {% if recent_activity %}
+                    <button onclick="clearAllActivities()" class="clear-activity-btn" title="Clear all activities">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                    </button>
+                    {% endif %}
+                    <button onclick="toggleActivitySidebar()" class="toggle-activity-btn" id="toggleActivityBtn" title="Hide activity log">▼</button>
+                </div>
+            </div>
+            <div class="activity-list" id="activityList">
+                {% for activity in recent_activity %}
+                <div class="activity-item max-xl:tw-p-[8px_10px] max-xl:tw-rounded-lg">
+                    <div class="activity-action max-xl:tw-text-[0.82em]">
+                        {% if activity.action == 'created' %}<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        {% elif activity.action == 'updated' %}<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        {% elif activity.action == 'deleted' %}<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                        {% elif activity.action == 'status_changed' %}<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                        {% elif activity.action == 'favorited' %}<span class="icon-star" aria-label="starred"><svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span>
+                        {% elif activity.action == 'unfavorited' %}<span class="icon-star-empty" aria-label="not starred"><svg viewBox="0 0 1024 1024" width="16" height="16" fill="none" stroke="currentColor" stroke-width="48" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><polygon points="512,72 627,375 952,375 684,568 799,872 512,679 225,872 340,568 72,375 397,375"/></svg></span>
+                        {% endif %}
+                        <strong>{{ activity.get_action_display }}</strong>
+                    </div>
+                    <div class="activity-details max-xl:tw-text-[0.85em]">{{ activity.poster_title }}</div>
+                    <div class="activity-time max-xl:tw-text-[0.78em]">{{ activity.timestamp|timesince }} ago</div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No recent activity</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal max-xl:tw-items-end" style="display: none;" onclick="if(event.target===this)closeDeleteModal()">
+        <div class="modal-content max-xl:tw-w-full max-xl:tw-max-w-full max-xl:tw-m-0 max-xl:tw-p-[24px_20px] max-xl:tw-rounded-t-[16px] max-xl:tw-rounded-b-none max-xl:tw-animate-[modalSlideUpMobile_0.3s_ease-out]">
+            <h3 class="max-xl:tw-text-lg">
+                <svg class="btn-icon icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9"  x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Confirm Delete
+            </h3>
+            <p class="max-xl:tw-text-[0.92em]">Are you sure you want to delete "<span id="deletePosterTitle"></span>"?</p>
+            <p class="text-muted" style="font-size: 0.9em;">This action cannot be undone.</p>
+            <div class="modal-actions max-xl:tw-flex-row max-xl:tw-gap-2.5">
+                <button onclick="closeDeleteModal()" class="btn max-xl:tw-flex-1 max-xl:tw-p-3 max-xl:tw-text-[0.9em] max-xl:tw-text-center max-xl:tw-rounded-lg">Cancel</button>
+                <button type="button" class="btn delete-confirm-btn max-xl:tw-flex-1 max-xl:tw-p-3 max-xl:tw-text-[0.9em] max-xl:tw-text-center max-xl:tw-rounded-lg" id="deleteConfirmBtn" onclick="executeDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="backToTop" class="scroll-top-btn max-xl:tw-right-2.5 max-xl:tw-bottom-[calc(10px+env(safe-area-inset-bottom,0px))] max-xl:tw-w-10 max-xl:tw-h-10 max-xl:tw-rounded-[10px]" aria-label="Back to top">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+        </svg>
+    </button>
+    <div id="dashboardData" style="display:none"
+         data-status-filter="{{ status_filter|escapejs }}"
+         data-category-filter="{{ category_filter|escapejs }}"
+         data-has-github-filter="{{ has_github_filter|escapejs }}"
+         data-has-paper-filter="{{ has_paper_filter|escapejs }}"
+         data-favorites-filter="{{ favorites_filter|escapejs }}"
+         data-search-query="{{ search_query|escapejs }}"
+         data-author-filter="{{ author_filter|escapejs }}"
+         data-summary-filter="{{ summary_filter|escapejs }}"
+         data-date-from-filter="{{ date_from_filter|escapejs }}"
+         data-date-to-filter="{{ date_to_filter|escapejs }}"
+         data-subfield-filter="{{ subfield_filter|join:',' }}"
+         data-sort-by="{{ sort_by|escapejs }}"
+         data-sort-order="{{ sort_order|escapejs }}"
+         data-per-page="{{ per_page }}"
+         data-current-page="{{ page_obj.number }}">
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}?v=20260324b" defer></script>
+{% endblock %}

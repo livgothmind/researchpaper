@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit — {{ poster.title|default:"Research Paper" }} · PaperProject{% endblock %}
+
+{% block body_class %}upload-page{% endblock %}
+
+{% block extra_head %}
+<style>
+    .edit-card {
+        max-width: 740px;
+        width: 100%;
+    }
+
+    .edit-header {
+        margin-bottom: 28px;
+    }
+
+    .edit-breadcrumb {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.82em;
+        color: var(--text-faint);
+        text-decoration: none;
+        margin-bottom: 10px;
+        transition: color 0.2s ease;
+    }
+
+    .edit-breadcrumb:hover { color: var(--text-muted); text-decoration: underline; }
+
+    .edit-breadcrumb svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    .edit-title {
+        font-size: 1.25em;
+        font-weight: 700;
+        color: var(--text-strong);
+        margin: 0;
+        text-shadow: none;
+        text-align: left;
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .edit-error {
+        margin-bottom: 20px;
+        padding: 11px 14px;
+        border-radius: 8px;
+        background: var(--rejected-bg);
+        border: 1px solid var(--rejected);
+        color: var(--rejected-text);
+        font-size: 0.88em;
+        font-weight: 500;
+    }
+
+    .edit-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 28px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .edit-actions .btn,
+    .edit-actions .edit-cancel {
+        padding: 8px 20px;
+        font-size: 0.82em;
+        min-width: 100px;
+        height: 36px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .edit-cancel {
+        background: transparent;
+        color: var(--text-muted);
+        border: 1.5px solid var(--border);
+        box-shadow: none;
+    }
+
+    .edit-cancel::before { display: none; }
+
+    .edit-cancel:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: none;
+        box-shadow: none;
+    }
+
+    #editForm input,
+    #editForm textarea,
+    #editForm select {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.93em;
+        background: var(--bg-input);
+        color: var(--text-strong);
+        font-family: inherit;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    #editForm input:focus,
+    #editForm textarea:focus,
+    #editForm select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-muted);
+        background: var(--bg-input-focus);
+    }
+
+    [data-theme="dark"] #editForm input,
+    [data-theme="dark"] #editForm textarea,
+    [data-theme="dark"] #editForm select {
+        border-color: var(--border);
+        background: var(--bg-input);
+        color: var(--text);
+    }
+
+    .edit-dirty-dot {
+        display: none;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--pending);
+        flex-shrink: 0;
+        margin-left: 8px;
+        vertical-align: middle;
+        animation: pulse 2s infinite;
+    }
+
+    .edit-dirty-dot.visible { display: inline-block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container max-sm:tw-px-2 max-sm:tw-max-w-full">
+    <div class="card edit-card max-sm:tw-p-4 max-sm:tw-mx-2 max-sm:tw-rounded-xl">
+
+        <div class="edit-header max-sm:tw-mb-4">
+            <a href="{% url 'dashboard' %}" class="edit-breadcrumb max-sm:tw-text-xs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Back to Dashboard
+            </a>
+            <h1 class="edit-title max-sm:tw-text-base max-sm:tw-leading-snug">
+                {{ poster.title|default:"Edit Research Paper" }}
+                <span class="edit-dirty-dot" id="dirtyDot" title="Unsaved changes"></span>
+            </h1>
+        </div>
+
+        {% if form.errors %}
+            <div class="edit-error max-sm:tw-text-xs max-sm:tw-p-2.5">Please correct the errors below.</div>
+        {% endif %}
+
+        <form method="post" id="editForm">
+            {% csrf_token %}
+
+            {% for field in form %}
+            <div class="form-group max-sm:tw-mb-4">
+                <label for="{{ field.id_for_label }}" class="max-sm:tw-text-sm max-sm:tw-mb-1.5">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <span class="helptext max-sm:tw-text-xs">{{ field.help_text }}</span>
+                {% endif %}
+                {% if field.errors %}
+                    <ul class="errorlist max-sm:tw-text-xs">
+                        {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="edit-actions max-sm:tw-flex-col max-sm:tw-gap-2.5 max-sm:tw-mt-5">
+                <button type="submit" class="btn max-sm:tw-w-full max-sm:tw-h-11 max-sm:tw-text-sm">Save Changes</button>
+                <a href="{% url 'dashboard' %}" class="btn edit-cancel max-sm:tw-w-full max-sm:tw-h-11 max-sm:tw-text-sm max-sm:tw-text-center">Cancel</a>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        let isDirty = false;
+        const form    = document.getElementById('editForm');
+        const dot     = document.getElementById('dirtyDot');
+
+        form.addEventListener('input',  () => { isDirty = true;  dot.classList.add('visible'); });
+        form.addEventListener('change', () => { isDirty = true;  dot.classList.add('visible'); });
+        form.addEventListener('submit', () => { isDirty = false; dot.classList.remove('visible'); });
+
+        window.addEventListener('beforeunload', (e) => {
+            if (!isDirty) return;
+            e.preventDefault();
+            e.returnValue = '';
+        });
+    })();
+</script>
+{% endblock %}

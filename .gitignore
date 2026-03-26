@@ -1,0 +1,65 @@
+# Environment variables and sensitive data
+.env
+*.env
+
+# Development diary / local notes
+diario_sviluppo.txt
+TEST_PAPER.txt
+
+# Database
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+*.log
+local_settings.py
+staticfiles/
+media/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+celeryworker.pid
+
+# Docker volumes
+mysql_data/
+postgres_data/
+redis_data/
+tmp/
+
+# Log files
+logs/
+*.log
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Ngrok
+ngrok.exe
+ngrok.yml
+
+# Docker local overrides
+docker-compose.override.yml

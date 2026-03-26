@@ -1,0 +1,36 @@
+<div class="pagination-info max-xl:tw-w-full max-xl:tw-text-center max-xl:tw-text-[0.82em]">
+    Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} papers
+</div>
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="pagination-controls max-xl:tw-gap-1">
+    {% if page_obj.has_previous %}
+        <a href="javascript:void(0)" class="page-btn max-xl:tw-min-w-[40px] max-xl:tw-h-10 max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg" title="First page" onclick="goToPage(1)">«</a>
+        <a href="javascript:void(0)" class="page-btn max-xl:tw-min-w-[40px] max-xl:tw-h-10 max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg" title="Previous" onclick="goToPage({{ page_obj.previous_page_number }})">‹</a>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+            <span class="page-btn page-btn-active max-xl:tw-min-w-[40px] max-xl:tw-h-10 max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg">{{ num }}</span>
+        {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+            <a href="javascript:void(0)" class="page-btn max-xl:tw-min-w-[40px] max-xl:tw-h-10 max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg" onclick="goToPage({{ num }})">{{ num }}</a>
+        {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+            <span class="page-ellipsis">…</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+        <a href="javascript:void(0)" class="page-btn max-xl:tw-min-w-[40px] max-xl:tw-h-10 max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg" title="Next" onclick="goToPage({{ page_obj.next_page_number }})">›</a>
+        <a href="javascript:void(0)" class="page-btn max-xl:tw-min-w-[40px] max-xl:tw-h-10 max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg" title="Last page" onclick="goToPage({{ page_obj.paginator.num_pages }})">»</a>
+    {% endif %}
+</div>
+{% endif %}
+<div class="pagination-per-page max-xl:tw-text-[0.82em] max-xl:tw-justify-center">
+    <label>Per page:</label>
+    <select onchange="changePerPage(this.value)" class="max-xl:tw-py-1.5 max-xl:tw-px-2.5 max-xl:tw-text-[0.85em] max-xl:tw-rounded-lg">
+        <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+        <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
+        <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+    </select>
+</div>

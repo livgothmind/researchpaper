@@ -1,0 +1,37 @@
+# Core Django
+Django==6.0.2
+python-dotenv==1.2.1
+
+# Database
+mysqlclient==2.2.4
+
+# Celery + Redis
+celery==5.4.0
+redis==5.2.0
+
+# OpenAI Vision
+openai==2.24.0
+
+# HTTP / scraping
+requests==2.32.5
+beautifulsoup4==4.14.0
+lxml==6.0.2
+
+# PDF processing
+PyPDF2==3.0.1
+
+# GitHub API
+PyGithub==2.8.1
+
+# Immagini
+pillow==12.1.1
+
+# Utilities
+typing_extensions==4.15.0
+tzdata==2025.2
+
+# WSGI server
+gunicorn==23.0.0
+
+# Static files
+whitenoise==6.9.0
