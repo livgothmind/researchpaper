@@ -294,8 +294,16 @@ MESSAGE_TEMPLATES = {
         "whatsapp": "⚠️ Please reply *1* (yes) or *2* (no).",
     },
     "search_usage": {
-        "telegram": "Usage: /search graph",
-        "whatsapp": "Usage: search graph",
+        "telegram": (
+            "🔍 <b>Usage:</b> /search &lt;keyword&gt;\n\n"
+            "Search by title, authors, summary, tags, subfields or category.\n"
+            "Example: /search computer vision"
+        ),
+        "whatsapp": (
+            "🔍 *Usage:* search <keyword>\n\n"
+            "Search by title, authors, summary, tags, subfields or category.\n"
+            "Example: search computer vision"
+        ),
     },
     "search_no_results": {
         "telegram": "No papers found for '{query}'.",
@@ -912,7 +920,8 @@ def _handle_search_command(platform, recipient, query):
 
     results = ResearchPoster.objects.filter(
         Q(title__icontains=query) | Q(authors__icontains=query) |
-        Q(summary__icontains=query) | Q(tags__icontains=query),
+        Q(summary__icontains=query) | Q(tags__icontains=query) |
+        Q(subfields__icontains=query) | Q(category__icontains=query),
         validation_status="approved",
     ).order_by("-created_at")[:5]
 
