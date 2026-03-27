@@ -205,6 +205,7 @@ def _search_semantic_scholar(query, limit=5):
                     "arxiv_id":  arxiv_id,
                     "doi":       ext.get("DOI", ""),
                     "abstract":  paper.get("abstract", "") or "",
+                    "year":      paper.get("year"),
                     "_blocked":  _is_blocked(paper_url),
                 })
             return results
@@ -1069,7 +1070,7 @@ def analyze_and_enrich(image_path):
         "subfields":   _parse_subfields(info.get("subfields", [])),
         "paper_link":  paper_link,
         "github_link": github_url,
-        "publication_year": info.get("year", ""),
+        "publication_year": info.get("year", "") or (paper_result.get("year") if paper_result else "") or "",
         "notes": (
             f"Auto-extracted by AI. "
             f"Conference: {info.get('conference', 'N/A')}, "
