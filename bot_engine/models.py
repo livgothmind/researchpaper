@@ -170,6 +170,7 @@ class ResearchPoster(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default="other", db_index=True)
     subfields = models.CharField(max_length=500, blank=True, default="")
     tags = models.CharField(max_length=200, blank=True, null=True)
+    publication_year = models.PositiveSmallIntegerField(blank=True, null=True, db_index=True)
     notes = models.TextField(max_length=500, blank=True, null=True)
 
     uploaded_by = models.ForeignKey(

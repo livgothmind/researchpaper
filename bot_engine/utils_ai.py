@@ -1069,10 +1069,10 @@ def analyze_and_enrich(image_path):
         "subfields":   _parse_subfields(info.get("subfields", [])),
         "paper_link":  paper_link,
         "github_link": github_url,
+        "publication_year": info.get("year", ""),
         "notes": (
             f"Auto-extracted by AI. "
             f"Conference: {info.get('conference', 'N/A')}, "
-            f"Year: {info.get('year', 'N/A')}, "
             f"Institution: {info.get('institution', 'N/A')}"
         ),
     }

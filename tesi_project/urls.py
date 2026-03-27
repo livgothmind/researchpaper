@@ -25,6 +25,8 @@ urlpatterns = [
     path("bulk-action/",                     views.bulk_action,    name="bulk_action"),
     path("delete-all-activities/",           views.delete_all_activities, name="delete_all_activities"),
 
+    path("api/tags-autocomplete/", views.tags_autocomplete, name="tags_autocomplete"),
+
     path("retry-analysis/<int:poster_id>/", views.retry_analysis, name="retry_analysis"),
     path("stop-analysis/<int:poster_id>/",  views.stop_analysis,  name="stop_analysis"),
 

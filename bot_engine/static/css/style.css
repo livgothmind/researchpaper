@@ -96,6 +96,7 @@
 
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg:              #0f1117;
   --bg-card:         #181b22;
   --bg-surface:      #1e2128;
@@ -413,11 +414,15 @@ h1.dashboard-title { font-size: 2em; margin-bottom: 2px; text-align: left; lette
 .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 14px; animation: fadeInUp 0.4s ease-out 0.05s both; }
 
 .stat-card {
-  position: relative; overflow: hidden; min-height: 100px; padding: 18px 20px;
+  position: relative; min-height: 100px; padding: 18px 20px;
   border-radius: var(--radius-lg); background: var(--bg-card); border: 1px solid var(--border-card);
   box-shadow: var(--shadow-card); display: flex; flex-direction: column;
   justify-content: center; align-items: center; text-align: center;
   transition: box-shadow 0.25s ease, background 0.3s ease, transform 0.25s ease;
+}
+
+.stat-card::before {
+  content: ''; position: absolute; inset: -4px; z-index: 0;
 }
 
 .stat-card::after {

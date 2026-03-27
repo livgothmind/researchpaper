@@ -191,6 +191,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/tag-autocomplete.js' %}"></script>
 <script>
     (function () {
         let isDirty = false;
@@ -206,6 +207,11 @@
             e.preventDefault();
             e.returnValue = '';
         });
+
+        /* Tag autocomplete */
+        if (typeof initTagAutocomplete === 'function') {
+            initTagAutocomplete('id_tags');
+        }
     })();
 </script>
 {% endblock %}

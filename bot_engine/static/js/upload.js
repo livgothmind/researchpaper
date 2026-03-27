@@ -191,10 +191,12 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
 })();
 
 /* ── Tag chip preview ── */
-document.getElementById('id_tags').addEventListener('input', function () {
+function updateTagChips() {
+    var el = document.getElementById('id_tags');
     var preview = document.getElementById('tagChipPreview');
+    if (!el || !preview) return;
     preview.innerHTML = '';
-    this.value.split(',').forEach(function (t) {
+    el.value.split(',').forEach(function (t) {
         t = t.trim();
         if (!t) return;
         var chip = document.createElement('span');
@@ -202,4 +204,11 @@ document.getElementById('id_tags').addEventListener('input', function () {
         chip.textContent = t;
         preview.appendChild(chip);
     });
-});
+}
+
+document.getElementById('id_tags').addEventListener('input', updateTagChips);
+
+/* ── Tag autocomplete ── */
+if (typeof initTagAutocomplete === 'function') {
+    initTagAutocomplete('id_tags', { onTagChange: updateTagChips });
+}

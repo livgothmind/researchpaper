@@ -76,13 +76,23 @@ class PosterEditForm(forms.ModelForm):
         label='Subfields',
     )
 
+    publication_year = forms.IntegerField(
+        required=False,
+        label='Publication Year',
+        widget=forms.NumberInput(attrs={
+            'placeholder': 'e.g. 2024',
+            'min': '1900',
+            'max': '2100',
+        }),
+    )
+
     class Meta:
         model = ResearchPoster
-        fields = ['title', 'authors', 'paper_link', 'github_link', 'summary', 'category', 'subfields', 'tags', 'validation_status', 'notes']
+        fields = ['title', 'authors', 'paper_link', 'github_link', 'summary', 'category', 'subfields', 'tags', 'publication_year', 'validation_status', 'notes']
         widgets = {
             'summary': forms.Textarea(attrs={'rows': 4}),
             'notes': forms.Textarea(attrs={'rows': 4, 'maxlength': '500'}),
-            'tags': forms.TextInput(attrs={'maxlength': '200'}),
+            'tags': forms.TextInput(attrs={'maxlength': '200', 'id': 'id_tags'}),
         }
 
     def __init__(self, *args, **kwargs):

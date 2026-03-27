@@ -81,7 +81,7 @@
                         <span class="incomplete-label">Incomplete<br>metadata</span>
                     </div>
                 {% endif %}
-                <div class="article-authors max-xl:tw-text-[0.82em] max-xl:tw-leading-[1.3] max-xl:tw-text-[var(--text-muted)] max-xl:tw-line-clamp-1">{{ poster.authors }}</div>
+                <div class="article-authors max-xl:tw-text-[0.82em] max-xl:tw-leading-[1.3] max-xl:tw-text-[var(--text-muted)] max-xl:tw-line-clamp-1">{{ poster.authors }}{% if poster.publication_year %} <span style="opacity:.6;font-size:.88em;">({{ poster.publication_year }})</span>{% endif %}</div>
                 <div class="update-time max-xl:tw-hidden">Updated: {{ poster.updated_at|timesince }} ago</div>
             </td>
 

@@ -8,6 +8,7 @@ class ResearchPosterAdmin(admin.ModelAdmin):
         'id',
         'title',
         'authors',
+        'publication_year',
         'category',
         'validation_status',
         'created_at',
@@ -16,6 +17,7 @@ class ResearchPosterAdmin(admin.ModelAdmin):
     list_filter = (
         'validation_status',
         'category',
+        'publication_year',
         'created_at',
         'updated_at',
     )

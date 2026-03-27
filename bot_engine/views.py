@@ -158,7 +158,8 @@ MESSAGE_TEMPLATES = {
             "/start - Welcome message\n"
             "/help - Show this help\n"
             "/dashboard - View your collection\n"
-            "/search &lt;keyword&gt; - Search papers"
+            "/search &lt;keyword&gt; - Search papers\n"
+            "/search &lt;keyword&gt; year:2024 - Filter by year"
         ),
         "whatsapp": (
             "*Research Paper Assistant - Help*\n\n"
@@ -171,7 +172,8 @@ MESSAGE_TEMPLATES = {
             "*Commands:*\n"
             "*help* - Show this help\n"
             "*dashboard* - View your collection\n"
-            "*search <keyword>* - Search papers"
+            "*search <keyword>* - Search papers\n"
+            "*search <keyword> year:2024* - Filter by year"
         ),
     },
     "no_text": {
@@ -296,13 +298,17 @@ MESSAGE_TEMPLATES = {
     "search_usage": {
         "telegram": (
             "🔍 <b>Usage:</b> /search &lt;keyword&gt;\n\n"
-            "Search by title, authors, summary, tags, subfields or category.\n"
-            "Example: /search computer vision"
+            "Search by title, authors, summary, tags, subfields or category.\n\n"
+            "<b>Filter by year:</b>\n"
+            "  /search computer vision year:2024\n"
+            "  /search segmentation year:2020-2024"
         ),
         "whatsapp": (
             "🔍 *Usage:* search <keyword>\n\n"
-            "Search by title, authors, summary, tags, subfields or category.\n"
-            "Example: search computer vision"
+            "Search by title, authors, summary, tags, subfields or category.\n\n"
+            "*Filter by year:*\n"
+            "  search computer vision year:2024\n"
+            "  search segmentation year:2020-2024"
         ),
     },
     "search_no_results": {
@@ -541,6 +547,13 @@ def process_uploaded_poster(
         }.items():
             setattr(poster, field, enriched_data.get(key, default))
 
+        raw_year = enriched_data.get("publication_year", "")
+        if raw_year:
+            try:
+                poster.publication_year = int(str(raw_year).strip()[:4])
+            except (ValueError, TypeError):
+                pass
+
         poster.derive_category_from_subfields()
 
         if user_tags and user_tags.strip():
@@ -623,7 +636,6 @@ def _send_analysis_result(platform, recipient, poster):
 
     msg_parts.append(f"\n{_build_links_section(poster, platform)}")
     msg_parts.append(italic("Successfully added to your collection"))
-
     send_message(platform, recipient, "\n".join(msg_parts))
 
 def _save_image_only(image_content, filename, uploaded_by=None, source='web'):
@@ -916,14 +928,36 @@ def _handle_search_command(platform, recipient, query):
         return
 
     import html as html_mod
+
+    # Parse year filter: "year:2024" or "year:2020-2024"
+    year_from = None
+    year_to = None
+    year_match = re.search(r'\byear:(\d{4})(?:-(\d{4}))?\b', query)
+    if year_match:
+        year_from = int(year_match.group(1))
+        year_to = int(year_match.group(2)) if year_match.group(2) else year_from
+        query = query[:year_match.start()].strip() + " " + query[year_match.end():].strip()
+        query = query.strip()
+
+    if not query and not year_from:
+        send_message(platform, recipient, MESSAGE_TEMPLATES["search_usage"][platform])
+        return
+
     safe_query = html_mod.escape(query) if platform == "telegram" else query
 
-    results = ResearchPoster.objects.filter(
-        Q(title__icontains=query) | Q(authors__icontains=query) |
-        Q(summary__icontains=query) | Q(tags__icontains=query) |
-        Q(subfields__icontains=query) | Q(category__icontains=query),
-        validation_status="approved",
-    ).order_by("-created_at")[:5]
+    qs = ResearchPoster.objects.filter(validation_status="approved")
+    if query:
+        qs = qs.filter(
+            Q(title__icontains=query) | Q(authors__icontains=query) |
+            Q(summary__icontains=query) | Q(tags__icontains=query) |
+            Q(subfields__icontains=query) | Q(category__icontains=query)
+        )
+    if year_from:
+        qs = qs.filter(publication_year__gte=year_from)
+    if year_to:
+        qs = qs.filter(publication_year__lte=year_to)
+
+    results = qs.order_by("-created_at")[:5]
 
     if not results:
         msg = MESSAGE_TEMPLATES["search_no_results"][platform].replace("{query}", safe_query)
@@ -938,7 +972,8 @@ def _handle_search_command(platform, recipient, query):
         github = link_fn("Code", p.github_link)  if p.github_link else "—"
         subfields = ", ".join(p.subfields_display[:3]) if p.subfields_display else ""
 
-        lines.append(f"{i}. {bold(_truncate(p.title, title_max))}")
+        year_str = f" ({p.publication_year})" if p.publication_year else ""
+        lines.append(f"{i}. {bold(_truncate(p.title, title_max))}{year_str}")
         if subfields:
             lines.append(f"   {p.get_category_display()} · {subfields}")
         else:
@@ -976,6 +1011,20 @@ def _apply_filters(queryset, params, favorite_user=None):
     date_to = params.get("date_to", "").strip()
     if date_to:
         queryset = queryset.filter(created_at__date__lte=date_to)
+
+    year_from = params.get("year_from", "").strip()
+    if year_from:
+        try:
+            queryset = queryset.filter(publication_year__gte=int(year_from))
+        except (ValueError, TypeError):
+            pass
+
+    year_to = params.get("year_to", "").strip()
+    if year_to:
+        try:
+            queryset = queryset.filter(publication_year__lte=int(year_to))
+        except (ValueError, TypeError):
+            pass
 
     status = params.get("status", "")
     if status:
@@ -1033,6 +1082,34 @@ def _serialize_activity(activity):
         "time":           timesince(activity.timestamp) + " ago",
         "user":           activity.user.username if activity.user else "System",
     }
+
+
+@login_required(login_url="login")
+def tags_autocomplete(request):
+    q = request.GET.get("q", "").strip().lower()
+    if not q or len(q) < 2:
+        return JsonResponse([], safe=False)
+
+    all_tags = (
+        ResearchPoster.objects
+        .exclude(tags__isnull=True)
+        .exclude(tags="")
+        .values_list("tags", flat=True)
+    )
+
+    tag_counts = {}
+    for tag_str in all_tags:
+        for t in tag_str.split(","):
+            t = t.strip()
+            if t:
+                key = t.lower()
+                if q in key:
+                    if key not in tag_counts:
+                        tag_counts[key] = {"label": t, "count": 0}
+                    tag_counts[key]["count"] += 1
+
+    results = sorted(tag_counts.values(), key=lambda x: -x["count"])[:15]
+    return JsonResponse([r["label"] for r in results], safe=False)
 
 
 WEB_UPLOAD_COOLDOWN = 60
@@ -1164,6 +1241,8 @@ def dashboard(request):
         "summary_filter":     request.GET.get("summary", ""),
         "date_from_filter":   request.GET.get("date_from", ""),
         "date_to_filter":     request.GET.get("date_to", ""),
+        "year_from_filter":   request.GET.get("year_from", ""),
+        "year_to_filter":     request.GET.get("year_to", ""),
         "sort_by":            sort_by,
         "sort_order":         sort_order,
         "pending_task_id":    request.GET.get("task_id", ""),
@@ -1171,7 +1250,8 @@ def dashboard(request):
             request.GET.get("search") or request.GET.get("status") or
             request.GET.get("category") or request.GET.get("author") or
             request.GET.get("summary") or request.GET.get("date_from") or
-            request.GET.get("date_to") or request.GET.get("has_github") or
+            request.GET.get("date_to") or request.GET.get("year_from") or
+            request.GET.get("year_to") or request.GET.get("has_github") or
             request.GET.get("has_paper") or request.GET.get("favorites") or
             request.GET.get("subfield")
         ),
@@ -1504,7 +1584,7 @@ def dashboard_live_status(request):
 
 
 EXPORT_FIELDS = [
-    "ID", "Title", "Authors", "Category", "Tags",
+    "ID", "Title", "Authors", "Year", "Category", "Tags",
     "Paper Link", "GitHub Link", "Summary", "Why Useful",
     "Status", "Source", "Uploaded By", "Created At",
 ]
@@ -1525,6 +1605,7 @@ def _get_export_queryset(request):
 def _poster_to_row(poster):
     return [
         poster.id, poster.title, poster.authors,
+        poster.publication_year or "",
         poster.get_category_display(), poster.tags or "",
         poster.paper_link or "", poster.github_link or "",
         poster.summary, poster.why_useful or "",
@@ -1558,9 +1639,10 @@ def export_approved_json(request):
         "items": [
             {
                 "id":            p.id,
-                "title":         p.title,
-                "authors":       p.authors,
-                "category":      p.get_category_display(),
+                "title":            p.title,
+                "authors":          p.authors,
+                "publication_year": p.publication_year,
+                "category":         p.get_category_display(),
                 "tags":          p.tags or "",
                 "paper_link":    p.paper_link or "",
                 "github_link":   p.github_link or "",

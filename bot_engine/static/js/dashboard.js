@@ -18,6 +18,8 @@ const F = {
     summary: '',
     date_from: '',
     date_to: '',
+    year_from: '',
+    year_to: '',
     sort: 'date',
     order: 'desc',
     page: 1,
@@ -38,6 +40,8 @@ function initFilterState() {
     F.summary    = d.dataset.summaryFilter   || '';
     F.date_from  = d.dataset.dateFromFilter  || '';
     F.date_to    = d.dataset.dateToFilter    || '';
+    F.year_from  = d.dataset.yearFromFilter  || '';
+    F.year_to    = d.dataset.yearToFilter    || '';
     F.sort       = d.dataset.sortBy          || 'date';
     F.order      = d.dataset.sortOrder       || 'desc';
     F.per_page   = parseInt(d.dataset.perPage, 10)      || 15;
@@ -69,9 +73,11 @@ function buildQueryString() {
     if (F.search)    p.set('search',    F.search);
     if (F.author)    p.set('author',    F.author);
     if (F.summary)   p.set('summary',   F.summary);
-    if (F.date_from) p.set('date_from', F.date_from);
-    if (F.date_to)   p.set('date_to',   F.date_to);
-    if (F.sort)      p.set('sort',      F.sort);
+    if (F.date_from)  p.set('date_from',  F.date_from);
+    if (F.date_to)    p.set('date_to',    F.date_to);
+    if (F.year_from)  p.set('year_from',  F.year_from);
+    if (F.year_to)    p.set('year_to',    F.year_to);
+    if (F.sort)       p.set('sort',       F.sort);
     if (F.order)     p.set('order',     F.order);
     if (F.page > 1)  p.set('page',      F.page);
     if (F.per_page && F.per_page !== 15) p.set('per_page', String(F.per_page));
@@ -179,6 +185,8 @@ window.addEventListener('popstate', () => {
     F.summary   = p.get('summary')   || '';
     F.date_from = p.get('date_from') || '';
     F.date_to   = p.get('date_to')   || '';
+    F.year_from = p.get('year_from') || '';
+    F.year_to   = p.get('year_to')   || '';
     F.sort      = p.get('sort')      || 'date';
     F.order     = p.get('order')     || 'desc';
     F.page      = parseInt(p.get('page'),     10) || 1;
@@ -190,6 +198,8 @@ window.addEventListener('popstate', () => {
         filterSummary:  'summary',
         filterDateFrom: 'date_from',
         filterDateTo:   'date_to',
+        filterYearFrom: 'year_from',
+        filterYearTo:   'year_to',
     };
 
     Object.entries(fields).forEach(([id, key]) => {
@@ -266,10 +276,11 @@ function clearAllFilters() {
         has_github: '', has_paper: '', favorites: '',
         search: '', author: '', summary: '',
         date_from: '', date_to: '',
+        year_from: '', year_to: '',
         sort: 'date', order: 'desc', page: 1,
     });
 
-    ['searchInput', 'filterAuthor', 'filterSummary', 'filterDateFrom', 'filterDateTo']
+    ['searchInput', 'filterAuthor', 'filterSummary', 'filterDateFrom', 'filterDateTo', 'filterYearFrom', 'filterYearTo']
         .forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
@@ -318,13 +329,15 @@ function applyAdvancedFilters() {
     F.summary   = get('filterSummary');
     F.date_from = get('filterDateFrom');
     F.date_to   = get('filterDateTo');
+    F.year_from = get('filterYearFrom');
+    F.year_to   = get('filterYearTo');
     F.page      = 1;
 
     applyFilters();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    ['filterAuthor', 'filterSummary', 'filterDateFrom', 'filterDateTo'].forEach(id => {
+    ['filterAuthor', 'filterSummary', 'filterDateFrom', 'filterDateTo', 'filterYearFrom', 'filterYearTo'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyAdvancedFilters(); } });
     });
@@ -338,6 +351,8 @@ function _syncAdvancedBadge() {
     if (F.summary && F.summary.trim())     count++;
     if (F.date_from && F.date_from.trim()) count++;
     if (F.date_to && F.date_to.trim())     count++;
+    if (F.year_from && F.year_from.trim()) count++;
+    if (F.year_to && F.year_to.trim())     count++;
 
     let badge = document.getElementById('advancedFilterBadge');
     if (count > 0) {

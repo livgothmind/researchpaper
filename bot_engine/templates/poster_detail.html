@@ -498,7 +498,9 @@
                     </div>
 
                     {% if poster.authors %}
-                        <div class="detail-authors">{{ poster.authors }}</div>
+                        <div class="detail-authors">{{ poster.authors }}{% if poster.publication_year %} <span style="opacity:.55;font-size:.88em;">({{ poster.publication_year }})</span>{% endif %}</div>
+                    {% elif poster.publication_year %}
+                        <div class="detail-authors" style="opacity:.55;font-size:.88em;">{{ poster.publication_year }}</div>
                     {% endif %}
 
                     <div class="detail-divider"></div>
