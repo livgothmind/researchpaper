@@ -945,13 +945,31 @@ def _handle_search_command(platform, recipient, query):
 
     safe_query = html_mod.escape(query) if platform == "telegram" else query
 
-    qs = ResearchPoster.objects.filter(validation_status="approved")
+    qs = ResearchPoster.objects.exclude(validation_status="rejected")
     if query:
-        qs = qs.filter(
+        q_filter = (
             Q(title__icontains=query) | Q(authors__icontains=query) |
             Q(summary__icontains=query) | Q(tags__icontains=query) |
             Q(subfields__icontains=query) | Q(category__icontains=query)
         )
+
+        # Match subfield/category display labels -> slugs
+        query_lower = query.lower()
+        query_slug = query_lower.replace(" ", "_").replace("-", "_")
+        if query_slug != query_lower:
+            q_filter |= Q(subfields__icontains=query_slug) | Q(category__icontains=query_slug)
+
+        # Match against human-readable category labels
+        for cat_slug, cat_label in ResearchPoster.CATEGORY_CHOICES:
+            if query_lower in cat_label.lower():
+                q_filter |= Q(category=cat_slug)
+
+        # Match against human-readable subfield labels
+        for sf_slug, sf_label in ResearchPoster.SUBFIELD_CHOICES:
+            if query_lower in sf_label.lower():
+                q_filter |= Q(subfields__icontains=sf_slug)
+
+        qs = qs.filter(q_filter)
     if year_from:
         qs = qs.filter(publication_year__gte=year_from)
     if year_to:
