@@ -1004,6 +1004,27 @@ def generate_why_useful(summary="", user_notes="", user_tags=""):
 
 
 
+def _resolve_year(ai_year, paper_result, paper_link):
+    """Resolve publication year from multiple sources."""
+    # 1. Year from AI (poster OCR)
+    if ai_year and str(ai_year).strip().isdigit():
+        return int(str(ai_year).strip()[:4])
+
+    # 2. Year from Semantic Scholar API
+    if paper_result and paper_result.get("year"):
+        return paper_result["year"]
+
+    # 3. Year from arXiv ID in paper link (e.g. arxiv.org/abs/2503.22879 -> 2025)
+    if paper_link:
+        arxiv_match = re.search(r'arxiv\.org/(?:abs|pdf)/(\d{2})(\d{2})\.\d+', paper_link, re.I)
+        if arxiv_match:
+            century = 20
+            yy = int(arxiv_match.group(1))
+            return century * 100 + yy
+
+    return ""
+
+
 def analyze_and_enrich(image_path):
     info = extract_poster_info(image_path)
 
@@ -1070,7 +1091,7 @@ def analyze_and_enrich(image_path):
         "subfields":   _parse_subfields(info.get("subfields", [])),
         "paper_link":  paper_link,
         "github_link": github_url,
-        "publication_year": info.get("year", "") or (paper_result.get("year") if paper_result else "") or "",
+        "publication_year": _resolve_year(info.get("year", ""), paper_result, paper_link),
         "notes": (
             f"Auto-extracted by AI. "
             f"Conference: {info.get('conference', 'N/A')}, "
