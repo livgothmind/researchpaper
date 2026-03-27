@@ -487,13 +487,8 @@
                 <div class="detail-main-info">
 
                     <div class="detail-title-row">
-                        <h1 class="detail-title max-md:tw-text-[1.3em] max-sm:tw-text-[1.05em] max-sm:tw-leading-snug">{{ poster.title }}</h1>
+                        <h1 class="detail-title max-md:tw-text-[1.3em] max-sm:tw-text-[1.05em] max-sm:tw-leading-snug">{{ poster.title }}{% if poster.is_new %} <span class="new-badge" style="vertical-align: middle; margin-left: 0.4em;">NEW</span>{% endif %}</h1>
                         <div class="detail-title-badges">
-                            <span class="detail-status-pill status-{{ poster.validation_status }}">
-                                <span class="status-dot dot-{{ poster.validation_status }}"></span>
-                                {{ poster.validation_status|capfirst }}
-                            </span>
-                            {% if poster.is_new %}<span class="new-badge">NEW</span>{% endif %}
                             {% if poster.analysis_status == 'failed' %}
                                 <span class="detail-alert-pill failed">⚠ Analysis failed</span>
                             {% elif poster.analysis_status == 'processing' %}
