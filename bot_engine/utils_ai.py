@@ -1006,15 +1006,13 @@ def generate_why_useful(summary="", user_notes="", user_tags=""):
 
 def _resolve_year(ai_year, paper_result, paper_link):
     """Resolve publication year from multiple sources."""
-    # 1. Year from AI (poster OCR)
+
     if ai_year and str(ai_year).strip().isdigit():
         return int(str(ai_year).strip()[:4])
 
-    # 2. Year from Semantic Scholar API
     if paper_result and paper_result.get("year"):
         return paper_result["year"]
-
-    # 3. Year from arXiv ID in paper link (e.g. arxiv.org/abs/2503.22879 -> 2025)
+    
     if paper_link:
         arxiv_match = re.search(r'arxiv\.org/(?:abs|pdf)/(\d{2})(\d{2})\.\d+', paper_link, re.I)
         if arxiv_match:

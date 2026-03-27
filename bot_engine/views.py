@@ -929,7 +929,6 @@ def _handle_search_command(platform, recipient, query):
 
     import html as html_mod
 
-    # Parse year filter: "year:2024" or "year:2020-2024"
     year_from = None
     year_to = None
     year_match = re.search(r'\byear:(\d{4})(?:-(\d{4}))?\b', query)
@@ -953,18 +952,16 @@ def _handle_search_command(platform, recipient, query):
             Q(subfields__icontains=query) | Q(category__icontains=query)
         )
 
-        # Match subfield/category display labels -> slugs
+    
         query_lower = query.lower()
         query_slug = query_lower.replace(" ", "_").replace("-", "_")
         if query_slug != query_lower:
             q_filter |= Q(subfields__icontains=query_slug) | Q(category__icontains=query_slug)
 
-        # Match against human-readable category labels
         for cat_slug, cat_label in ResearchPoster.CATEGORY_CHOICES:
             if query_lower in cat_label.lower():
                 q_filter |= Q(category=cat_slug)
-
-        # Match against human-readable subfield labels
+                
         for sf_slug, sf_label in ResearchPoster.SUBFIELD_CHOICES:
             if query_lower in sf_label.lower():
                 q_filter |= Q(subfields__icontains=sf_slug)
