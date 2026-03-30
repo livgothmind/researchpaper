@@ -133,9 +133,9 @@ MESSAGE_TEMPLATES = {
             "  • Find the published paper link\n"
             "  • Search for the GitHub repository\n"
             "  • Generate a summary with GPT-4o\n\n"
-            "<b>Tip:</b> Add notes and tags directly in the caption:\n"
+            "📎 <b>Quick tip:</b> Add notes and tags in the caption:\n"
             "<code>note: interesting method  tag: mri, segmentation</code>\n\n"
-            "Type /help to see all commands."
+            "Type /help for all commands and tips."
         ),
         "whatsapp": (
             "*Welcome to Research Paper Assistant*\n\n"
@@ -144,48 +144,88 @@ MESSAGE_TEMPLATES = {
             "  • Find the published paper link\n"
             "  • Search for the GitHub repository\n"
             "  • Generate a summary\n\n"
-            "*Tip:* Add notes and tags directly in the caption:\n"
+            "📎 *Quick tip:* Add notes and tags in the caption:\n"
             "`note: interesting method  tag: mri, segmentation`\n\n"
-            "Type *help* to see all commands."
+            "Type *help* for all commands and tips."
         ),
     },
     "help": {
         "telegram": (
-            "<b>Send me a photo or document</b> of a research poster.\n\n"
-            "<b>Tip:</b> You can add notes and tags in the caption:\n"
+            "<b>📖 Research Paper Assistant</b>\n\n"
+
+            "<b>How to upload:</b>\n"
+            "Send a photo or document of a research poster.\n"
+            "The AI will extract metadata, find the paper link, "
+            "and search for a GitHub repo.\n\n"
+
+            "<b>📷 Tips for best results:</b>\n"
+            "  • Use high-res images with readable text\n"
+            "  • Include the full poster (title + authors + abstract)\n"
+            "  • Avoid blurry or rotated photos\n"
+            "  • JPG/PNG work best\n\n"
+
+            "<b>📎 Add info via caption:</b>\n"
             "<code>note: your text  tag: deep learning, mri</code>\n\n"
-            "<b>Commands:</b>\n"
-            "/start - Welcome message\n"
-            "/help - Show this help\n"
-            "/dashboard - View your collection\n"
-            "/search &lt;keyword&gt; - Search papers\n"
-            "/search &lt;keyword&gt; year:2024 - Filter by year"
+
+            "<b>🔍 Search your collection:</b>\n"
+            "  /search &lt;keyword&gt;\n"
+            "Searches title, authors, summary, tags, subfields and category.\n\n"
+            "<b>Year filter:</b>\n"
+            "  /search transformer year:2024\n"
+            "  /search segmentation year:2020-2024\n\n"
+
+            "<b>All commands:</b>\n"
+            "/start — Welcome message\n"
+            "/help — This help page\n"
+            "/dashboard — Open your collection\n"
+            "/search &lt;keyword&gt; — Search papers"
         ),
         "whatsapp": (
-            "*Research Paper Assistant - Help*\n\n"
-            "*How it works:*\n"
-            "1. Send a photo of a research poster\n"
-            "2. Wait for AI analysis\n"
-            "3. Review your collection\n\n"
-            "*Tip:* Add notes and tags in the caption:\n"
+            "*📖 Research Paper Assistant*\n\n"
+
+            "*How to upload:*\n"
+            "Send a photo or document of a research poster.\n"
+            "The AI will extract metadata, find the paper link, "
+            "and search for a GitHub repo.\n\n"
+
+            "*📷 Tips for best results:*\n"
+            "  • Use high-res images with readable text\n"
+            "  • Include the full poster (title + authors + abstract)\n"
+            "  • Avoid blurry or rotated photos\n"
+            "  • JPG/PNG work best\n\n"
+
+            "*📎 Add info via caption:*\n"
             "`note: your text  tag: deep learning, mri`\n\n"
-            "*Commands:*\n"
-            "*help* - Show this help\n"
-            "*dashboard* - View your collection\n"
-            "*search <keyword>* - Search papers\n"
-            "*search <keyword> year:2024* - Filter by year"
+
+            "*🔍 Search your collection:*\n"
+            "  search <keyword>\n"
+            "Searches title, authors, summary, tags, subfields and category.\n\n"
+            "*Year filter:*\n"
+            "  search transformer year:2024\n"
+            "  search segmentation year:2020-2024\n\n"
+
+            "*All commands:*\n"
+            "*help* — This help page\n"
+            "*dashboard* — Open your collection\n"
+            "*search <keyword>* — Search papers"
         ),
     },
     "no_text": {
         "telegram": (
             "⚠️ <b>No research content detected</b>\n\n"
-            "The image does not appear to contain a research poster or paper.\n"
-            "Please send a clear photo with visible text."
+            "The image doesn't appear to contain a research poster.\n\n"
+            "<b>Make sure:</b>\n"
+            "  • The full poster is visible (title, authors, abstract)\n"
+            "  • Text is sharp and readable\n"
+            "  • The image is not rotated or cropped"
         ),
         "whatsapp": (
             "⚠️ *No research content detected*\n\n"
-            "The image does not appear to contain a research poster or paper.\n"
-            "Please send a clear photo with visible text."
+            "The image doesn't appear to contain a research poster.\n\n"
+            "*Make sure:*\n"
+            "  • The full poster is visible (title, authors, abstract)\n"
+            "  • Text is sharp and readable\n"
+            "  • The image is not rotated or cropped"
         ),
     },
     "analysis_failed": {
@@ -201,10 +241,13 @@ MESSAGE_TEMPLATES = {
         ),
     },
     "fallback": {
-        "telegram": "Please send me a photo or document.\nType /help for commands.",
+        "telegram": (
+            "Send me a photo or document of a research poster.\n"
+            "Type /help for commands and upload tips."
+        ),
         "whatsapp": (
-            "Send me a photo or document of a research poster.\n\n"
-            "*Commands:* *help* | *dashboard* | *search*"
+            "Send me a photo or document of a research poster.\n"
+            "Type *help* for commands and upload tips."
         ),
     },
     "download_error": {
@@ -297,16 +340,22 @@ MESSAGE_TEMPLATES = {
     },
     "search_usage": {
         "telegram": (
-            "🔍 <b>Usage:</b> /search &lt;keyword&gt;\n\n"
-            "Search by title, authors, summary, tags, subfields or category.\n\n"
-            "<b>Filter by year:</b>\n"
+            "🔍 <b>Search your collection</b>\n\n"
+            "<b>Usage:</b> /search &lt;keyword&gt;\n\n"
+            "Matches title, authors, summary, tags, subfields and category.\n\n"
+            "<b>Examples:</b>\n"
+            "  /search transformer\n"
+            "  /search brain tumor\n"
             "  /search computer vision year:2024\n"
             "  /search segmentation year:2020-2024"
         ),
         "whatsapp": (
-            "🔍 *Usage:* search <keyword>\n\n"
-            "Search by title, authors, summary, tags, subfields or category.\n\n"
-            "*Filter by year:*\n"
+            "🔍 *Search your collection*\n\n"
+            "*Usage:* search <keyword>\n\n"
+            "Matches title, authors, summary, tags, subfields and category.\n\n"
+            "*Examples:*\n"
+            "  search transformer\n"
+            "  search brain tumor\n"
             "  search computer vision year:2024\n"
             "  search segmentation year:2020-2024"
         ),
@@ -1109,6 +1158,7 @@ def tags_autocomplete(request):
         ResearchPoster.objects
         .exclude(tags__isnull=True)
         .exclude(tags="")
+        .filter(tags__icontains=q)
         .values_list("tags", flat=True)
     )
 
@@ -1171,7 +1221,12 @@ def upload_poster(request):
     else:
         form = PosterUploadForm()
 
-    return render(request, "upload.html", {"form": form})
+    recent_uploads = (
+        ResearchPoster.objects
+        .filter(uploaded_by=request.user, upload_source="web")
+        .order_by("-created_at")[:3]
+    )
+    return render(request, "upload.html", {"form": form, "recent_uploads": recent_uploads})
 
 
 @login_required(login_url="login")

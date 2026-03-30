@@ -1,8 +1,3 @@
-"""
-tesi_project/celery.py
-Configurazione dell'app Celery.
-Importato automaticamente da tesi_project/__init__.py
-"""
 
 import os
 from celery import Celery

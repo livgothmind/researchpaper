@@ -101,12 +101,18 @@ services:
   beat:
     <<: *common-worker
     container_name: paperproject-beat
-    command: celery -A tesi_project beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    user: root
+    command: celery -A tesi_project beat --loglevel=info --schedule=/app/celerybeat/celerybeat-schedule
+    volumes:
+      - ./media:/app/media
+      - log_data:/app/logs
+      - celerybeat_data:/app/celerybeat
 
 volumes:
   mysql_data:
   redis_data:
   log_data:
+  celerybeat_data:
 
 networks:
   backend:

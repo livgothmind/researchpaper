@@ -115,7 +115,6 @@ def _delete_temp_poster(poster_id, log_prefix):
 
 
 def _send_failed_with_retry(platform, recipient, poster_id):
-    """Invia il messaggio di fallimento con tasto Retry al bot."""
     from bot_engine.views import send_message, send_telegram_buttons, MESSAGE_TEMPLATES
 
     text = MESSAGE_TEMPLATES["analysis_failed"][platform]
@@ -266,7 +265,7 @@ def process_poster_task(self, poster_id, user_notes=None, user_tags=None, source
         if error:
             _delete_temp_poster(poster_id, "Task:web")
             logger.warning("[Task:web] poster_id=%d -> AI failed, deleted: %s", poster_id, error)
-            return {"poster_id": poster_id, "status": "error", "error": error}
+            return {"poster_id": poster_id, "status": "error"}
 
         resolved = new_poster or ResearchPoster.objects.filter(pk=poster_id).first()
         resolved_title = resolved.title if resolved else ""
@@ -298,10 +297,6 @@ def process_poster_task(self, poster_id, user_notes=None, user_tags=None, source
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=5)
 def download_and_handle_media_task(self, platform, recipient, media_id, filename, caption=None):
-    """Download media from WhatsApp/Telegram and hand off to _handle_media_upload.
-
-    Running this in Celery prevents the webhook from timing out on large downloads.
-    """
     close_old_connections()
     try:
         from bot_engine.views import (
@@ -437,7 +432,7 @@ def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, ta
             _delete_temp_poster(poster_id, "Task:bot")
             cache.delete(cache_key)
             _clear_bot_ratelimit(platform, recipient)
-            send_message(platform, recipient, f"❌ Error during analysis: {error}")
+            send_message(platform, recipient, "❌ Analysis could not be completed. Please try sending the image again.")
             logger.warning("[Task:bot] poster_id=%d -> error: %s", poster_id, error)
             return {"status": "error", "error": error, "poster_id": poster_id}
 

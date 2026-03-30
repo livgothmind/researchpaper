@@ -183,6 +183,117 @@
         [data-theme="dark"] .page-subtitle { color: var(--text-muted); }
         [data-theme="dark"] .progress-label { color: var(--text-heading); }
         [data-theme="dark"] .progress-status { color: var(--text-muted); }
+
+        /* Tips panel */
+        .tips-toggle {
+            display: flex; align-items: center; gap: 7px;
+            background: none; border: none; cursor: pointer;
+            font-size: 0.8em; font-weight: 600; color: var(--text-muted);
+            padding: 0; margin: 14px 0 0; width: 100%;
+            transition: color 0.2s;
+        }
+        .tips-toggle:hover { color: var(--primary); }
+        .tips-toggle .tips-arrow {
+            margin-left: auto; font-size: 0.85em;
+            transition: transform 0.2s;
+        }
+        .tips-toggle.open .tips-arrow { transform: rotate(180deg); }
+        .tips-body {
+            display: none;
+            margin-top: 10px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+        }
+        .tips-body ul {
+            margin: 0; padding: 0 0 0 18px;
+            list-style: disc;
+        }
+        .tips-body ul li {
+            font-size: 0.81em; color: var(--text-muted);
+            margin-bottom: 6px; line-height: 1.5;
+        }
+        .tips-body ul li:last-child { margin-bottom: 0; }
+        .tips-body ul li strong { color: var(--text-heading); }
+
+        /* Recent uploads */
+        .recent-uploads {
+            margin-top: 14px;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+        }
+        .recent-toggle {
+            display: flex; align-items: center; gap: 7px;
+            background: none; border: none; cursor: pointer;
+            font-size: 0.8em; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            padding: 0; width: 100%;
+            transition: color 0.2s;
+        }
+        .recent-toggle:hover { color: var(--primary); }
+        .recent-toggle .recent-arrow {
+            margin-left: auto; font-size: 0.85em;
+            transition: transform 0.2s;
+            text-transform: none; letter-spacing: 0;
+        }
+        .recent-toggle.open .recent-arrow { transform: rotate(180deg); }
+        .recent-list { display: none; margin-top: 8px; }
+        .recent-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 9px 10px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .recent-item:hover { background: var(--bg-hover); }
+        .recent-thumb {
+            width: 40px; height: 40px; flex-shrink: 0;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+        }
+        .recent-thumb-placeholder {
+            width: 40px; height: 40px; flex-shrink: 0;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1em; color: var(--text-faint);
+        }
+        .recent-info { flex: 1; min-width: 0; }
+        .recent-title {
+            font-size: 0.83em; font-weight: 600;
+            color: var(--text-heading);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .recent-meta {
+            font-size: 0.74em; color: var(--text-faint); margin-top: 2px;
+        }
+        .recent-badge {
+            font-size: 0.7em; font-weight: 700; flex-shrink: 0;
+            padding: 2px 8px; border-radius: var(--radius-pill);
+        }
+        .badge-processing {
+            background: #fff7e6; color: #b45309;
+            border: 1px solid #fde68a;
+        }
+        .badge-ok {
+            background: #f0fdf4; color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+        .badge-failed {
+            background: #fef2f2; color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+        .badge-pending {
+            background: var(--bg-surface); color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+        [data-theme="dark"] .badge-processing { background: #422006; color: #fbbf24; border-color: #78350f; }
+        [data-theme="dark"] .badge-ok         { background: #052e16; color: #4ade80; border-color: #166534; }
+        [data-theme="dark"] .badge-failed      { background: #450a0a; color: #f87171; border-color: #991b1b; }
     </style>
 {% endblock %}
 
@@ -201,6 +312,20 @@
 
             <span class="page-title max-sm:tw-text-[1.4em]">Research Poster Analyzer</span>
             <span class="page-subtitle max-sm:tw-text-[0.8em] max-sm:tw-mb-[18px]">Upload a poster image and let AI extract all paper details</span>
+
+            <button type="button" class="tips-toggle" id="tipsToggle" onclick="toggleTips()">
+                💡 Tips for best results
+                <span class="tips-arrow">▾</span>
+            </button>
+            <div class="tips-body" id="tipsBody">
+                <ul>
+                    <li><strong>Use high-resolution images</strong> — text must be readable for the AI to extract metadata correctly.</li>
+                    <li><strong>Avoid blurry or rotated photos</strong> — shoot straight on, with good lighting.</li>
+                    <li><strong>Include the full poster</strong> — title, authors, and abstract should all be visible.</li>
+                    <li><strong>JPG/PNG work best</strong> — avoid heavily compressed images.</li>
+                    <li><strong>Add tags to help categorization</strong> — e.g. <em>segmentation, transformer, 3D</em>.</li>
+                </ul>
+            </div>
 
             {% if messaggio %}
             <div class="message">{{ messaggio }}</div>
@@ -283,6 +408,39 @@
                     <div class="progress-status" id="progressStatus"></div>
                 </div>
             </form>
+            {% if recent_uploads %}
+            <div class="recent-uploads">
+                <button type="button" class="recent-toggle" id="recentToggle" onclick="toggleRecent()">
+                    Your recent uploads ({{ recent_uploads|length }})
+                    <span class="recent-arrow">▾</span>
+                </button>
+                <div class="recent-list" id="recentList">
+                {% for poster in recent_uploads %}
+                <a href="{% url 'poster_detail' poster.pk %}" class="recent-item">
+                    {% if poster.image %}
+                        <img class="recent-thumb" src="{{ poster.image.url }}" alt="">
+                    {% else %}
+                        <div class="recent-thumb-placeholder">🖼</div>
+                    {% endif %}
+                    <div class="recent-info">
+                        <div class="recent-title">{{ poster.title|default:"Pending analysis…" }}</div>
+                        <div class="recent-meta">{{ poster.created_at|date:"d M Y, H:i" }}</div>
+                    </div>
+                    {% if poster.analysis_status == "processing" %}
+                        <span class="recent-badge badge-processing">Processing</span>
+                    {% elif poster.analysis_status == "ok" %}
+                        <span class="recent-badge badge-ok">✓ Done</span>
+                    {% elif poster.analysis_status == "failed" %}
+                        <span class="recent-badge badge-failed">Failed</span>
+                    {% else %}
+                        <span class="recent-badge badge-pending">Pending</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="text-center" style="margin-top: 20px;">
                 <a href="{% url 'dashboard' %}" class="nav-link"
                    style="display:inline-flex; align-items:center; gap:6px; justify-content:center;">
@@ -302,4 +460,18 @@
 
     <script src="{% static 'js/tag-autocomplete.js' %}"></script>
     <script src="{% static 'js/upload.js' %}"></script>
+    <script>
+        function toggleTips() {
+            const btn  = document.getElementById('tipsToggle');
+            const body = document.getElementById('tipsBody');
+            const open = btn.classList.toggle('open');
+            body.style.display = open ? 'block' : 'none';
+        }
+        function toggleRecent() {
+            const btn  = document.getElementById('recentToggle');
+            const list = document.getElementById('recentList');
+            const open = btn.classList.toggle('open');
+            list.style.display = open ? 'block' : 'none';
+        }
+    </script>
 {% endblock %}

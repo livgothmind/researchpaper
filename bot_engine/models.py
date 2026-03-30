@@ -230,7 +230,7 @@ class ResearchPoster(models.Model):
 
     @property
     def tags_list(self):
-        """Deduplicated, case-insensitive tag list excluding subfield labels/slugs."""
+        
         if not self.tags:
             return []
         sf_labels = {s.lower() for s in self.subfields_display}

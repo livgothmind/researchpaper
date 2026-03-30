@@ -1,7 +1,6 @@
 from django import forms
 from .models import ResearchPoster
 
-
 class PosterUploadForm(forms.ModelForm):
     notes = forms.CharField(
         max_length=500,
@@ -34,7 +33,7 @@ class PosterUploadForm(forms.ModelForm):
         'image/jpeg', 'image/png', 'image/gif',
         'image/webp', 'image/bmp', 'image/tiff',
     ]
-    MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20 MB — matches upload.js
+    MAX_UPLOAD_SIZE = 20 * 1024 * 1024  
 
     def clean_image(self):
         image = self.cleaned_data.get('image')
@@ -101,7 +100,6 @@ class PosterEditForm(forms.ModelForm):
             self.initial['subfields'] = self.instance.subfields_list
 
     def clean_subfields(self):
-        """Convert list of selected subfields back to comma-separated string."""
         return ','.join(self.cleaned_data.get('subfields', []))
 
     def save(self, commit=True):

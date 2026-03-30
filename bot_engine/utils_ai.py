@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from urllib.parse import quote_plus, urlparse
 
 import requests
-import PyPDF2
+import pypdf
 from bs4 import BeautifulSoup
 from openai import OpenAI
 from django.conf import settings
@@ -345,29 +345,6 @@ def _find_pdf_via_arxiv(title):
     return ""
 
 
-def _get_pdf_from_unpaywall(doi):
-    if not doi:
-        return ""
-    try:
-        resp = requests.get(
-            f"https://api.unpaywall.org/v2/{quote_plus(doi)}",
-            params={"email": "paper-project@university.edu"},
-            timeout=10,
-        )
-        if resp.status_code != 200:
-            return ""
-        data = resp.json()
-        best = data.get("best_oa_location") or {}
-        pdf  = best.get("url_for_pdf", "") or best.get("url", "")
-        if pdf:
-            return pdf
-        for loc in data.get("oa_locations", []):
-            pdf = loc.get("url_for_pdf", "") or loc.get("url", "")
-            if pdf:
-                return pdf
-    except Exception as e:
-        logger.debug("Unpaywall lookup failed for DOI %s: %s", doi, e)
-    return ""
 
 
 def _get_pdf_from_stamp(stamp_url):
@@ -479,9 +456,6 @@ def _find_real_pdf(pdf_url_hint="", paper_link="", doi="", title=""):
     if doi:
         pdf = _get_pdf_from_doi(doi)
         if pdf:
-            return pdf
-        pdf = _get_pdf_from_unpaywall(doi)
-        if pdf and _is_valid_pdf_url(pdf):
             return pdf
     if title:
         pdf = _find_pdf_via_google_scholar(title)
@@ -619,7 +593,7 @@ def _find_github_in_pdf(pdf_url):
             if result2 is None:
                 return ""
             content, resp = result2
-        reader = PyPDF2.PdfReader(io.BytesIO(content))
+        reader = pypdf.PdfReader(io.BytesIO(content))
         for url in _extract_github_from_annotations(reader):
             result = _first_valid_github(url)
             if result:
@@ -844,7 +818,7 @@ def _extract_text_from_pdf(pdf_url, max_pages=8):
         content, resp = result
         if "html" in resp.headers.get("Content-Type", "").lower():
             return ""
-        reader = PyPDF2.PdfReader(io.BytesIO(content))
+        reader = pypdf.PdfReader(io.BytesIO(content))
         text   = "\n".join(page.extract_text() or "" for page in reader.pages[:max_pages])
         text   = re.sub(r"[ \t]+", " ", text)
         text   = re.sub(r"\n{3,}", "\n\n", text)
