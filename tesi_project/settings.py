@@ -20,6 +20,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok-free.app",
     "https://*.ngrok-free.dev",
     "https://*.ngrok.io",
+    "https://posterhub.ing.unimore.it",
+    "https://services-host.ing.unimore.it",
     "http://127.0.0.1",
     "http://localhost",
 ]
@@ -34,6 +36,8 @@ INSTALLED_APPS = [
     "bot_engine",
 ]
 
+SHIBBOLETH_AUTH = os.getenv("SHIBBOLETH_AUTH", "false").lower() == "true"
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -41,9 +45,16 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "bot_engine.middleware.ShibbolethMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+if SHIBBOLETH_AUTH:
+    AUTHENTICATION_BACKENDS = [
+        "bot_engine.middleware.ShibbolethBackend",
+        "django.contrib.auth.backends.ModelBackend",
+    ]
 
 ROOT_URLCONF = "tesi_project.urls"
 
