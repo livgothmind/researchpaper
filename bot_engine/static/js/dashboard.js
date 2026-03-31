@@ -1,10 +1,3 @@
-/* ─────────────────────────────────────────────────────────────
-   DASHBOARD  (requires common.js loaded first)
-   ───────────────────────────────────────────────────────────── */
-
-/* ─────────────────────────────────────────────────────────────
-   FILTER STATE
-   ───────────────────────────────────────────────────────────── */
 
 const F = {
     status: '',
@@ -85,9 +78,6 @@ function buildQueryString() {
     return p.toString();
 }
 
-/* ─────────────────────────────────────────────────────────────
-   AJAX FILTER ENGINE
-   ───────────────────────────────────────────────────────────── */
 
 let _fetchController   = null;
 let _isApplyingFilters = false;
@@ -210,9 +200,6 @@ window.addEventListener('popstate', () => {
     applyFilters({ pushHistory: false });
 });
 
-/* ─────────────────────────────────────────────────────────────
-   FILTER HELPERS
-   ───────────────────────────────────────────────────────────── */
 
 function syncFilterButtons() {
     document.querySelectorAll('#statusButtons .filter-btn').forEach(btn => {
@@ -382,10 +369,6 @@ function sortColumn(field) {
 function goToPage(num)      { F.page = num; applyFilters(); }
 function changePerPage(val) { F.per_page = parseInt(val, 10); F.page = 1; applyFilters(); }
 
-/* ─────────────────────────────────────────────────────────────
-   SUBFIELD DROPDOWN
-   ───────────────────────────────────────────────────────────── */
-
 function rebuildSubfieldDropdown(catFilter, subfieldsForCat, activeSubfields) {
     const wrap   = document.getElementById('subfieldDropdownWrap');
     const groups = document.getElementById('subfieldDropdownGroups');
@@ -481,9 +464,6 @@ function removeSubfield(slug) {
     applyFilters();
 }
 
-/* ─────────────────────────────────────────────────────────────
-   STATS ANIMATION
-   ───────────────────────────────────────────────────────────── */
 
 function animateValue(el, start, end, duration) {
     if (start === end) { el.textContent = end; return; }
@@ -501,10 +481,47 @@ function animateValue(el, start, end, duration) {
     requestAnimationFrame(step);
 }
 
+function updateDonut(pending, approved, rejected) {
+    var total = pending + approved + rejected;
+    var pPct = total ? (pending  / total) * 100 : 0;
+    var aPct = total ? (approved / total) * 100 : 0;
+    var rPct = total ? (rejected / total) * 100 : 0;
+
+    var gap = 1.5;
+    var segments = [[pPct, 'donut-pending'], [aPct, 'donut-approved'], [rPct, 'donut-rejected']];
+    var active   = segments.filter(function (s) { return s[0] > 0; });
+
+    if (active.length === 0) {
+        segments.forEach(function (s) {
+            var el = document.getElementById(s[1]);
+            if (el) { el.setAttribute('stroke-dasharray', '0 100'); el.setAttribute('stroke-dashoffset', '0'); }
+        });
+        return;
+    }
+
+    var totalGap = active.length > 1 ? active.length * gap : 0;
+    var scale    = active.length > 1 ? (100 - totalGap) / 100 : 1;
+    var offset   = 0;
+
+    segments.forEach(function (s) {
+        var el = document.getElementById(s[1]);
+        if (!el) return;
+        var pct = s[0] * scale;
+        if (pct > 0) {
+            el.setAttribute('stroke-dasharray', pct + ' ' + (100 - pct));
+            el.setAttribute('stroke-dashoffset', '' + (-offset));
+            offset += pct + gap;
+        } else {
+            el.setAttribute('stroke-dasharray', '0 100');
+            el.setAttribute('stroke-dashoffset', '0');
+        }
+    });
+}
+
 function updateStats(stats) {
     if (!stats) return;
 
-    const map = {
+    var map = {
         'stat-total':     stats.total     || 0,
         'stat-pending':   stats.pending   || 0,
         'stat-approved':  stats.approved  || 0,
@@ -512,15 +529,14 @@ function updateStats(stats) {
         'stat-favorites': stats.favorites || 0,
     };
 
-    Object.entries(map).forEach(([id, newVal]) => {
-        const el = document.getElementById(id);
-        if (el) animateValue(el, parseInt(el.textContent, 10) || 0, newVal, 400);
+    Object.entries(map).forEach(function (entry) {
+        var el = document.getElementById(entry[0]);
+        if (el) animateValue(el, parseInt(el.textContent, 10) || 0, entry[1], 400);
     });
+
+    updateDonut(stats.pending || 0, stats.approved || 0, stats.rejected || 0);
 }
 
-/* ─────────────────────────────────────────────────────────────
-   ACTIVITY LOG
-   ───────────────────────────────────────────────────────────── */
 
 function addActivity(activity) {
     if (!activity) return;
@@ -568,9 +584,6 @@ function addActivity(activity) {
     if (clearBtn) clearBtn.style.display = '';
 }
 
-/* ─────────────────────────────────────────────────────────────
-   AI ANALYSIS BANNER
-   ───────────────────────────────────────────────────────────── */
 
 function _createBanner() {
     if (!document.getElementById('_live-spin-style')) {
@@ -604,9 +617,6 @@ function _removeBanner(el) {
     setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
 }
 
-/* ─────────────────────────────────────────────────────────────
-   TASK POLLING
-   ───────────────────────────────────────────────────────────── */
 
 function pollTask(taskId, { onSuccess, onFailure, onTimeout } = {}) {
     let attempts = 0;
@@ -640,9 +650,6 @@ function pollTask(taskId, { onSuccess, onFailure, onTimeout } = {}) {
     return { stop: () => clearInterval(timer) };
 }
 
-/* ─────────────────────────────────────────────────────────────
-   LIVE POLLING
-   ───────────────────────────────────────────────────────────── */
 
 let _liveLatestId      = 0;
 let _liveProcessing    = 0;
@@ -686,7 +693,7 @@ async function checkLiveStatus() {
 
         if (hasNew) F.page = 1;
 
-        if ((hasNew || statusChanged) && !_isApplyingFilters) {
+        if (hasNew || statusChanged) {
             applyFilters({ pushHistory: false, showLoading: false, clearBulkSelection: false });
         }
     } catch (e) {
@@ -714,10 +721,6 @@ document.addEventListener('visibilitychange', () => {
         startLivePolling();
     }
 });
-
-/* ─────────────────────────────────────────────────────────────
-   POSTER ACTIONS
-   ───────────────────────────────────────────────────────────── */
 
 function retryAnalysis(posterId, button) {
     const originalHTML = button.innerHTML;
@@ -870,7 +873,7 @@ function toggleFavorite(posterId, button) {
             button.classList.toggle('favorited', data.is_favorite);
             button.title = data.is_favorite ? 'Remove from favorites' : 'Add to favorites';
 
-            // Update the indicator star in the ID cell
+        
             const row    = button.closest('tr');
             const idCell = row ? row.querySelector('td:nth-child(2)') : null;
             const indicators = idCell ? idCell.querySelector('.id-cell-indicators') : null;
@@ -885,7 +888,6 @@ function toggleFavorite(posterId, button) {
                     svg.innerHTML = '<path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/>';
                     indicators.appendChild(svg);
                 } else if (!indicators && idCell) {
-                    // create indicators row if it doesn't exist
                     const div = document.createElement('div');
                     div.className = 'id-cell-indicators';
                     div.innerHTML = `<svg class="id-cell-icon icon-star" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>`;
@@ -894,8 +896,8 @@ function toggleFavorite(posterId, button) {
                 }
             } else if (starEl) {
                 starEl.remove();
-                // remove indicators div if now empty
-                if (indicators && indicators.children.length === 0) indicators.remove();
+                if (indicators && indicators.children.length === 0) 
+                    indicators.remove();
             }
 
             updateStats(data.stats);
@@ -903,10 +905,6 @@ function toggleFavorite(posterId, button) {
         })
         .catch(() => showToast('Network error', 'error'));
 }
-
-/* ─────────────────────────────────────────────────────────────
-   DELETE MODAL
-   ───────────────────────────────────────────────────────────── */
 
 let pendingDeleteId = null;
 
@@ -967,10 +965,6 @@ function executeDelete() {
         .catch(() => showToast('Network error', 'error'));
 }
 
-/* ─────────────────────────────────────────────────────────────
-   ACTIVITY SIDEBAR
-   ───────────────────────────────────────────────────────────── */
-
 function clearAllActivities() {
     if (!confirm('Delete all activity logs? This cannot be undone.')) return;
 
@@ -1005,10 +999,6 @@ function toggleActivitySidebar() {
 
     try { localStorage.setItem('activitySidebarHidden', String(!isHidden)); } catch (e) {}
 }
-
-/* ─────────────────────────────────────────────────────────────
-   MISC UI HELPERS
-   ───────────────────────────────────────────────────────────── */
 
 function toggleText(type, posterId) {
     const preview = document.getElementById(`${type}-preview-${posterId}`);
@@ -1105,10 +1095,6 @@ function saveNotes(posterId) {
         .catch(() => showToast('Network error', 'error'));
 }
 
-/* ─────────────────────────────────────────────────────────────
-   BULK SELECTION
-   ───────────────────────────────────────────────────────────── */
-
 function toggleSelectAll(masterCheckbox) {
     document.querySelectorAll('.bulk-checkbox').forEach(cb => {
         cb.checked = masterCheckbox.checked;
@@ -1173,9 +1159,6 @@ function bulkAction(action) {
         .catch(() => showToast('Network error', 'error'));
 }
 
-/* ─────────────────────────────────────────────────────────────
-   INIT
-   ───────────────────────────────────────────────────────────── */
 
 window.addEventListener('DOMContentLoaded', () => {
     initFilterState();
@@ -1183,7 +1166,23 @@ window.addEventListener('DOMContentLoaded', () => {
     _syncSearchClear();
     updateBackToTopVisibility();
 
-    // Auto-dismiss server-rendered toast
+
+    var ip = parseInt(document.getElementById('stat-pending')?.textContent, 10) || 0;
+    var ia = parseInt(document.getElementById('stat-approved')?.textContent, 10) || 0;
+    var ir = parseInt(document.getElementById('stat-rejected')?.textContent, 10) || 0;
+    updateDonut(ip, ia, ir);
+
+
+    document.querySelectorAll('.donut-segment').forEach(function (seg) {
+        seg.addEventListener('mouseenter', function () { seg.setAttribute('stroke-width', '5.5'); });
+        seg.addEventListener('mouseleave', function () { seg.setAttribute('stroke-width', '4'); });
+        seg.addEventListener('click', function () {
+            var id = seg.id.replace('donut-', '');
+            if (id === 'pending' || id === 'approved' || id === 'rejected') toggleFilter('status', id);
+        });
+    });
+
+   
     const toast = document.getElementById('toast');
     if (toast) {
         const delay = toast.classList.contains('toast-warning') ? 5000 : 3000;
@@ -1193,7 +1192,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }, delay);
     }
 
-    // Restore activity sidebar state
+ 
     if (localStorage.getItem('activitySidebarHidden') === 'true') {
         const al = document.getElementById('activityList');
         const tb = document.getElementById('toggleActivityBtn');
@@ -1201,7 +1200,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (tb) { tb.textContent = '▶'; tb.title = 'Show activity log'; }
     }
 
-    // Restore advanced filters state
+    
     const hasAdvancedFilters = !!(F.author || F.summary || F.date_from || F.date_to);
     const wasOpen = localStorage.getItem('advancedFiltersOpen') === 'true';
     if (hasAdvancedFilters || wasOpen) {
@@ -1211,7 +1210,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (ai) ai.textContent = '▲';
     }
 
-    // Handle task_id from redirect after upload
+    
     (function startUploadPolling() {
         const params = new URLSearchParams(window.location.search);
         const taskId = params.get('task_id');
@@ -1224,7 +1223,7 @@ window.addEventListener('DOMContentLoaded', () => {
             window.location.pathname + (params.toString() ? '?' + params.toString() : '')
         );
 
-        // Use the shared live banner (single banner, no duplicates)
+        
         _showLiveBanner();
 
         const warningMsgs = {
@@ -1236,7 +1235,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
         pollTask(taskId, {
             onSuccess: data => {
-                _hideLiveBanner();
                 const key = data.warning || data.status;
                 if (key && warningMsgs[key]) {
                     const [msg, type] = warningMsgs[key];
@@ -1244,14 +1242,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 } else {
                     showToast(`✅ "${data.title || 'Paper'}" analysed!`);
                 }
-                setTimeout(() => applyFilters({ pushHistory: false }), 600);
+                applyFilters({ pushHistory: false, showLoading: false, clearBulkSelection: false });
             },
             onFailure: data => {
-                _hideLiveBanner();
                 showToast('❌ Analysis error: ' + (data?.error || 'unknown'), 'error');
+                applyFilters({ pushHistory: false, showLoading: false, clearBulkSelection: false });
             },
             onTimeout: () => {
-                _hideLiveBanner();
                 showToast('⚠️ Analysis timed out — please reload the page', 'error');
             },
         });

@@ -37,7 +37,6 @@ function initTagAutocomplete(inputId, opts) {
         var before = val.substring(0, token.start);
         var after  = val.substring(cursor);
 
-        /* Trim leading space after comma */
         if (before.length > 0 && before[before.length - 1] === ',') {
             before += ' ';
         }

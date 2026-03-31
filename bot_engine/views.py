@@ -1191,17 +1191,34 @@ def upload_poster(request):
             )
             return redirect("upload")
 
-        form = PosterUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            cache.set(rate_key, 1, timeout=WEB_UPLOAD_COOLDOWN)
-            poster_temp                 = form.save(commit=False)
-            poster_temp.uploaded_by     = request.user
-            poster_temp.upload_source   = 'web'
-            poster_temp.analysis_status = 'processing'
-            poster_temp.save()
+        files = request.FILES.getlist("image")
+        user_notes = request.POST.get("notes", "") or ""
+        user_tags = request.POST.get("tags", "") or ""
 
-            user_notes = form.cleaned_data.get("notes", "") or ""
-            user_tags  = form.cleaned_data.get("tags", "") or ""
+        if not files:
+            messages.error(request, "Please select at least one image.")
+            return redirect("upload")
+
+        allowed_mimes = PosterUploadForm.ALLOWED_MIME_TYPES
+        max_size = PosterUploadForm.MAX_UPLOAD_SIZE
+        first_task_id = None
+
+        for f in files:
+            mime = getattr(f, "content_type", "")
+            if mime not in allowed_mimes:
+                continue
+            if f.size > max_size:
+                continue
+
+            poster_temp = ResearchPoster()
+            poster_temp.image.save(f.name, f)
+            poster_temp.title = "Pending analysis…"
+            poster_temp.authors = ""
+            poster_temp.summary = ""
+            poster_temp.uploaded_by = request.user
+            poster_temp.upload_source = "web"
+            poster_temp.analysis_status = "processing"
+            poster_temp.save()
 
             task = process_poster_task.delay(
                 poster_id=poster_temp.pk,
@@ -1211,13 +1228,18 @@ def upload_poster(request):
                 user_id=request.user.pk,
             )
             cache.set(f"task:poster:{poster_temp.pk}", task.id, timeout=3600)
+            if first_task_id is None:
+                first_task_id = task.id
 
-            messages.info(
-                request,
-                "Poster uploaded. AI analysis is in progress. "
-                "The paper will appear in your dashboard shortly."
-            )
-            return redirect(f"/dashboard/?task_id={task.id}")
+        cache.set(rate_key, 1, timeout=WEB_UPLOAD_COOLDOWN)
+
+        n = len(files)
+        if n == 1:
+            messages.info(request, "Poster uploaded. AI analysis is in progress.")
+        else:
+            messages.info(request, f"{n} posters uploaded. AI analysis is in progress for each one.")
+
+        return redirect(f"/dashboard/?task_id={first_task_id}")
     else:
         form = PosterUploadForm()
 

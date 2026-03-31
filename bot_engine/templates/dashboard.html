@@ -35,199 +35,185 @@
             </div>
         </div>
 
-        <div class="stats-container max-xl:tw-grid-cols-5 max-xl:tw-gap-[5px] max-xl:tw-mb-2 max-sm:tw-grid-cols-3 max-sm:tw-gap-1.5" id="statsContainer">
-            <div class="stat-card max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
-                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-total">{{ stats.total }}</div>
-                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase">Total Papers</div>
-            </div>
-            <div class="stat-card stat-pending max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
-                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-pending">{{ stats.pending }}</div>
-                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase"><span class="status-dot dot-pending"></span> Pending</div>
-            </div>
-            <div class="stat-card stat-approved max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
-                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-approved">{{ stats.approved }}</div>
-                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase"><span class="status-dot dot-approved"></span> Approved</div>
-            </div>
-            <div class="stat-card stat-rejected max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none">
-                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-rejected">{{ stats.rejected }}</div>
-                <div class="stat-label max-xl:tw-mt-1 max-xl:tw-text-[0.7em] max-xl:tw-tracking-wide max-xl:tw-whitespace-nowrap max-xl:tw-overflow-hidden max-xl:tw-max-w-full max-xl:tw-uppercase"><span class="status-dot dot-rejected"></span> Rejected</div>
-            </div>
-            <a href="javascript:void(0)" onclick="toggleFilter('favorites','1')"
-               class="stat-card stat-favorites {% if favorites_filter %}stat-favorites-active{% endif %} max-xl:tw-min-h-0 max-xl:tw-py-2.5 max-xl:tw-px-2 max-xl:tw-rounded-xl max-xl:before:tw-hidden max-xl:after:tw-hidden max-xl:hover:tw-transform-none"
-               id="stat-favorites-card" title="Show only starred papers">
-                <div class="stat-number max-xl:tw-text-[1.15em] max-xl:tw-font-bold" id="stat-favorites">{{ stats.favorites }}</div>
-                <div class="stat-label"><span class="icon-star" aria-label="starred"><svg viewBox="0 0 1024 1024" width="18" height="18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span> Starred</div>
-            </a>
-        </div>
+        <div class="stats-container" id="statsContainer" style="display:flex; align-items:stretch; gap:14px; margin-bottom:14px; animation:fadeInUp 0.4s ease-out 0.05s both;">
 
-        <div class="search-bar-card max-xl:tw-p-2.5 max-xl:tw-mb-2 max-xl:tw-rounded-xl">
-            <form class="search-form max-xl:tw-gap-[5px] max-sm:tw-flex-col max-sm:tw-gap-2.5" id="searchForm" onsubmit="return handleSearchSubmit(event)">
-                <div class="tw-relative tw-flex-1 tw-min-w-0 max-sm:tw-w-full">
-                    <input type="text" name="search"
-                           placeholder="Search by title, authors, tags, or summary..."
-                           value="{{ search_query }}"
-                           class="search-input tw-w-full tw-pr-8 max-xl:tw-h-[38px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-xl:tw-rounded-lg max-xl:tw-leading-tight max-sm:tw-h-11 max-sm:tw-text-sm"
-                           id="searchInput">
-                    <button type="button" id="searchClearBtn" onclick="clearSearch()" class="tw-absolute tw-right-2 tw-top-1/2 tw--translate-y-1/2 tw-border-none tw-bg-transparent tw-cursor-pointer tw-text-[var(--text-muted)] hover:tw-text-[var(--text-heading)] tw-text-lg tw-leading-none tw-p-1" style="display:none;" aria-label="Clear search">&times;</button>
+            <!-- Donut + Legend card (fixed width) -->
+            <div class="donut-card" style="display:flex; align-items:center; gap:24px; background:var(--bg-card); border:1px solid var(--border-card); border-radius:var(--radius-lg); padding:24px 28px; box-shadow:var(--shadow-card); transition:background 0.3s ease; width:420px; flex-shrink:0;">
+                <div class="donut-wrap" style="position:relative; width:160px; height:160px; flex-shrink:0;">
+                    <svg id="donutChart" viewBox="0 0 42 42" width="160" height="160" style="transform:rotate(-90deg);">
+                        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--border-card)" stroke-width="4"/>
+                        <circle class="donut-segment" id="donut-pending"  cx="21" cy="21" r="15.9155" fill="none" stroke="#eab308" stroke-width="4" stroke-dasharray="0 100" stroke-dashoffset="0" style="transition:stroke-dasharray 0.6s ease, stroke-width 0.2s ease; cursor:pointer;"/>
+                        <circle class="donut-segment" id="donut-approved" cx="21" cy="21" r="15.9155" fill="none" stroke="#22c55e" stroke-width="4" stroke-dasharray="0 100" stroke-dashoffset="0" style="transition:stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease, stroke-width 0.2s ease; cursor:pointer;"/>
+                        <circle class="donut-segment" id="donut-rejected" cx="21" cy="21" r="15.9155" fill="none" stroke="#ef4444" stroke-width="4" stroke-dasharray="0 100" stroke-dashoffset="0" style="transition:stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease, stroke-width 0.2s ease; cursor:pointer;"/>
+                    </svg>
+                    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
+                        <span id="stat-total" style="font-size:2em; font-weight:700; color:var(--text-strong); line-height:1;">{{ stats.total }}</span>
+                        <span style="font-size:0.7em; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-top:3px;">papers</span>
+                    </div>
                 </div>
-                <div class="tw-flex tw-gap-3 tw-flex-shrink-0 max-sm:tw-gap-2.5 max-sm:tw-w-full">
-                    <button type="submit" class="search-btn max-xl:!tw-flex-[1_1_0] max-xl:!tw-min-w-0 max-xl:!tw-w-auto max-xl:!tw-max-w-none max-xl:!tw-h-[34px] max-xl:!tw-px-3 max-xl:!tw-text-[0.78em] max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center max-xl:tw-gap-1 max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:!tw-min-h-0 max-sm:!tw-h-[36px] max-sm:!tw-text-[0.8em]">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <div class="donut-legend" style="display:flex; flex-direction:column; gap:6px; min-width:120px; flex:1;">
+                    <div class="donut-legend-item" style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:6px 10px; border-radius:8px; transition:background 0.2s;" onclick="toggleFilter('status','pending')" onmouseenter="this.style.background='rgba(234,179,8,0.1)'; document.getElementById('donut-pending').setAttribute('stroke-width','5.5')" onmouseleave="this.style.background=''; document.getElementById('donut-pending').setAttribute('stroke-width','4')">
+                        <span style="width:12px; height:12px; border-radius:50%; background:#eab308; flex-shrink:0;"></span>
+                        <span style="color:var(--text-muted); font-size:0.9em;">Pending</span>
+                        <span id="stat-pending" style="font-weight:700; color:#eab308; font-size:1em; margin-left:auto;">{{ stats.pending }}</span>
+                    </div>
+                    <div class="donut-legend-item" style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:6px 10px; border-radius:8px; transition:background 0.2s;" onclick="toggleFilter('status','approved')" onmouseenter="this.style.background='rgba(34,197,94,0.1)'; document.getElementById('donut-approved').setAttribute('stroke-width','5.5')" onmouseleave="this.style.background=''; document.getElementById('donut-approved').setAttribute('stroke-width','4')">
+                        <span style="width:12px; height:12px; border-radius:50%; background:#22c55e; flex-shrink:0;"></span>
+                        <span style="color:var(--text-muted); font-size:0.9em;">Approved</span>
+                        <span id="stat-approved" style="font-weight:700; color:#22c55e; font-size:1em; margin-left:auto;">{{ stats.approved }}</span>
+                    </div>
+                    <div class="donut-legend-item" style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:6px 10px; border-radius:8px; transition:background 0.2s;" onclick="toggleFilter('status','rejected')" onmouseenter="this.style.background='rgba(239,68,68,0.1)'; document.getElementById('donut-rejected').setAttribute('stroke-width','5.5')" onmouseleave="this.style.background=''; document.getElementById('donut-rejected').setAttribute('stroke-width','4')">
+                        <span style="width:12px; height:12px; border-radius:50%; background:#ef4444; flex-shrink:0;"></span>
+                        <span style="color:var(--text-muted); font-size:0.9em;">Rejected</span>
+                        <span id="stat-rejected" style="font-weight:700; color:#ef4444; font-size:1em; margin-left:auto;">{{ stats.rejected }}</span>
+                    </div>
+                    <div class="donut-legend-item" style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:6px 10px; border-radius:8px; transition:background 0.2s;" onclick="toggleFilter('favorites','1')" id="stat-favorites-card" onmouseenter="this.style.background='rgba(217,119,6,0.1)'" onmouseleave="this.style.background=''">
+                        <span style="width:12px; height:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center;"><svg viewBox="0 0 1024 1024" width="16" height="16" style="overflow:visible; flex-shrink:0;" fill="#d97706" xmlns="http://www.w3.org/2000/svg"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span>
+                        <span style="color:var(--text-muted); font-size:0.9em;">Starred</span>
+                        <span id="stat-favorites" style="font-weight:700; color:#d97706; font-size:1em; margin-left:auto;">{{ stats.favorites }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search + Filters card -->
+            <div style="flex:1; min-width:300px; display:flex; flex-direction:column; gap:14px; background:var(--bg-card); border:1px solid var(--border-card); border-radius:var(--radius-lg); padding:20px 24px; box-shadow:var(--shadow-card); transition:background 0.3s ease;">
+                <form id="searchForm" onsubmit="return handleSearchSubmit(event)" style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <div style="position:relative; flex:1; min-width:180px;">
+                        <input type="text" name="search"
+                               placeholder="Search by title, authors, tags, or summary..."
+                               value="{{ search_query }}"
+                               class="search-input"
+                               style="width:100%; height:40px; padding:0 32px 0 14px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--bg-input); color:var(--text); font-size:0.9em;"
+                               id="searchInput">
+                        <button type="button" id="searchClearBtn" onclick="clearSearch()" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); border:none; background:transparent; cursor:pointer; color:var(--text-muted); font-size:1.1em; padding:2px;" aria-label="Clear search">&times;</button>
+                    </div>
+                    <button type="submit" class="search-btn" style="height:40px; padding:0 18px; border-radius:var(--radius-sm); font-size:0.85em; display:inline-flex; align-items:center; gap:6px; flex-shrink:0;">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px; height:14px;">
                             <circle cx="11" cy="11" r="8"/>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
                         Search
                     </button>
-                    <button type="button" class="advanced-toggle-btn max-xl:!tw-flex-[1_1_0] max-xl:!tw-min-w-0 max-xl:!tw-w-auto max-xl:!tw-max-w-none max-xl:!tw-h-[34px] max-xl:!tw-px-3 max-xl:!tw-text-[0.78em] max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center max-xl:tw-gap-1 max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:!tw-min-h-0 max-sm:!tw-h-[36px] max-sm:!tw-text-[0.8em]" onclick="toggleAdvancedFilters()">
-                        <span id="advancedToggleIcon">▼</span> Advanced
+                    <button type="button" class="advanced-toggle-btn" onclick="toggleAdvancedFilters()" style="height:40px; padding:0 14px; border-radius:var(--radius-sm); font-size:0.85em; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                        <span id="advancedToggleIcon">&#9662;</span> Advanced
                     </button>
-                </div>
 
-                <div class="advanced-filters" id="advancedFilters">
-                    <div class="advanced-filters-inner">
-                        <div class="advanced-filters-grid max-xl:tw-grid-cols-2 max-xl:tw-gap-2 max-sm:tw-grid-cols-1 max-sm:tw-gap-3">
-                            <div class="advanced-filter-field">
-                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">Author</label>
-                                <input type="text" id="filterAuthor" placeholder="Filter by author..." value="{{ author_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
-                            </div>
-                            <div class="advanced-filter-field">
-                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">Summary</label>
-                                <input type="text" id="filterSummary" placeholder="Full-text search in summary..." value="{{ summary_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
-                            </div>
-                            <div class="advanced-filter-field">
-                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">From Date</label>
-                                <input type="date" id="filterDateFrom" value="{{ date_from_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
-                            </div>
-                            <div class="advanced-filter-field">
-                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">To Date</label>
-                                <input type="date" id="filterDateTo" value="{{ date_to_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
-                            </div>
-                            <div class="advanced-filter-field">
-                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">Year From</label>
-                                <input type="number" id="filterYearFrom" placeholder="e.g. 2020" min="1900" max="2100" value="{{ year_from_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
-                            </div>
-                            <div class="advanced-filter-field">
-                                <label class="max-xl:tw-text-[0.75em] max-xl:tw-mb-1 max-xl:tw-font-semibold">Year To</label>
-                                <input type="number" id="filterYearTo" placeholder="e.g. 2025" min="1900" max="2100" value="{{ year_to_filter }}" class="max-xl:tw-h-[34px] max-xl:tw-px-3 max-xl:tw-py-0 max-xl:tw-text-[0.85em] max-sm:tw-min-h-[44px] max-sm:tw-rounded-lg">
-                            </div>
-                        </div>
-                        <div class="advanced-filters-actions max-xl:tw-gap-[5px] max-xl:tw-mt-2.5 max-sm:tw-flex-col max-sm:tw-gap-2.5">
-                            <button type="button" class="advanced-toggle-btn max-sm:tw-w-full max-sm:tw-min-h-[44px] max-sm:tw-text-[0.88em] max-sm:tw-rounded-lg" onclick="applyAdvancedFilters()">Apply Filters</button>
-                            <button type="button" class="advanced-clear-btn max-sm:tw-w-full max-sm:tw-min-h-[44px] max-sm:tw-text-[0.88em] max-sm:tw-rounded-lg" onclick="clearAllFilters()">Clear All</button>
-                        </div>
+                </form>
+
+                <!-- Links -->
+                <div>
+                    <div style="font-size:0.72em; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); font-weight:600; margin-bottom:6px;">Links</div>
+                    <div id="linksButtons" style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button type="button" class="filter-btn links-filter {% if not has_github_filter and not has_paper_filter and not favorites_filter %}active{% endif %}" onclick="clearLinksFilters()">All</button>
+                        <button type="button" class="filter-btn links-filter {% if has_github_filter %}active{% endif %}" onclick="toggleFilter('has_github','1')" style="display:inline-flex; align-items:center; gap:4px;">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px; height:12px;">
+                                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                            </svg>
+                            GitHub
+                        </button>
+                        <button type="button" class="filter-btn links-filter {% if has_paper_filter %}active{% endif %}" onclick="toggleFilter('has_paper','1')" style="display:inline-flex; align-items:center; gap:4px;">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px; height:12px;">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Paper
+                        </button>
                     </div>
                 </div>
-            </form>
-            <div class="export-buttons max-xl:tw-flex-row max-xl:tw-gap-[5px] max-xl:tw-mt-2 max-sm:tw-flex-row max-sm:tw-gap-1.5 max-sm:tw-mt-2">
-                <a href="{% url 'export_approved_csv' %}?{% if search_query %}search={{ search_query|urlencode }}&{% endif %}{% if category_filter %}category={{ category_filter|urlencode }}{% endif %}" class="export-btn max-xl:tw-flex-1 max-xl:tw-h-8 max-xl:tw-px-3 max-xl:tw-text-[0.75em] max-xl:tw-justify-center max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-[3px] max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-min-h-0 max-sm:tw-h-[32px] max-sm:tw-text-[0.73em]">
-                    <svg class="btn-icon max-xl:tw-w-3 max-xl:tw-h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Export CSV
-                </a>
-                <a href="{% url 'export_approved_json' %}?{% if search_query %}search={{ search_query|urlencode }}&{% endif %}{% if category_filter %}category={{ category_filter|urlencode }}{% endif %}" class="export-btn max-xl:tw-flex-1 max-xl:tw-h-8 max-xl:tw-px-3 max-xl:tw-text-[0.75em] max-xl:tw-justify-center max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-[3px] max-xl:tw-rounded-lg max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-min-h-0 max-sm:tw-h-[32px] max-sm:tw-text-[0.73em]">
-                    <svg class="btn-icon max-xl:tw-w-3 max-xl:tw-h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Export JSON
-                </a>
-            </div>
-        </div>
 
-        <div class="filter-cards-container max-xl:tw-flex-col max-xl:tw-gap-2 max-xl:tw-mb-2.5">
-
-            <div class="filter-card status-card max-xl:tw-w-full max-xl:tw-flex-none max-xl:tw-p-[8px_12px] max-xl:tw-rounded-xl max-xl:tw-border-t-2">
-                <h3 class="filter-card-title max-xl:tw-text-[0.7em] max-xl:tw-mb-[6px] max-xl:tw-uppercase max-xl:tw-tracking-wider max-xl:tw-font-bold">Status</h3>
-                <div class="filter-card-buttons max-xl:tw-flex max-xl:tw-flex-nowrap max-xl:tw-gap-[6px] max-xl:tw-overflow-x-auto max-xl:tw-pb-0.5 max-xl:[scrollbar-width:none] max-xl:[-webkit-overflow-scrolling:touch]" id="statusButtons">
-                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if not status_filter %}active{% endif %}" onclick="setFilter('status','')">All</button>
-                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if status_filter == 'pending' %}active{% endif %}"  onclick="setFilter('status','pending')"><span class="status-dot dot-pending"></span> Pending</button>
-                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if status_filter == 'approved' %}active{% endif %}" onclick="setFilter('status','approved')"><span class="status-dot dot-approved"></span> Approved</button>
-                    <button type="button" class="filter-btn status-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if status_filter == 'rejected' %}active{% endif %}" onclick="setFilter('status','rejected')"><span class="status-dot dot-rejected"></span> Rejected</button>
-                </div>
-            </div>
-
-            <div class="filter-card links-card max-xl:tw-w-full max-xl:tw-flex-none max-xl:tw-p-[8px_12px] max-xl:tw-rounded-xl max-xl:tw-border-t-2">
-                <h3 class="filter-card-title max-xl:tw-text-[0.7em] max-xl:tw-mb-[6px] max-xl:tw-uppercase max-xl:tw-tracking-wider max-xl:tw-font-bold">Links</h3>
-                <div class="filter-card-buttons max-xl:tw-flex max-xl:tw-flex-nowrap max-xl:tw-gap-[6px] max-xl:tw-overflow-x-auto max-xl:tw-pb-0.5 max-xl:[scrollbar-width:none] max-xl:[-webkit-overflow-scrolling:touch]" id="linksButtons">
-                    <button type="button" class="filter-btn links-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if not has_github_filter and not has_paper_filter and not favorites_filter %}active{% endif %}" onclick="clearLinksFilters()">All</button>
-                    <button type="button" class="filter-btn links-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if has_github_filter %}active{% endif %}" onclick="toggleFilter('has_github','1')">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-                        </svg>
-                        GitHub
-                    </button>
-                    <button type="button" class="filter-btn links-filter max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if has_paper_filter %}active{% endif %}" onclick="toggleFilter('has_paper','1')">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                        </svg>
-                        Paper
-                    </button>
-                    <button type="button" class="filter-btn links-filter links-filter-starred max-xl:tw-h-8 max-xl:tw-min-h-[32px] max-xl:tw-px-3 max-xl:tw-text-[0.78em] max-xl:tw-whitespace-nowrap max-xl:tw-shrink-0 max-xl:tw-rounded-lg max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1 {% if favorites_filter %}active{% endif %}" onclick="toggleFilter('favorites','1')">
-                        <span class="icon-star" aria-label="starred"><svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span> Starred
-                    </button>
-                </div>
-            </div>
-
-            <div class="filter-card category-card max-xl:tw-w-full max-xl:tw-flex-none max-xl:tw-p-[8px_12px] max-xl:tw-rounded-xl max-xl:tw-border-t-2">
-                <h3 class="filter-card-title max-xl:tw-text-[0.7em] max-xl:tw-mb-[6px] max-xl:tw-uppercase max-xl:tw-tracking-wider max-xl:tw-font-bold">Category & Subfields</h3>
-                <div class="category-subfield-filter">
-                    <div class="filter-card-buttons" id="categoryButtons" style="margin-bottom: 8px;">
+                <!-- CATEGORIE -->
+                <div>
+                    <div style="font-size:0.72em; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); font-weight:600; margin-bottom:6px;">CATEGORIES</div>
+                    <div id="categoryButtons" style="display:flex; gap:6px; flex-wrap:wrap;">
                         <button type="button" class="filter-btn category-filter {% if not category_filter and not subfield_filter %}active{% endif %}" onclick="setFilter('category','')">All</button>
                         {% for cat_value, cat_label in categories %}
                             <button type="button" class="filter-btn category-filter {% if category_filter == cat_value %}active{% endif %}" onclick="setFilter('category','{{ cat_value }}')">{{ cat_label }}</button>
                         {% endfor %}
                     </div>
-                    <div class="subfield-dropdown-wrap" id="subfieldDropdownWrap" style="{% if not category_filter %}display:none{% endif %}">
-                        <button type="button" class="subfield-dropdown-btn" onclick="toggleSubfieldDropdown()">
-                            <span id="subfieldBtnLabel">
-                                {% if subfield_filter %}
-                                    {{ subfield_filter|length }} subfield{{ subfield_filter|length|pluralize }} selected
-                                {% else %}
-                                    Filter by subfield…
-                                {% endif %}
-                            </span>
-                            <span class="subfield-dropdown-arrow">▼</span>
-                        </button>
-                        <div class="subfield-dropdown-panel" id="subfieldDropdownPanel" style="display:none;">
-                            <div class="subfield-dropdown-search">
-                                <input type="text" id="subfieldSearchInput" placeholder="Search subfields..." oninput="filterSubfieldOptions(this.value)">
-                            </div>
-                            <div class="subfield-dropdown-groups" id="subfieldDropdownGroups">
-                                {% if category_filter %}
-                                    {% for cat_slug, group_label, items in subfields_grouped %}
-                                        {% if cat_slug == category_filter %}
-                                        <div class="subfield-dd-group" data-group="{{ group_label }}" data-category="{{ cat_slug }}">
-                                            <div class="subfield-dd-group-label">{{ group_label }}</div>
-                                            {% for sf_value, sf_label in items %}
-                                            <label class="subfield-dd-option" data-slug="{{ sf_value }}" data-label="{{ sf_label|lower }}">
-                                                <input type="checkbox" value="{{ sf_value }}" {% if sf_value in subfield_filter %}checked{% endif %} onchange="applySubfieldFilter()">
-                                                {{ sf_label }}
-                                            </label>
-                                            {% endfor %}
-                                        </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            </div>
-                            <div class="subfield-dropdown-actions">
-                                <button type="button" class="subfield-clear-btn" onclick="clearSubfieldFilter()">Clear all</button>
-                            </div>
-                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="advanced-filters" id="advancedFilters">
+            <div class="advanced-filters-inner">
+                <div class="advanced-filters-grid" style="grid-template-columns:1fr 1fr;">
+                    <div class="advanced-filter-field">
+                        <label>Author</label>
+                        <input type="text" id="filterAuthor" placeholder="Filter by author..." value="{{ author_filter }}">
                     </div>
-                    <div class="active-subfield-tags" id="activeSubfieldTags">
+                    <div class="advanced-filter-field">
+                        <label>Summary</label>
+                        <input type="text" id="filterSummary" placeholder="Full-text search in summary..." value="{{ summary_filter }}">
+                    </div>
+                    <div class="advanced-filter-field">
+                        <label>From Date</label>
+                        <input type="date" id="filterDateFrom" value="{{ date_from_filter }}">
+                    </div>
+                    <div class="advanced-filter-field">
+                        <label>To Date</label>
+                        <input type="date" id="filterDateTo" value="{{ date_to_filter }}">
+                    </div>
+                    <div class="advanced-filter-field">
+                        <label>Year From</label>
+                        <input type="number" id="filterYearFrom" placeholder="e.g. 2020" min="1900" max="2100" value="{{ year_from_filter }}">
+                    </div>
+                    <div class="advanced-filter-field">
+                        <label>Year To</label>
+                        <input type="number" id="filterYearTo" placeholder="e.g. 2025" min="1900" max="2100" value="{{ year_to_filter }}">
+                    </div>
+                </div>
+                <div class="advanced-filters-actions">
+                    <button type="button" class="advanced-toggle-btn" onclick="applyAdvancedFilters()">Apply Filters</button>
+                    <button type="button" class="advanced-clear-btn" onclick="clearAllFilters()">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="position:relative; margin-bottom:14px;">
+            <div class="subfield-dropdown-wrap" id="subfieldDropdownWrap" style="{% if not category_filter %}display:none{% endif %}; max-width:300px;">
+                <button type="button" class="subfield-dropdown-btn" onclick="toggleSubfieldDropdown()">
+                    <span id="subfieldBtnLabel">
                         {% if subfield_filter %}
-                            {% for sf in subfield_filter %}
-                                <span class="subfield-active-tag">{{ sf }} <button onclick="removeSubfield('{{ sf }}')" class="subfield-tag-remove">&times;</button></span>
+                            {{ subfield_filter|length }} subfield{{ subfield_filter|length|pluralize }} selected
+                        {% else %}
+                            Filter by subfield…
+                        {% endif %}
+                    </span>
+                    <span class="subfield-dropdown-arrow">&#9660;</span>
+                </button>
+                <div class="subfield-dropdown-panel" id="subfieldDropdownPanel" style="display:none;">
+                    <div class="subfield-dropdown-search">
+                        <input type="text" id="subfieldSearchInput" placeholder="Search subfields..." oninput="filterSubfieldOptions(this.value)">
+                    </div>
+                    <div class="subfield-dropdown-groups" id="subfieldDropdownGroups">
+                        {% if category_filter %}
+                            {% for cat_slug, group_label, items in subfields_grouped %}
+                                {% if cat_slug == category_filter %}
+                                <div class="subfield-dd-group" data-group="{{ group_label }}" data-category="{{ cat_slug }}">
+                                    <div class="subfield-dd-group-label">{{ group_label }}</div>
+                                    {% for sf_value, sf_label in items %}
+                                    <label class="subfield-dd-option" data-slug="{{ sf_value }}" data-label="{{ sf_label|lower }}">
+                                        <input type="checkbox" value="{{ sf_value }}" {% if sf_value in subfield_filter %}checked{% endif %} onchange="applySubfieldFilter()">
+                                        {{ sf_label }}
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             {% endfor %}
                         {% endif %}
                     </div>
+                    <div class="subfield-dropdown-actions">
+                        <button type="button" class="subfield-clear-btn" onclick="clearSubfieldFilter()">Clear all</button>
+                    </div>
                 </div>
+            </div>
+            <div class="active-subfield-tags" id="activeSubfieldTags" style="margin-top:6px;">
+                {% if subfield_filter %}
+                    {% for sf in subfield_filter %}
+                        <span class="subfield-active-tag">{{ sf }} <button onclick="removeSubfield('{{ sf }}')" class="subfield-tag-remove">&times;</button></span>
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
 

@@ -1,6 +1,3 @@
-/* ─────────────────────────────────────────────────────────────
-   COMMON UTILITIES — shared across all pages
-   ───────────────────────────────────────────────────────────── */
 
 function getCSRFToken() {
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -13,7 +10,7 @@ function getCSRFToken() {
     return cookie ? cookie.split('=')[1] : '';
 }
 
-/* ── Escape key closes any open modal ── */
+
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         var modal = document.getElementById('deleteModal');

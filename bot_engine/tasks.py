@@ -434,14 +434,14 @@ def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, ta
             _clear_bot_ratelimit(platform, recipient)
             send_message(platform, recipient, "❌ Analysis could not be completed. Please try sending the image again.")
             logger.warning("[Task:bot] poster_id=%d -> error: %s", poster_id, error)
-            return {"status": "error", "error": error, "poster_id": poster_id}
+            return {"status": "error", "poster_id": poster_id}
 
         resolved = new_poster or ResearchPoster.objects.filter(pk=poster_id).first()
         if not resolved:
             cache.delete(cache_key)
             _clear_bot_ratelimit(platform, recipient)
             logger.error("[Task:bot] Resolved poster missing after processing poster_id=%d", poster_id)
-            return {"status": "error", "error": "resolved poster missing", "poster_id": poster_id}
+            return {"status": "error", "poster_id": poster_id}
 
         logger.info("[Task:bot] Completed poster_id=%d title='%s'", resolved.pk, resolved.title)
 

@@ -294,6 +294,36 @@
         [data-theme="dark"] .badge-processing { background: #422006; color: #fbbf24; border-color: #78350f; }
         [data-theme="dark"] .badge-ok         { background: #052e16; color: #4ade80; border-color: #166534; }
         [data-theme="dark"] .badge-failed      { background: #450a0a; color: #f87171; border-color: #991b1b; }
+
+        /* Multi-file preview grid */
+        .multi-preview { display: none; margin-top: 12px; }
+        .multi-summary {
+            font-size: 0.82em; font-weight: 600;
+            color: var(--text-heading); margin-bottom: 8px;
+        }
+        .multi-grid {
+            display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .multi-thumb-wrap {
+            position: relative; width: 72px; height: 72px;
+        }
+        .multi-thumb {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+        .multi-thumb-remove {
+            position: absolute; top: -4px; right: -4px;
+            width: 14px; height: 14px;
+            border-radius: 50%; border: none;
+            background: rgba(0,0,0,.55); color: #fff;
+            font-size: 8px; line-height: 1;
+            cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.15s;
+        }
+        .multi-thumb-wrap:hover .multi-thumb-remove { opacity: 1; }
     </style>
 {% endblock %}
 
@@ -339,14 +369,14 @@
 
             <form method="post" enctype="multipart/form-data" id="uploadForm">
                 {% csrf_token %}
-                <input type="file" name="image" id="hiddenFileInput" accept="image/*" style="display:none;">
+                <input type="file" name="image" id="hiddenFileInput" accept="image/*" multiple style="display:none;">
 
                 <div class="drop-zone max-sm:tw-min-h-[160px] max-sm:tw-rounded-[10px]" id="dropZone">
                     <div class="drop-zone-idle max-sm:tw-p-[20px_14px]" id="dropIdle">
                         <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M14.2647 15.9377L12.5473 14.2346C11.758 13.4519 11.3633 13.0605 10.9089 12.9137C10.5092 12.7845 10.079 12.7845 9.67922 12.9137C9.22485 13.0605 8.83017 13.4519 8.04082 14.2346L4.04193 18.2622M14.2647 15.9377L14.606 15.5991C15.412 14.7999 15.8149 14.4003 16.2773 14.2545C16.6839 14.1262 17.1208 14.1312 17.5244 14.2688C17.9832 14.4253 18.3769 14.834 19.1642 15.6515L20 16.5001M14.2647 15.9377L18.22 19.9628M18.22 19.9628C17.8703 20 17.4213 20 16.8 20H7.2C6.07989 20 5.51984 20 5.09202 19.782C4.7157 19.5903 4.40973 19.2843 4.21799 18.908C4.12583 18.7271 4.07264 18.5226 4.04193 18.2622M18.22 19.9628C18.5007 19.9329 18.7175 19.8791 18.908 19.782C19.2843 19.5903 19.5903 19.2843 19.782 18.908C20 18.4802 20 17.9201 20 16.8V13M11 4H7.2C6.07989 4 5.51984 4 5.09202 4.21799C4.7157 4.40973 4.40973 4.71569 4.21799 5.09202C4 5.51984 4 6.0799 4 7.2V16.8C4 17.4466 4 17.9066 4.04193 18.2622M18 9V6M18 6V3M18 6H21M18 6H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <p class="drop-zone-label">Drag &amp; drop your poster here</p>
+                        <p class="drop-zone-label">Drag &amp; drop your poster(s) here</p>
                         <p class="drop-zone-sub">or <span class="drop-zone-browse">click to browse</span></p>
                         <p class="drop-zone-hint">JPG, PNG, WEBP, BMP, TIFF · max 20 MB</p>
                     </div>
@@ -354,6 +384,11 @@
                         <img id="previewImg" src="" alt="Preview">
                         <button type="button" class="drop-zone-remove" id="removeFile" title="Remove">✕</button>
                     </div>
+                </div>
+
+                <div class="multi-preview" id="multiPreview">
+                    <div class="multi-summary" id="multiSummary"></div>
+                    <div class="multi-grid" id="multiGrid"></div>
                 </div>
 
                 <div id="fileMetaInfo" class="file-meta-info max-sm:tw-flex-col max-sm:tw-gap-[3px] max-sm:tw-text-[0.78em] max-sm:tw-p-[6px_8px]" style="display:none;">

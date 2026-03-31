@@ -1,6 +1,3 @@
-/* ─────────────────────────────────────────────────────────────
-   POSTER DETAIL  (requires common.js loaded first)
-   ───────────────────────────────────────────────────────────── */
 
 function copyDetailLink(text) {
     navigator.clipboard.writeText(text).then(function () {
@@ -68,7 +65,6 @@ function stopAnalysisDetail(posterId) {
     .catch(function () { btn.disabled = false; showToast('Network error', 'error'); });
 }
 
-/* Back-to-top */
 (function () {
     var btn = document.getElementById('backToTop');
     if (!btn) return;

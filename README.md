@@ -7,15 +7,15 @@ A Django web application for building a searchable, AI-powered library of scient
 ## Features
 
 ### Multi-Channel Upload
-- **Web** — drag-and-drop upload with progress bar and real-time AI analysis status
-- **Telegram bot** — send a photo or document to receive structured results
-- **WhatsApp bot** — same workflow, with interactive button prompts
+- **Web** -- drag-and-drop upload with progress bar, real-time AI analysis status, and multi-image batch upload
+- **Telegram bot** -- send a photo or document to receive structured results
+- **WhatsApp bot** -- same workflow, with interactive button prompts
 
 ### AI-Powered Extraction (GPT-4o Vision)
 From a single poster image the system extracts:
 - Title, authors, abstract, keywords, category, conference, year, institution
 - Automatic classification into: ML, CV, NLP, Robotics, HCI, Data Science, Theory, Systems
-- Non-research image detection — rejects photos that do not contain scientific content
+- Non-research image detection -- rejects photos that do not contain scientific content
 
 ### Paper and Code Search Pipeline
 
@@ -24,11 +24,10 @@ From a single poster image the system extracts:
 | 1 | Semantic Scholar API | Paper link, open-access PDF, arXiv ID, DOI, authors |
 | 2 | Google Scholar (fallback) | Scraping-based search when Semantic Scholar is unavailable |
 | 3 | Paper page / DOI scraping | Visits the paper page and follows DOI redirects to find the real PDF |
-| 4 | Unpaywall API | DOI-to-PDF resolution for paywalled papers |
-| 5 | arXiv API | Title-based search as last-resort PDF source |
-| 6 | PDF annotation extraction | Reads clickable hyperlink annotations embedded in the PDF |
-| 7 | PDF text extraction | Finds `github.com` links in extracted text |
-| 8 | GitHub API | Multi-strategy repository search with word-overlap validation |
+| 4 | arXiv API | Title-based search as last-resort PDF source |
+| 5 | PDF annotation extraction | Reads clickable hyperlink annotations embedded in the PDF |
+| 6 | PDF text extraction | Finds `github.com` links in extracted text |
+| 7 | GitHub API | Multi-strategy repository search with word-overlap validation |
 
 ### Dashboard
 - Full table view: title, authors, category, tags, paper link, GitHub link, summary, notes
@@ -44,14 +43,22 @@ From a single poster image the system extracts:
 - `NEW` badge on papers uploaded in the last 24 hours
 - Export approved papers as CSV or JSON
 
+### Upload Page
+- Drag-and-drop single or multiple images at once
+- Multi-image batch upload: each image becomes a separate analysis task
+- Collapsible tips panel for best upload results
+- Optional notes and tags (shared across batch uploads)
+- Collapsible recent uploads section showing the last 3 uploads with status
+- Upload progress bar with real-time feedback
+
 ### Analysis Status & Retry
-- **Processing** — AI analysis running in background via Celery
-- **OK** — analysis completed successfully
-- **Failed** — AI error; poster is kept in DB with the original image
+- **Processing** -- AI analysis running in background via Celery
+- **OK** -- analysis completed successfully
+- **Failed** -- AI error; poster is kept in DB with the original image
   - Retry button re-queues the analysis task
   - Stop button cancels a running analysis
-- **Duplicate** — poster discarded, existing record kept
-- **No text** — non-scientific image, poster discarded
+- **Duplicate** -- poster discarded (detected by image hash), existing record kept
+- **No text** -- non-scientific image, poster discarded
 
 ### Responsive Design
 - Table rows become stacked cards on mobile
@@ -66,7 +73,10 @@ From a single poster image the system extracts:
 | Telegram | `/start`, `/help`, `/dashboard`, `/search <keyword>`, send photo/document |
 | WhatsApp | `start`, `help`, `dashboard`, `search <keyword>`, send photo/document |
 
-Both bots support inline notes and tags via captions (e.g. `note: interesting  tag: deep learning, mri`).
+Both bots support:
+- Inline notes and tags via captions (e.g. `note: interesting  tag: deep learning, mri`)
+- Year-filtered search (e.g. `/search transformer year:2024` or `/search segmentation year:2020-2024`)
+- Upload tips and usage guidance via `/help`
 
 ---
 
@@ -78,8 +88,8 @@ Both bots support inline notes and tags via captions (e.g. `note: interesting  t
 | Task Queue | Celery 5.4, Redis 7 |
 | Database | MySQL 8.4 |
 | AI | OpenAI GPT-4o (Vision) |
-| Paper search | Semantic Scholar, Google Scholar, Unpaywall, arXiv |
-| Code search | GitHub API, PyPDF2, BeautifulSoup |
+| Paper search | Semantic Scholar, Google Scholar, arXiv |
+| Code search | GitHub API, pypdf, BeautifulSoup |
 | Messaging | Telegram Bot API, WhatsApp Cloud API |
 | Frontend | Django templates, Tailwind CSS (CDN), vanilla JS |
 | Reverse Proxy | Apache HTTPD 2.4 |
@@ -90,29 +100,29 @@ Both bots support inline notes and tags via captions (e.g. `note: interesting  t
 ## Architecture
 
 ```
-                 ┌──────────┐
-  Browser ──────>│  Apache   │──── /media/ ──> static files
-  Telegram ─────>│  (port 80)│──── /* ──────> Gunicorn :8000
-  WhatsApp ─────>│           │                  │
-                 └──────────┘                  │
-                                                ▼
-                                          ┌──────────┐
-                                          │  Django   │
-                                          │  views.py │
-                                          └────┬─────┘
-                                               │ .delay()
-                                    ┌──────────┴──────────┐
-                                    ▼                     ▼
-                             ┌────────────┐        ┌────────────┐
-                             │   Celery    │        │   Celery    │
-                             │   Worker    │        │   Beat      │
-                             └──────┬─────┘        └────────────┘
-                                    │
-                          ┌─────────┼─────────┐
-                          ▼         ▼         ▼
-                      ┌───────┐ ┌───────┐ ┌────────┐
-                      │ MySQL │ │ Redis │ │ OpenAI │
-                      └───────┘ └───────┘ └────────┘
+                 +------------+
+  Browser ------>|  Apache    |---- /media/ --> static files
+  Telegram ----->|  (port 80) |---- /* ------> Gunicorn :8000
+  WhatsApp ----->|            |                  |
+                 +------------+                  |
+                                                 v
+                                          +------------+
+                                          |  Django    |
+                                          |  views.py  |
+                                          +-----+------+
+                                                | .delay()
+                                     +----------+----------+
+                                     v                     v
+                              +------------+        +------------+
+                              |   Celery   |        |   Celery   |
+                              |   Worker   |        |   Beat     |
+                              +------+-----+        +------------+
+                                     |
+                           +---------+---------+
+                           v         v         v
+                       +-------+ +-------+ +--------+
+                       | MySQL | | Redis | | OpenAI |
+                       +-------+ +-------+ +--------+
 ```
 
 All media downloads from Telegram and WhatsApp are handled asynchronously via Celery to prevent webhook timeouts.
@@ -126,7 +136,7 @@ All media downloads from Telegram and WhatsApp are handled asynchronously via Ce
 - OpenAI API key
 - Telegram Bot token (from @BotFather)
 - WhatsApp Cloud API credentials (Meta Business)
-  - Use a **System User token** (permanent) — temporary tokens expire every 24 hours
+  - Use a **System User token** (permanent) -- temporary tokens expire every 24 hours
 
 ### 1. Clone the repository
 ```bash
@@ -147,13 +157,17 @@ OPENAI_API_KEY=your_openai_api_key
 
 # Telegram
 BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_WEBHOOK_SECRET=your_random_secret
 
 # WhatsApp (use System User token for permanent access)
 WHATSAPP_TOKEN=your_whatsapp_permanent_token
 WHATSAPP_PHONE_ID=your_whatsapp_phone_id
 WHATSAPP_VERIFY_TOKEN=your_webhook_verify_token
 
-# Optional: GitHub API (higher rate limits)
+# Semantic Scholar (optional, improves paper search)
+SEMANTIC_SCHOLAR_API_KEY=your_key
+
+# GitHub API (optional, higher rate limits)
 GITHUB_TOKEN=your_github_token
 ```
 
@@ -171,13 +185,13 @@ This starts six containers:
 | `paperproject-django` | Gunicorn (3 workers, 120s timeout) |
 | `paperproject-apache` | Apache reverse proxy (port 80) |
 | `paperproject-worker` | Celery worker (async tasks) |
-| `paperproject-beat` | Celery beat (scheduled tasks) |
+| `paperproject-beat` | Celery beat (scheduled tasks, persistent schedule) |
 
 ### 4. Configure bot webhooks
 Set webhook URLs in each platform's dashboard:
 
-- **Telegram** — `https://yourdomain.com/telegram-webhook/`
-- **WhatsApp** — `https://yourdomain.com/whatsapp-webhook/`
+- **Telegram** -- `https://yourdomain.com/telegram-webhook/`
+- **WhatsApp** -- `https://yourdomain.com/whatsapp-webhook/`
 
 ### 5. Create a superuser (optional)
 ```bash
@@ -229,8 +243,9 @@ PaperProject/
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | GET | Upload page |
+| `/` | GET/POST | Upload page (supports multi-image upload) |
 | `/dashboard/` | GET | Dashboard with filters and search |
+| `/dashboard/live-status/` | GET | Live processing status (AJAX) |
 | `/poster/<id>/` | GET | Paper detail page |
 | `/edit/<id>/` | GET/POST | Edit paper metadata |
 | `/login/` | GET/POST | Login page |
@@ -241,6 +256,7 @@ PaperProject/
 | `/toggle-favorite/<id>/` | POST | Toggle favorite/star |
 | `/update-notes/<id>/` | POST | Save inline notes |
 | `/bulk-action/` | POST | Bulk actions on selected papers |
+| `/api/tags-autocomplete/` | GET | Tag autocomplete suggestions |
 | `/export/approved/csv/` | GET | Export approved papers (CSV) |
 | `/export/approved/json/` | GET | Export approved papers (JSON) |
 | `/telegram-webhook/` | POST | Telegram bot webhook |
@@ -274,7 +290,9 @@ docker compose up --build -d
 
 - Media files (poster images) are served directly by Apache via the `/app/media/` volume mount
 - The AI pipeline handles non-research images, API errors, and network failures gracefully
-- Failed analyses are kept in DB for retry — only duplicates and non-scientific images are auto-deleted
+- Failed analyses are kept in DB for retry -- only duplicates and non-scientific images are auto-deleted
 - Bot media downloads run asynchronously in Celery to prevent webhook timeouts
 - Redis is used both as the Celery broker and as a Django cache backend for bot state management
 - Redis locks prevent duplicate processing of the same poster across workers
+- Celery Beat schedule is persisted in a Docker volume to survive container restarts
+- Error details are logged server-side only -- bot and web users receive generic error messages

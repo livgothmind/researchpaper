@@ -50,7 +50,6 @@ class PosterUploadForm(forms.ModelForm):
 
 
 class SubfieldsMultipleWidget(forms.CheckboxSelectMultiple):
-    """Checkbox widget that groups subfields by macro-category."""
     template_name = 'widgets/subfields_grouped.html'
 
     def __init__(self, grouped_choices=None, *args, **kwargs):
