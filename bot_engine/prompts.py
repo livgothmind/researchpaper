@@ -84,6 +84,15 @@ Remove any artefacts like "Abstract:" prefixes, HTML leftovers, or broken senten
 Return ONLY the plain-text summary, nothing else.
 """
 
+DESCRIPTION_FROM_POSTER_PROMPT = """
+You are a research paper summariser.
+Analyze this poster/paper image and write a concise summary of 80 to 120 words.
+Cover: what problem is addressed, the proposed method/approach, and the main
+results or contributions.
+Write in third person, in a neutral academic tone.
+Return ONLY the plain-text summary, nothing else.
+"""
+
 
 # ---------------------------------------------------------------------------
 # User-tag → subfield-slug matching

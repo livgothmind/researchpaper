@@ -920,6 +920,30 @@ def _scrape_description_from_site(paper_url):
 
 
 
+def _generate_description_from_poster(image_path):
+    if not API_KEY_CONFIGURED or _openai_client is None:
+        return ""
+    try:
+        from bot_engine.prompts import DESCRIPTION_FROM_POSTER_PROMPT
+        data_url = _encode_image_to_base64(image_path)
+        response = _openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": DESCRIPTION_FROM_POSTER_PROMPT},
+                    {"type": "image_url", "image_url": {"url": data_url, "detail": "high"}},
+                ],
+            }],
+            max_tokens=300,
+            temperature=0.3,
+        )
+        return (response.choices[0].message.content or "").strip()
+    except Exception as e:
+        logger.warning("Poster image summary fallback failed: %s", e)
+        return ""
+
+
 def match_user_tags_to_subfields(user_tags, existing_subfields_csv=""):
     if not user_tags or not user_tags.strip():
         return existing_subfields_csv
@@ -1051,6 +1075,7 @@ def analyze_and_enrich(image_path):
         ("site",     lambda: _scrape_description_from_site(paper_link) if paper_link else ""),
         ("doi",      lambda: _scrape_description_from_site(f"https://doi.org/{doi}") if doi else ""),
         ("api",      lambda: abstract_from_api or ""),
+        ("poster",   lambda: _generate_description_from_poster(image_path)),
     ):
         if not description:
             description = fn() or ""
