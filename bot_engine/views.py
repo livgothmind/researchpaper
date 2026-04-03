@@ -76,6 +76,11 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
+    if getattr(settings, "SHIBBOLETH_AUTH", False):
+        return redirect(
+            "https://services-host.ing.unimore.it/Shibboleth.sso/Logout"
+            "?return=https://posterhub.ing.unimore.it/login/"
+        )
     return redirect("login")
 
 

@@ -162,7 +162,7 @@
 
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: clip; }
 ::selection { background: rgba(224, 122, 95, 0.22); color: #111827; }
 [data-theme="dark"] ::selection { background: rgba(224, 122, 95, 0.35); color: #fff; }
 
@@ -174,6 +174,7 @@ body {
   position: relative;
   color: var(--text);
   transition: background 0.3s ease, color 0.3s ease;
+  overflow-x: clip;
 }
 
 body::before { display: none; }
@@ -386,14 +387,14 @@ body.upload-page { display: flex; align-items: center; justify-content: center; 
 .current-file a:hover { text-decoration: underline; }
 
 
-.container.dashboard { max-width: 1600px; }
+.container.dashboard { max-width: 1600px; overflow-x: hidden; }
 
 h1.dashboard-title { font-size: 2em; margin-bottom: 2px; text-align: left; letter-spacing: -0.02em; background: var(--gradient-hero); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
 .dashboard-header {
   position: relative; overflow: hidden;
   display: flex; align-items: center; justify-content: space-between;
-  gap: 20px; margin-bottom: 14px; padding: 18px 26px;
+  gap: 20px; margin-bottom: 10px; padding: 12px 26px;
   border-radius: var(--radius-lg); background: var(--bg-card);
   border: 1px solid var(--border-card);
   box-shadow: var(--shadow-card); animation: fadeInUp 0.4s ease-out both; transition: background 0.3s ease;
@@ -411,7 +412,7 @@ h1.dashboard-title { font-size: 2em; margin-bottom: 2px; text-align: left; lette
 .dashboard-header-sub { margin: 0; font-size: 0.88em; color: var(--text-sub); font-weight: 400; letter-spacing: 0.01em; }
 
 
-.stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 14px; animation: fadeInUp 0.4s ease-out 0.05s both; }
+.stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 10px; animation: fadeInUp 0.4s ease-out 0.05s both; }
 
 .stat-card {
   position: relative; min-height: 100px; padding: 18px 20px;
@@ -464,9 +465,8 @@ h1.dashboard-title { font-size: 2em; margin-bottom: 2px; text-align: left; lette
 .advanced-toggle-btn::before { display: none; }
 .advanced-toggle-btn:hover { border-color: var(--primary); color: var(--primary); transform: none; box-shadow: none; }
 
-.advanced-filters { width: 100%; display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.25s ease, opacity 0.2s ease, margin 0.25s ease; margin-top: 0; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
-.advanced-filters > * { overflow: hidden; }
-.advanced-filters.open { grid-template-rows: 1fr; opacity: 1; margin-top: 14px; margin-bottom: 14px; padding: 20px 24px; }
+.advanced-filters { width: 100%; max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease 0.05s, margin 0.4s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0; margin-bottom: 0; padding: 0 24px; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+.advanced-filters.open { max-height: 300px; opacity: 1; margin-top: 14px; margin-bottom: 14px; padding: 20px 24px; }
 
 .advanced-filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
 .advanced-filter-field label { display: block; font-size: 0.75em; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
@@ -504,7 +504,7 @@ h1.dashboard-title { font-size: 2em; margin-bottom: 2px; text-align: left; lette
 
 
 .table-container { position: relative; z-index: 10; overflow-x: auto; background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); border: 1px solid var(--border-card); transition: opacity 0.2s ease, background 0.3s ease; animation: fadeInUp 0.4s ease-out 0.20s both; }
-table { width: 100%; min-width: 1100px; border-collapse: collapse; }
+table { width: 100%; border-collapse: collapse; }
 
 th { position: sticky; top: 0; z-index: 10; background: var(--table-th-bg); color: #475569; padding: 16px; text-align: left; font-weight: 600; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 2px solid var(--border); backdrop-filter: blur(8px); transition: background 0.3s ease; }
 [data-theme="dark"] th { color: var(--text-muted); }

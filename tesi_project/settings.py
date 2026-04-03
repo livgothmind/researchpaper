@@ -17,9 +17,6 @@ _extra_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 CSRF_TRUSTED_ORIGINS = [
     o.strip() for o in _extra_origins if o.strip()
 ] + [
-    "https://*.ngrok-free.app",
-    "https://*.ngrok-free.dev",
-    "https://*.ngrok.io",
     "https://posterhub.ing.unimore.it",
     "https://services-host.ing.unimore.it",
     "http://127.0.0.1",
@@ -135,6 +132,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 _use_ssl = os.getenv("ENABLE_SSL", "false").lower() == "true"
 if not DEBUG:
+    if _use_ssl:
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = _use_ssl
     SESSION_COOKIE_SECURE = _use_ssl
     CSRF_COOKIE_SECURE = _use_ssl

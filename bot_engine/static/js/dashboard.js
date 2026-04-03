@@ -666,9 +666,22 @@ async function checkLiveStatus() {
             method: 'GET',
             credentials: 'same-origin',
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            redirect: 'manual',
         });
+        
+        if (res.type === 'opaqueredirect' || res.status === 0
+            || res.status === 401 || res.status === 302) {
+            stopLivePolling();
+            return;
+        }
 
         if (!res.ok) return;
+
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+            stopLivePolling();
+            return;
+        }
 
         const data          = await res.json();
         const newProcessing = data.processing || 0;
@@ -697,7 +710,7 @@ async function checkLiveStatus() {
             applyFilters({ pushHistory: false, showLoading: false, clearBulkSelection: false });
         }
     } catch (e) {
-        console.error('live polling error:', e);
+        stopLivePolling();
     }
 }
 

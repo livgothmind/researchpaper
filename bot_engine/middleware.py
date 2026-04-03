@@ -4,15 +4,11 @@ from django.contrib.auth.backends import BaseBackend
 
 User = get_user_model()
 
-
 class ShibbolethBackend(BaseBackend):
     def authenticate(self, request, shib_uid=None, **kwargs):
         if not shib_uid:
             return None
-        user, _ = User.objects.get_or_create(
-            username=shib_uid,
-            defaults={"is_active": True},
-        )
+        user, _ = User.objects.get_or_create(sername=shib_uid,defaults={"is_active": True},)
         return user
 
     def get_user(self, user_id):
@@ -38,12 +34,17 @@ class ShibbolethMiddleware:
                 full_name = request.META.get("HTTP_X_SHIB_CN", "").strip()
                 first_name = request.META.get("HTTP_X_SHIB_GIVENNAME", "").strip()
                 last_name = request.META.get("HTTP_X_SHIB_SN", "").strip()
+            
+                parsed_first = first_name or (full_name.split()[0] if full_name else "")
+                parsed_last = last_name or (" ".join(full_name.split()[1:]) if full_name else "")
+                
                 user = User.objects.create_user(
                     username=uid,
                     email=email,
-                    first_name=first_name or full_name.split()[0] if full_name else "",
-                    last_name=last_name or " ".join(full_name.split()[1:]) if full_name else "",
+                    first_name=parsed_first,
+                    last_name=parsed_last,
                 )
+            
             login(request, user, backend="bot_engine.middleware.ShibbolethBackend")
 
         return self.get_response(request)

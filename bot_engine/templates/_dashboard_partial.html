@@ -10,20 +10,20 @@
                     {% if sort_by == 'date' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}
                 </span>
             </th>
-            <th style="min-width: 163px;" class="sortable-th" data-sort="title" onclick="sortColumn('title')">
+            <th class="sortable-th" data-sort="title" onclick="sortColumn('title')">
                 Article Name
                 <span class="sort-arrow {% if sort_by == 'title' %}active{% endif %}">{% if sort_by == 'title' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span>
             </th>
             <th style="width: 120px; white-space: nowrap;" class="sortable-th" data-sort="category" onclick="sortColumn('category')">
                 Category <span class="sort-arrow {% if sort_by == 'category' %}active{% endif %}">{% if sort_by == 'category' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span>
             </th>
-            <th style="width: 200px; text-align: center;">Links &amp; Poster</th>
-            <th style="min-width: 290px;" >Summary</th>
-            <th style="min-width: 200px;">Why Useful</th>
+            <th style="width: 160px; text-align: center;">Links &amp; Poster</th>
+            <th>Summary</th>
+            <th>Why Useful</th>
             <th style="width: 100px;" class="sortable-th" data-sort="status" onclick="sortColumn('status')">
                 Status <span class="sort-arrow {% if sort_by == 'status' %}active{% endif %}">{% if sort_by == 'status' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% else %}⇅{% endif %}</span>
             </th>
-            <th style="width: 90px; text-align: center; padding-right: 20px;">Actions</th>
+            <th style="width: 70px; text-align: center;">Actions</th>
         </tr>
     </thead>
     <tbody class="max-xl:tw-block max-xl:tw-w-full">
