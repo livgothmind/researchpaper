@@ -495,6 +495,8 @@ def answer_telegram_callback(callback_query_id):
 def _is_empty_analysis(enriched_data):
     if not enriched_data:
         return True
+    if enriched_data.get("is_research_poster") is False:
+        return True
     title       = (enriched_data.get("title") or "").strip().lower()
     description = (enriched_data.get("summary") or "").strip()
     authors     = (enriched_data.get("authors") or "").strip()
@@ -1203,6 +1205,12 @@ def upload_poster(request):
         if not files:
             messages.error(request, "Please select at least one image.")
             return redirect("upload")
+
+        # Notes/tags only apply to single uploads
+        is_multi = len(files) > 1
+        if is_multi:
+            user_notes = ""
+            user_tags = ""
 
         allowed_mimes = PosterUploadForm.ALLOWED_MIME_TYPES
         max_size = PosterUploadForm.MAX_UPLOAD_SIZE

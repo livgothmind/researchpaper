@@ -12,6 +12,7 @@ from django.db import close_old_connections
 logger = logging.getLogger(__name__)
 
 LOCK_TIMEOUT = int(os.getenv("POSTER_PROCESSING_LOCK_TIMEOUT", "3600"))
+STALE_PROCESSING_SECONDS = 600
 BOT_FAILURE_MESSAGE_TTL = 86400
 BOT_SUCCESS_MESSAGE_TTL = 86400
 BOT_CONTEXT_TTL = 86400
@@ -52,6 +53,32 @@ def _release_poster_lock(client, lock_key: str, token: str):
         client.eval(_UNLOCK_SCRIPT, 1, lock_key, token)
     except Exception as e:
         logger.warning("Could not release lock %s: %s", lock_key, e)
+
+
+def _is_stale_processing(poster_id):
+    """Check if a poster has been stuck in 'processing' longer than STALE_PROCESSING_SECONDS."""
+    try:
+        from bot_engine.models import ResearchPoster
+        from django.utils import timezone
+
+        poster = ResearchPoster.objects.filter(pk=poster_id, analysis_status='processing').first()
+        if not poster:
+            return False
+        age = (timezone.now() - poster.updated_at).total_seconds()
+        return age > STALE_PROCESSING_SECONDS
+    except Exception:
+        return False
+
+
+def _force_break_lock(poster_id):
+    """Force-delete a poster lock regardless of token ownership."""
+    try:
+        client = _get_redis_client()
+        lock_key = f"lock:poster:{poster_id}"
+        client.delete(lock_key)
+        logger.info("Force-broke stale lock for poster_id=%s", poster_id)
+    except Exception as e:
+        logger.warning("Could not force-break lock for poster_id=%s: %s", poster_id, e)
 
 
 def _mark_poster_processing(poster_id):
@@ -199,7 +226,7 @@ def _clear_bot_ratelimit(platform, recipient):
         logger.warning("_clear_ratelimit failed for %s/%s: %s", platform, recipient, e)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=15, acks_late=True, reject_on_worker_lost=True)
+@shared_task(bind=True, max_retries=5, default_retry_delay=15, acks_late=True, reject_on_worker_lost=True)
 def process_poster_task(self, poster_id, user_notes=None, user_tags=None, source="web", user_id=None):
     close_old_connections()
 
@@ -214,9 +241,21 @@ def process_poster_task(self, poster_id, user_notes=None, user_tags=None, source
         raise
 
     if not acquired:
-        logger.info("[Task:web] poster_id=%s already being processed by another worker", poster_id)
-        close_old_connections()
-        return {"poster_id": poster_id, "status": "already_processing"}
+        if _is_stale_processing(poster_id):
+            logger.warning("[Task:web] poster_id=%s stale processing detected, breaking lock", poster_id)
+            _force_break_lock(poster_id)
+            close_old_connections()
+            raise self.retry(countdown=5)
+        else:
+            if self.request.retries >= self.max_retries:
+                logger.error("[Task:web] poster_id=%s lock retries exhausted, marking failed", poster_id)
+                _mark_poster_failed(poster_id)
+                close_old_connections()
+                return {"poster_id": poster_id, "status": "analysis_failed"}
+            logger.info("[Task:web] poster_id=%s lock held, retrying later (attempt %d/%d)",
+                        poster_id, self.request.retries, self.max_retries)
+            close_old_connections()
+            raise self.retry(countdown=30)
 
     try:
         from bot_engine.models import ResearchPoster
@@ -327,7 +366,7 @@ def download_and_handle_media_task(self, platform, recipient, media_id, filename
         close_old_connections()
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=15, acks_late=True, reject_on_worker_lost=True)
+@shared_task(bind=True, max_retries=5, default_retry_delay=15, acks_late=True, reject_on_worker_lost=True)
 def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, tags=None):
     close_old_connections()
 
@@ -343,12 +382,23 @@ def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, ta
         raise
 
     if not acquired:
-        logger.info(
-            "[Task:bot] poster_id=%s already being processed by another worker",
-            poster_id,
-        )
-        close_old_connections()
-        return {"status": "already_processing", "poster_id": poster_id}
+        if _is_stale_processing(poster_id):
+            logger.warning("[Task:bot] poster_id=%s stale processing detected, breaking lock", poster_id)
+            _force_break_lock(poster_id)
+            close_old_connections()
+            raise self.retry(countdown=5)
+        else:
+            if self.request.retries >= self.max_retries:
+                logger.error("[Task:bot] poster_id=%s lock retries exhausted, marking failed", poster_id)
+                _mark_poster_failed(poster_id)
+                cache.delete(cache_key)
+                _clear_bot_ratelimit(platform, recipient)
+                close_old_connections()
+                return {"status": "analysis_failed", "poster_id": poster_id}
+            logger.info("[Task:bot] poster_id=%s lock held, retrying later (attempt %d/%d)",
+                        poster_id, self.request.retries, self.max_retries)
+            close_old_connections()
+            raise self.retry(countdown=30)
 
     try:
         from bot_engine.models import ResearchPoster

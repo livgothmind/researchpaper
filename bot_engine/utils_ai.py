@@ -1027,6 +1027,20 @@ def analyze_and_enrich(image_path):
     if info.get("_ai_error"):
         return info
 
+    if not info.get("is_research_poster"):
+        logger.info("Image is not a research poster, skipping enrichment.")
+        return {
+            "is_research_poster": False,
+            "title":       "",
+            "authors":     "",
+            "summary":     "",
+            "subfields":   "",
+            "paper_link":  "",
+            "github_link": "",
+            "publication_year": "",
+            "notes":       "",
+        }
+
     title        = info.get("title", "")
     search_query = info.get("search_query", "")
 

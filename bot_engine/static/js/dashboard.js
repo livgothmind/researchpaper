@@ -1248,6 +1248,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         pollTask(taskId, {
             onSuccess: data => {
+                _hideLiveBanner();
                 const key = data.warning || data.status;
                 if (key && warningMsgs[key]) {
                     const [msg, type] = warningMsgs[key];
@@ -1258,10 +1259,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 applyFilters({ pushHistory: false, showLoading: false, clearBulkSelection: false });
             },
             onFailure: data => {
+                _hideLiveBanner();
                 showToast('❌ Analysis error: ' + (data?.error || 'unknown'), 'error');
                 applyFilters({ pushHistory: false, showLoading: false, clearBulkSelection: false });
             },
             onTimeout: () => {
+                _hideLiveBanner();
                 showToast('⚠️ Analysis timed out — please reload the page', 'error');
             },
         });

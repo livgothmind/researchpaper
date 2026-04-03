@@ -44,6 +44,7 @@ function resetDropZone() {
     multiGrid.innerHTML = '';
     fileInput.value           = '';
     document.getElementById('uploadExtras').style.display = 'none';
+    document.getElementById('submitBtn').textContent = 'Analyze Poster';
 }
 
 function syncFileInput() {
@@ -76,10 +77,10 @@ function removeFileAt(index) {
 
 function renderPreviews() {
     dismissError();
-    document.getElementById('uploadExtras').style.display = 'block';
 
     if (selectedFiles.length === 1) {
-        /* Single file: use the original full preview */
+        /* Single file: show full preview + notes/tags */
+        document.getElementById('uploadExtras').style.display = 'block';
         multiPreview.style.display = 'none';
         var file = selectedFiles[0];
         var url = URL.createObjectURL(file);
@@ -99,14 +100,17 @@ function renderPreviews() {
         };
         tempImg.src = tempUrl;
     } else {
-        /* Multiple files: grid of thumbnails */
+        /* Multiple files: grid of thumbnails, hide notes/tags */
+        document.getElementById('uploadExtras').style.display = 'none';
         dropPreview.style.display = 'none';
         metaBox.style.display     = 'none';
         dropIdle.style.display    = 'none';
 
         var totalSize = 0;
         selectedFiles.forEach(function (f) { totalSize += f.size; });
-        multiSummary.textContent = selectedFiles.length + ' images selected \u00B7 ' + formatBytes(totalSize);
+        multiSummary.innerHTML = '<strong>' + selectedFiles.length + ' images selected</strong> \u00B7 ' + formatBytes(totalSize)
+            + '<div style="font-size:0.88em;color:var(--text-muted);margin-top:4px;font-weight:400;">'
+            + 'Each poster will be analyzed individually by the AI. Click the area above to add or replace images.</div>';
         multiGrid.innerHTML = '';
 
         selectedFiles.forEach(function (file, idx) {
@@ -133,6 +137,12 @@ function renderPreviews() {
 
         multiPreview.style.display = 'block';
     }
+
+    /* Update submit button text */
+    var submitBtn = document.getElementById('submitBtn');
+    submitBtn.textContent = selectedFiles.length > 1
+        ? 'Analyze ' + selectedFiles.length + ' Posters'
+        : 'Analyze Poster';
 }
 
 function handleFiles(fileList) {
