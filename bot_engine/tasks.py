@@ -12,7 +12,7 @@ from django.db import close_old_connections
 logger = logging.getLogger(__name__)
 
 LOCK_TIMEOUT = int(os.getenv("POSTER_PROCESSING_LOCK_TIMEOUT", "3600"))
-STALE_PROCESSING_SECONDS = 600
+STALE_PROCESSING_SECONDS = 600  
 BOT_FAILURE_MESSAGE_TTL = 86400
 BOT_SUCCESS_MESSAGE_TTL = 86400
 BOT_CONTEXT_TTL = 86400
@@ -91,10 +91,7 @@ def _mark_poster_processing(poster_id):
 
         if getattr(poster, "analysis_status", None) != "processing":
             poster.analysis_status = "processing"
-            try:
-                poster.save(update_fields=["analysis_status", "updated_at"])
-            except Exception:
-                poster.save(update_fields=["analysis_status"])
+            poster.save(update_fields=["analysis_status", "updated_at"])
         return poster
     except Exception as e:
         logger.warning("_mark_poster_processing error for poster %s: %s", poster_id, e)
@@ -110,10 +107,7 @@ def _mark_poster_failed(poster_id, title_fallback="Analysis Failed"):
             p.analysis_status = "failed"
             if getattr(p, "title", "") in ("Pending analysis…", "", None):
                 p.title = title_fallback
-            try:
-                p.save(update_fields=["title", "analysis_status", "updated_at"])
-            except Exception:
-                p.save(update_fields=["title", "analysis_status"])
+            p.save(update_fields=["title", "analysis_status", "updated_at"])
     except Exception as e:
         logger.warning("_mark_poster_failed error for poster %s: %s", poster_id, e)
 

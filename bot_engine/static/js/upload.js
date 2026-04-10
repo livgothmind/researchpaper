@@ -1,5 +1,6 @@
 var MAX_SIZE_MB   = 20;
-var ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','image/tiff'];
+var ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','image/tiff','image/heic','image/heif'];
+var ALLOWED_EXTS  = ['jpg','jpeg','png','gif','webp','bmp','tiff','tif','heic','heif'];
 
 var dropZone    = document.getElementById('dropZone');
 var fileInput   = document.getElementById('hiddenFileInput');
@@ -16,6 +17,16 @@ var multiPreview = document.getElementById('multiPreview');
 var multiSummary = document.getElementById('multiSummary');
 var multiGrid    = document.getElementById('multiGrid');
 var selectedFiles = [];
+
+function getFileExtension(name) {
+    var parts = name.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : '';
+}
+
+function isHeicFile(file) {
+    var ext = getFileExtension(file.name);
+    return ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif';
+}
 
 function formatBytes(bytes) {
     if (!bytes) return '-';
@@ -39,6 +50,9 @@ function resetDropZone() {
     dropIdle.style.display    = '';
     dropPreview.style.display = 'none';
     previewImg.src            = '';
+    previewImg.style.display  = '';
+    var oldPh = dropPreview.querySelector('.heic-placeholder');
+    if (oldPh) oldPh.remove();
     metaBox.style.display     = 'none';
     multiPreview.style.display = 'none';
     multiGrid.innerHTML = '';
@@ -54,8 +68,12 @@ function syncFileInput() {
 }
 
 function validateFile(file) {
-    if (ALLOWED_TYPES.indexOf(file.type) === -1) {
-        showError('"' + file.name + '" is not a valid image. Allowed: JPG, PNG, GIF, WEBP, BMP, TIFF.');
+    var typeOk = ALLOWED_TYPES.indexOf(file.type) !== -1;
+    if (!typeOk && file.type === '') {
+        typeOk = ALLOWED_EXTS.indexOf(getFileExtension(file.name)) !== -1;
+    }
+    if (!typeOk) {
+        showError('"' + file.name + '" is not a valid image. Allowed: JPG, PNG, GIF, WEBP, BMP, TIFF, HEIC.');
         return false;
     }
     if (file.size / (1024 * 1024) > MAX_SIZE_MB) {
@@ -83,22 +101,45 @@ function renderPreviews() {
         document.getElementById('uploadExtras').style.display = 'block';
         multiPreview.style.display = 'none';
         var file = selectedFiles[0];
-        var url = URL.createObjectURL(file);
-        previewImg.onload = function () { URL.revokeObjectURL(url); };
-        previewImg.src = url;
+        var heic = isHeicFile(file);
+
+        /* Clean up any previous HEIC placeholder */
+        var oldPh = dropPreview.querySelector('.heic-placeholder');
+        if (oldPh) oldPh.remove();
+
+        if (heic) {
+            previewImg.src = '';
+            previewImg.alt = file.name;
+            previewImg.style.display = 'none';
+            var placeholder = document.createElement('div');
+            placeholder.className = 'heic-placeholder';
+            placeholder.innerHTML = '<span class="heic-placeholder-icon">🖼</span><span class="heic-placeholder-name">' + file.name + '</span><span>HEIC preview not available in browser</span>';
+            dropPreview.insertBefore(placeholder, dropPreview.firstChild);
+        } else {
+            previewImg.style.display = '';
+            var url = URL.createObjectURL(file);
+            previewImg.onload = function () { URL.revokeObjectURL(url); };
+            previewImg.src = url;
+        }
+
         dropIdle.style.display    = 'none';
         dropPreview.style.display = 'flex';
         fileNameVal.textContent = file.name;
         fileSizeVal.textContent = formatBytes(file.size);
-        fileDimVal.textContent  = 'Loading\u2026';
         metaBox.style.display   = 'flex';
-        var tempImg = new Image();
-        var tempUrl = URL.createObjectURL(file);
-        tempImg.onload = function () {
-            fileDimVal.textContent = tempImg.naturalWidth + ' \u00D7 ' + tempImg.naturalHeight + ' px';
-            URL.revokeObjectURL(tempUrl);
-        };
-        tempImg.src = tempUrl;
+
+        if (heic) {
+            fileDimVal.textContent = 'N/A (HEIC)';
+        } else {
+            fileDimVal.textContent = 'Loading\u2026';
+            var tempImg = new Image();
+            var tempUrl = URL.createObjectURL(file);
+            tempImg.onload = function () {
+                fileDimVal.textContent = tempImg.naturalWidth + ' \u00D7 ' + tempImg.naturalHeight + ' px';
+                URL.revokeObjectURL(tempUrl);
+            };
+            tempImg.src = tempUrl;
+        }
     } else {
         /* Multiple files: grid of thumbnails, hide notes/tags */
         document.getElementById('uploadExtras').style.display = 'none';
@@ -116,11 +157,18 @@ function renderPreviews() {
         selectedFiles.forEach(function (file, idx) {
             var wrap = document.createElement('div');
             wrap.className = 'multi-thumb-wrap';
-            var img = document.createElement('img');
-            img.className = 'multi-thumb';
-            var thumbUrl = URL.createObjectURL(file);
-            img.onload = function () { URL.revokeObjectURL(thumbUrl); };
-            img.src = thumbUrl;
+            var img;
+            if (isHeicFile(file)) {
+                img = document.createElement('div');
+                img.className = 'multi-thumb multi-thumb-heic';
+                img.textContent = '\uD83D\uDDBC';
+            } else {
+                img = document.createElement('img');
+                img.className = 'multi-thumb';
+                var thumbUrl = URL.createObjectURL(file);
+                img.onload = function () { URL.revokeObjectURL(thumbUrl); };
+                img.src = thumbUrl;
+            }
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'multi-thumb-remove';
@@ -246,6 +294,22 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
     });
 
     xhr.addEventListener('load', function () {
+        var contentType = xhr.getResponseHeader('Content-Type') || '';
+        if (contentType.indexOf('application/json') !== -1) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                if (data.error) {
+                    submitBtn.disabled = false;
+                    progressWrap.style.display = 'none';
+                    showError(data.message || 'Upload failed. Please try again.');
+                    return;
+                }
+            } catch (e) { /* fall through */ }
+        }
         if (xhr.status >= 200 && xhr.status < 400) {
             window.location.href = xhr.responseURL || '/dashboard/';
         } else {

@@ -93,7 +93,7 @@
         box-shadow: none;
     }
 
-    #editForm input,
+    #editForm input:not([type="checkbox"]),
     #editForm textarea,
     #editForm select {
         width: 100%;
@@ -108,7 +108,7 @@
         box-sizing: border-box;
     }
 
-    #editForm input:focus,
+    #editForm input:not([type="checkbox"]):focus,
     #editForm textarea:focus,
     #editForm select:focus {
         outline: none;
@@ -117,7 +117,7 @@
         background: var(--bg-input-focus);
     }
 
-    [data-theme="dark"] #editForm input,
+    [data-theme="dark"] #editForm input:not([type="checkbox"]),
     [data-theme="dark"] #editForm textarea,
     [data-theme="dark"] #editForm select {
         border-color: var(--border);
@@ -146,7 +146,7 @@
     <div class="card edit-card max-sm:tw-p-4 max-sm:tw-mx-2 max-sm:tw-rounded-xl">
 
         <div class="edit-header max-sm:tw-mb-4">
-            <a href="{% url 'dashboard' %}" class="edit-breadcrumb max-sm:tw-text-xs">
+            <a href="{% url 'dashboard' %}" class="edit-breadcrumb max-sm:tw-text-xs" onclick="if(history.length>1){event.preventDefault();history.back();}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="15 18 9 12 15 6"/>
                 </svg>
@@ -164,6 +164,7 @@
 
         <form method="post" id="editForm">
             {% csrf_token %}
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
 
             {% for field in form %}
             <div class="form-group max-sm:tw-mb-4">
@@ -182,7 +183,7 @@
 
             <div class="edit-actions max-sm:tw-flex-col max-sm:tw-gap-2.5 max-sm:tw-mt-5">
                 <button type="submit" class="btn max-sm:tw-w-full max-sm:tw-h-11 max-sm:tw-text-sm">Save Changes</button>
-                <a href="{% url 'dashboard' %}" class="btn edit-cancel max-sm:tw-w-full max-sm:tw-h-11 max-sm:tw-text-sm max-sm:tw-text-center">Cancel</a>
+                <a href="{% url 'dashboard' %}" class="btn edit-cancel max-sm:tw-w-full max-sm:tw-h-11 max-sm:tw-text-sm max-sm:tw-text-center" onclick="if(history.length>1){event.preventDefault();history.back();}">Cancel</a>
             </div>
         </form>
 
@@ -212,6 +213,13 @@
         if (typeof initTagAutocomplete === 'function') {
             initTagAutocomplete('id_tags');
         }
+
+        /* Safari :has() fallback — toggle .checked class on subfield checkboxes */
+        form.querySelectorAll('.subfield-checkbox-label input[type="checkbox"]').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                this.closest('.subfield-checkbox-label').classList.toggle('checked', this.checked);
+            });
+        });
     })();
 </script>
 {% endblock %}

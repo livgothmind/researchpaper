@@ -5,6 +5,32 @@
 
 {% block extra_head %}
     <style>
+        .upload-stats-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-card);
+            font-size: 0.82em;
+            color: var(--text-muted);
+            animation: fadeInUp 0.4s ease-out 0.1s both;
+        }
+        .upload-stat { display: inline-flex; align-items: center; gap: 4px; }
+        .upload-stat-num { font-weight: 700; color: var(--text-heading); }
+        .upload-stat-num.stat-approved { color: #22c55e; }
+        .upload-stat-num.stat-pending { color: #eab308; }
+        .upload-stat-num.stat-processing { color: var(--primary); }
+        .upload-stat-sep {
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: var(--text-faint);
+            opacity: 0.5;
+        }
+
         .upload-extras { display: none; margin-top: 16px; text-align: left; }
 
         .extras-panel {
@@ -313,6 +339,10 @@
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
         }
+        .multi-thumb-heic {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4em; color: var(--text-faint); background: var(--bg-surface);
+        }
         .multi-thumb-remove {
             position: absolute; top: -4px; right: -4px;
             width: 14px; height: 14px;
@@ -340,14 +370,36 @@
         <div class="card max-sm:tw-max-h-[calc(100dvh-20px)] max-sm:tw-overflow-y-auto max-sm:[-webkit-overflow-scrolling:touch] max-sm:tw-m-2.5 max-sm:!tw-w-full max-sm:!tw-max-w-[calc(100vw-20px)] max-sm:tw-mx-auto max-sm:!tw-p-[24px_16px] max-sm:tw-rounded-[14px]">
             <img src="{% static 'images/logo.svg' %}" alt="Unimore logo" class="unimore-logo max-sm:tw-static max-sm:tw-block max-sm:tw-mx-auto max-sm:tw-mb-2.5 max-sm:tw-h-6">
 
-            <span class="page-title max-sm:tw-text-[1.4em]">Research Poster Analyzer</span>
-            <span class="page-subtitle max-sm:tw-text-[0.8em] max-sm:tw-mb-[18px]">Upload a poster image and let AI extract all paper details</span>
+            <span class="page-title max-sm:tw-text-[1.25em]">Research Poster Analyzer</span>
+            <span class="page-subtitle max-sm:tw-text-[0.75em] max-sm:tw-mb-4">Upload a poster image and let AI extract all paper details</span>
 
-            <button type="button" class="tips-toggle" id="tipsToggle" onclick="toggleTips()">
+            {% if upload_stats.total > 0 %}
+            <div class="upload-stats-bar max-sm:tw-text-[0.72em] max-sm:tw-gap-1.5 max-sm:tw-px-3 max-sm:tw-py-2 max-sm:tw-mb-3">
+                <span class="upload-stat">
+                    <span class="upload-stat-num">{{ upload_stats.total }}</span> papers
+                </span>
+                <span class="upload-stat-sep"></span>
+                <span class="upload-stat">
+                    <span class="upload-stat-num stat-approved">{{ upload_stats.approved }}</span> approved
+                </span>
+                <span class="upload-stat-sep"></span>
+                <span class="upload-stat">
+                    <span class="upload-stat-num stat-pending">{{ upload_stats.pending }}</span> pending
+                </span>
+                {% if upload_stats.processing > 0 %}
+                <span class="upload-stat-sep"></span>
+                <span class="upload-stat">
+                    <span class="upload-stat-num stat-processing">{{ upload_stats.processing }}</span> processing
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <button type="button" class="tips-toggle max-sm:tw-text-[0.75em] max-sm:tw-mt-2.5" id="tipsToggle" onclick="toggleTips()">
                 💡 Tips for best results
                 <span class="tips-arrow">▾</span>
             </button>
-            <div class="tips-body" id="tipsBody">
+            <div class="tips-body max-sm:tw-text-[0.92em]" id="tipsBody">
                 <ul>
                     <li><strong>Use high-resolution images</strong> — text must be readable for the AI to extract metadata correctly.</li>
                     <li><strong>Avoid blurry or rotated photos</strong> — shoot straight on, with good lighting.</li>
@@ -369,16 +421,16 @@
 
             <form method="post" enctype="multipart/form-data" id="uploadForm">
                 {% csrf_token %}
-                <input type="file" name="image" id="hiddenFileInput" accept="image/*" multiple style="display:none;">
+                <input type="file" name="image" id="hiddenFileInput" accept="image/*,.heic,.heif" multiple style="display:none;">
 
-                <div class="drop-zone max-sm:tw-min-h-[160px] max-sm:tw-rounded-[10px]" id="dropZone">
-                    <div class="drop-zone-idle max-sm:tw-p-[20px_14px]" id="dropIdle">
-                        <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <div class="drop-zone max-sm:tw-min-h-[140px] max-sm:tw-rounded-xl" id="dropZone">
+                    <div class="drop-zone-idle max-sm:tw-p-[18px_14px] max-sm:tw-gap-1" id="dropIdle">
+                        <svg class="drop-zone-icon max-sm:tw-w-9 max-sm:tw-h-9 max-sm:tw-mb-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M14.2647 15.9377L12.5473 14.2346C11.758 13.4519 11.3633 13.0605 10.9089 12.9137C10.5092 12.7845 10.079 12.7845 9.67922 12.9137C9.22485 13.0605 8.83017 13.4519 8.04082 14.2346L4.04193 18.2622M14.2647 15.9377L14.606 15.5991C15.412 14.7999 15.8149 14.4003 16.2773 14.2545C16.6839 14.1262 17.1208 14.1312 17.5244 14.2688C17.9832 14.4253 18.3769 14.834 19.1642 15.6515L20 16.5001M14.2647 15.9377L18.22 19.9628M18.22 19.9628C17.8703 20 17.4213 20 16.8 20H7.2C6.07989 20 5.51984 20 5.09202 19.782C4.7157 19.5903 4.40973 19.2843 4.21799 18.908C4.12583 18.7271 4.07264 18.5226 4.04193 18.2622M18.22 19.9628C18.5007 19.9329 18.7175 19.8791 18.908 19.782C19.2843 19.5903 19.5903 19.2843 19.782 18.908C20 18.4802 20 17.9201 20 16.8V13M11 4H7.2C6.07989 4 5.51984 4 5.09202 4.21799C4.7157 4.40973 4.40973 4.71569 4.21799 5.09202C4 5.51984 4 6.0799 4 7.2V16.8C4 17.4466 4 17.9066 4.04193 18.2622M18 9V6M18 6V3M18 6H21M18 6H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <p class="drop-zone-label">Drag &amp; drop your poster(s) here</p>
-                        <p class="drop-zone-sub">or <span class="drop-zone-browse">click to browse</span></p>
-                        <p class="drop-zone-hint">JPG, PNG, WEBP, BMP, TIFF · max 20 MB</p>
+                        <p class="drop-zone-label max-sm:tw-text-[0.82em]">Drag &amp; drop your poster(s) here</p>
+                        <p class="drop-zone-sub max-sm:tw-text-[0.75em]">or <span class="drop-zone-browse">click to browse</span></p>
+                        <p class="drop-zone-hint max-sm:tw-text-[0.68em]">JPG, PNG, WEBP, BMP, TIFF, HEIC · max 20 MB</p>
                     </div>
                     <div class="drop-zone-preview" id="dropPreview" style="display:none;">
                         <img id="previewImg" src="" alt="Preview">
@@ -391,7 +443,7 @@
                     <div class="multi-grid" id="multiGrid"></div>
                 </div>
 
-                <div id="fileMetaInfo" class="file-meta-info max-sm:tw-flex-col max-sm:tw-gap-[3px] max-sm:tw-text-[0.78em] max-sm:tw-p-[6px_8px]" style="display:none;">
+                <div id="fileMetaInfo" class="file-meta-info max-sm:tw-flex-col max-sm:tw-gap-[3px] max-sm:tw-text-[0.72em] max-sm:tw-p-[6px_8px]" style="display:none;">
                     <div><strong>File:</strong> <span id="fileNameValue">-</span></div>
                     <div><strong>Size:</strong> <span id="fileSizeValue">-</span></div>
                     <div><strong>Dimensions:</strong> <span id="fileDimensionsValue">-</span></div>
@@ -425,7 +477,7 @@
                     </div>
                 </div>
 
-                <button type="submit" id="submitBtn" class="max-sm:tw-w-full max-sm:tw-py-3 max-sm:tw-text-[0.9em] max-sm:tw-rounded-lg max-sm:tw-mt-4 max-sm:!tw-transform-none">
+                <button type="submit" id="submitBtn" class="max-sm:tw-w-full max-sm:tw-py-2.5 max-sm:tw-text-[0.82em] max-sm:tw-rounded-lg max-sm:tw-mt-3 max-sm:!tw-transform-none">
                     Analyze Poster
                 </button>
 
@@ -445,7 +497,7 @@
             </form>
             {% if recent_uploads %}
             <div class="recent-uploads">
-                <button type="button" class="recent-toggle" id="recentToggle" onclick="toggleRecent()">
+                <button type="button" class="recent-toggle max-sm:tw-text-[0.72em]" id="recentToggle" onclick="toggleRecent()">
                     Your recent uploads ({{ recent_uploads|length }})
                     <span class="recent-arrow">▾</span>
                 </button>
@@ -453,7 +505,7 @@
                 {% for poster in recent_uploads %}
                 <a href="{% url 'poster_detail' poster.pk %}" class="recent-item">
                     {% if poster.image %}
-                        <img class="recent-thumb" src="{{ poster.image.url }}" alt="">
+                        <img class="recent-thumb" src="{{ poster.thumbnail_url }}" alt="" loading="lazy">
                     {% else %}
                         <div class="recent-thumb-placeholder">🖼</div>
                     {% endif %}
@@ -476,7 +528,7 @@
             </div>
             {% endif %}
 
-            <div class="text-center" style="margin-top: 20px;">
+            <div class="text-center max-sm:tw-text-[0.78em] max-sm:tw-mt-3" style="margin-top: 20px; display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
                 <a href="{% url 'dashboard' %}" class="nav-link"
                    style="display:inline-flex; align-items:center; gap:6px; justify-content:center;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -489,12 +541,22 @@
                     </svg>
                     Dashboard
                 </a>
+                <a href="{% url 'conference' %}" class="nav-link"
+                   style="display:inline-flex; align-items:center; gap:6px; justify-content:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    Conference
+                </a>
             </div>
         </div>
     </div>
 
     <script src="{% static 'js/tag-autocomplete.js' %}"></script>
-    <script src="{% static 'js/upload.js' %}"></script>
+    <script src="{% static 'js/upload.js' %}?v=20260410e"></script>
     <script>
         function toggleTips() {
             const btn  = document.getElementById('tipsToggle');

@@ -1012,11 +1012,9 @@ def _resolve_year(ai_year, paper_result, paper_link):
         return paper_result["year"]
     
     if paper_link:
-        arxiv_match = re.search(r'arxiv\.org/(?:abs|pdf)/(\d{2})(\d{2})\.\d+', paper_link, re.I)
+        arxiv_match = re.search(r'arxiv\.org/(?:abs|pdf)/(\d{2})\d{2}\.\d+', paper_link, re.I)
         if arxiv_match:
-            century = 20
-            yy = int(arxiv_match.group(1))
-            return century * 100 + yy
+            return 2000 + int(arxiv_match.group(1))
 
     return ""
 
@@ -1080,7 +1078,16 @@ def analyze_and_enrich(image_path):
     authors_from_page = ""
     if paper_link and not authors_from_api:
         authors_from_page = fetch_authors(paper_link, title=title)
-    authors = authors_from_page or authors_from_api or info.get("authors", "")
+    authors_raw = authors_from_page or authors_from_api or info.get("authors", "")
+    # Deduplicate authors (GPT may extract the same name twice from poster)
+    seen = set()
+    unique = []
+    for a in (x.strip() for x in authors_raw.split(",") if x.strip()):
+        key = a.lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(a)
+    authors = ", ".join(unique)
 
     description = ""
     for _key, fn in (

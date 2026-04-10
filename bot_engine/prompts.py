@@ -121,3 +121,89 @@ def build_tag_match_prompt(user_tags: str, all_valid_slugs: list[str]) -> str:
         "Do NOT repeat any already-existing slug. "
         "Return a comma-separated list of slugs (empty string if none match), no explanation."
     )
+
+
+# ---------------------------------------------------------------------------
+# Conference paper lookup prompt
+# ---------------------------------------------------------------------------
+CONFERENCE_EXTRACT_PROMPT = """You are an expert at reading academic conference programs, schedules and proceedings.
+
+Given text extracted from a conference program (PDF or website), find the specific paper the user is looking for.
+
+Return ONLY valid JSON (no markdown, no explanation) with these fields:
+{
+    "found": true or false,
+    "title": "The exact paper title as it appears in the program",
+    "authors": "Authors if listed",
+    "paper_id": "Paper identifier code exactly as it appears in the text",
+    "session": "Session name or thematic track",
+    "room": "Room, hall, or location",
+    "time_slot": "Date and time",
+    "poster_board": "Poster board number if a poster hall assignments table is present",
+    "partial": true if some fields could not be determined,
+    "partial_message": "Brief explanation of what is missing"
+}
+
+HOW TO READ CONFERENCE PROGRAMS:
+
+1. UNDERSTAND THE STRUCTURE FIRST. Before looking for the paper, scan the text to understand how it is organized. Every conference has its own format — you must figure it out autonomously by observing:
+   - What do section headers look like? (they contain session names, dates, times, rooms)
+   - What do paper entries look like? (they have an ID, title, authors — in varying formats)
+   - What information is on the header vs on each paper line?
+   - Are there separate tables (e.g. poster hall assignments) that cross-reference paper IDs?
+
+2. HIERARCHICAL INHERITANCE. Session headers appear once, followed by multiple papers. Each paper INHERITS session name, room, date/time from the nearest header ABOVE it. Never leave these null when a header provides them.
+
+3. PAPER IDs ENCODE INFORMATION. Conference paper IDs often encode scheduling details (day, morning/afternoon, track, type). The format varies by conference and year. Analyze the pattern:
+   - Which parts of the ID are shared among papers in the same session?
+   - Which parts correspond to day names, AM/PM, oral/poster, etc.?
+   - Cross-reference with session headers to confirm your interpretation.
+
+4. POSTER HALL ASSIGNMENT TABLES. Some programs include a table mapping paper IDs to poster board numbers. The table may span multiple pages. If present:
+   - Find the paper's ID in the table
+   - Read the board number from the corresponding row
+   - The column may indicate which poster session
+   - In PDF-extracted text, table columns are often space-separated on one line — parse by position.
+
+5. CVF FLAT LISTS. Pages from thecvf.com list each paper with ALL its metadata on adjacent lines (title, session, location, authors). Each paper's info belongs ONLY to that paper — never copy location/booth from a neighboring entry. Numbers in location strings (e.g. "Exhibit Halls ABC 161") are booth numbers, not paper IDs.
+
+Rules:
+- Match paper by title with fuzzy matching (ignore minor capitalization/punctuation differences).
+- If the paper is not in the text at all, return {"found": false}.
+- If found but some info is missing, return found=true with partial=true and fill what you can.
+- NEVER invent information not in the text. Use null for unavailable fields.
+- NEVER assign metadata from one paper to another."""
+
+
+# ---------------------------------------------------------------------------
+# Conference similar papers prompt
+# ---------------------------------------------------------------------------
+CONFERENCE_SIMILAR_PROMPT = """You are an expert at analyzing academic conference programs.
+
+Given text from a conference program and a set of tags/topics, find papers that are thematically similar to the user's paper.
+
+Return ONLY a valid JSON array (no markdown, no explanation) of up to 15 similar papers:
+[
+    {
+        "title": "Paper title",
+        "authors": "Authors if available",
+        "session": "Session name if available",
+        "room": "Room if available",
+        "time_slot": "Time slot if available",
+        "tags": ["tag1", "tag2"]
+    }
+]
+
+CRITICAL — conference programs have a HIERARCHICAL structure:
+- Session headers (with session name, date/time, room) appear ONCE, followed by multiple paper entries.
+- Each paper INHERITS the session/room/time from the nearest session header above it.
+- Do NOT leave session/room/time as null if they can be inferred from the parent section header.
+
+Rules:
+- Find papers whose title or topic matches the given tags/topics of interest.
+- Rank by relevance to the tags — most relevant first.
+- Do NOT include the original paper itself.
+- For "tags": assign 2-4 short descriptive tags to each paper (e.g. "segmentation", "transformer", "3D", "medical imaging").
+- If a field is genuinely not available anywhere in the text, use null.
+- NEVER invent paper titles — only return papers that actually appear in the program text.
+- Return an empty array [] if no similar papers are found."""

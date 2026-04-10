@@ -8,7 +8,7 @@ class ShibbolethBackend(BaseBackend):
     def authenticate(self, request, shib_uid=None, **kwargs):
         if not shib_uid:
             return None
-        user, _ = User.objects.get_or_create(sername=shib_uid,defaults={"is_active": True},)
+        user, _ = User.objects.get_or_create(username=shib_uid, defaults={"is_active": True})
         return user
 
     def get_user(self, user_id):

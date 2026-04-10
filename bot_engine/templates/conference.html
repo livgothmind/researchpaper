@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Conference Research — PaperProject{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/conference.css' %}?v=20260401a">
+{% endblock %}
+
+{% block body_class %}conference-page{% endblock %}
+
+{% block content %}
+
+    <div class="conf-user-bar">
+        <span class="user-name">{{ user.username }}</span>
+        <span class="user-sep">|</span>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    <div class="conf-container">
+        <div class="conf-hero">
+            <span class="conf-title">Conference Research</span>
+            <span class="conf-subtitle">Find your paper's session, room &amp; time slot — discover similar work at the conference</span>
+        </div>
+
+        <div class="conf-main">
+            <div class="conf-form-card">
+                <form id="confSearchForm" autocomplete="off">
+                    {% csrf_token %}
+
+                    <div class="conf-field">
+                        <label class="conf-label" for="confPaperTitle">
+                            <svg class="conf-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            Paper Title
+                        </label>
+                        <input type="text" id="confPaperTitle" name="paper_title" placeholder="e.g. Attention Is All You Need" required>
+                        <p class="conf-hint">Full or partial title of your paper</p>
+                    </div>
+
+                    <div class="conf-row">
+                        <div class="conf-field conf-field-grow">
+                            <label class="conf-label" for="confConference">
+                                <svg class="conf-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                                Conference
+                            </label>
+                            <select id="confConference" name="conference" required>
+                                <option value="" disabled selected>Select a conference…</option>
+                                <optgroup label="Computer Vision">
+                                    <option value="cvpr">CVPR — Computer Vision and Pattern Recognition</option>
+                                    <option value="iccv">ICCV — International Conference on Computer Vision</option>
+                                    <option value="eccv">ECCV — European Conference on Computer Vision</option>
+                                    <option value="wacv">WACV — Winter Conference on Applications of CV</option>
+                                </optgroup>
+                                <optgroup label="Medical Imaging">
+                                    <option value="miccai">MICCAI — Medical Image Computing and CAI</option>
+                                    <option value="isbi">ISBI — International Symposium on Biomedical Imaging</option>
+                                    <option value="midl">MIDL — Medical Imaging with Deep Learning</option>
+                                    <option value="ipmi">IPMI — Information Processing in Medical Imaging</option>
+                                </optgroup>
+                                <optgroup label="Other">
+                                    <option value="other">Other (specify below)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="conf-field conf-field-year">
+                            <label class="conf-label" for="confYear">
+                                <svg class="conf-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                Year
+                            </label>
+                            <select id="confYear" name="year" required>
+                                <option value="" disabled selected>Year</option>
+                                <option value="2026">2026</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                                <option value="2022">2022</option>
+                                <option value="2021">2021</option>
+                                <option value="2020">2020</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="conf-field conf-field-other" id="confOtherWrap" style="display:none;">
+                        <label class="conf-label" for="confOtherName">Conference Name</label>
+                        <input type="text" id="confOtherName" name="other_conference" placeholder="e.g. BMVC, ACCV, MMSP…">
+                    </div>
+
+                    <div class="conf-field">
+                        <label class="conf-label" for="confDay">
+                            <svg class="conf-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Day Attending <span class="conf-opt">(optional)</span>
+                        </label>
+                        <input type="date" id="confDay" name="day">
+                        <p class="conf-hint">If specified, results will focus on that day's schedule</p>
+                    </div>
+
+                    <div class="conf-field">
+                        <label class="conf-label" for="confTags">
+                            <svg class="conf-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                            Tags <span class="conf-opt">(optional)</span>
+                        </label>
+                        <input type="text" id="confTags" name="tags" placeholder="e.g. segmentation, transformer, 3D, medical imaging…">
+                        <p class="conf-hint">Comma-separated — used to find similar papers at the same conference</p>
+                        <div class="conf-tag-chips" id="confTagChips"></div>
+                    </div>
+
+                    <button type="submit" class="conf-submit" id="confSubmitBtn">
+                        <svg class="conf-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Search Conference
+                    </button>
+                </form>
+            </div>
+
+            <div class="conf-results-area" id="confResultsArea" style="display:none;">
+
+                <div class="conf-result-header" id="confResultHeader"></div>
+
+                <div class="conf-paper-card" id="confPaperCard" style="display:none;">
+                    <div class="conf-paper-badge">Your Paper</div>
+                    <h3 class="conf-paper-title" id="confPaperResultTitle"></h3>
+
+                    <div class="conf-info-grid">
+                        <div class="conf-info-item" id="confPaperIdBlock">
+                            <span class="conf-info-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+                                Paper ID
+                            </span>
+                            <span class="conf-info-value" id="confPaperId">—</span>
+                        </div>
+                        <div class="conf-info-item" id="confSessionBlock">
+                            <span class="conf-info-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                Session
+                            </span>
+                            <span class="conf-info-value" id="confSession">—</span>
+                        </div>
+                        <div class="conf-info-item" id="confRoomBlock">
+                            <span class="conf-info-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                Room / Hall
+                            </span>
+                            <span class="conf-info-value" id="confRoom">—</span>
+                        </div>
+                        <div class="conf-info-item" id="confTimeBlock">
+                            <span class="conf-info-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Time Slot
+                            </span>
+                            <span class="conf-info-value" id="confTimeSlot">—</span>
+                        </div>
+                        <div class="conf-info-item" id="confPosterBoardBlock">
+                            <span class="conf-info-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                                Poster Board
+                            </span>
+                            <span class="conf-info-value" id="confPosterBoard">—</span>
+                        </div>
+                    </div>
+
+                    <div class="conf-not-found-note" id="confNotFoundNote" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span id="confNotFoundMsg"></span>
+                    </div>
+                </div>
+
+                <div class="conf-similar-section" id="confSimilarSection" style="display:none;">
+                    <div class="conf-similar-header">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            Similar Papers at This Conference
+                        </h3>
+                        <span class="conf-similar-count" id="confSimilarCount"></span>
+                    </div>
+
+                    <div class="conf-similar-filters" id="confSimilarFilters"></div>
+
+                    <div class="conf-similar-list" id="confSimilarList"></div>
+                </div>
+
+                <div class="conf-loading" id="confLoading" style="display:none;">
+                    <div class="conf-spinner"></div>
+                    <span>Searching conference program…</span>
+                </div>
+
+                <div class="conf-error" id="confError" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    <span id="confErrorMsg"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="conf-nav-links">
+            <a href="{% url 'upload' %}" class="nav-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Upload
+            </a>
+            <a href="{% url 'dashboard' %}" class="nav-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>var SEARCH_URL = "{% url 'conference_search' %}";</script>
+<script src="{% static 'js/conference.js' %}?v=20260401a"></script>
+{% endblock %}

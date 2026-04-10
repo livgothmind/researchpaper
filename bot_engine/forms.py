@@ -32,8 +32,12 @@ class PosterUploadForm(forms.ModelForm):
     ALLOWED_MIME_TYPES = [
         'image/jpeg', 'image/png', 'image/gif',
         'image/webp', 'image/bmp', 'image/tiff',
+        'image/heic', 'image/heif',
     ]
-    MAX_UPLOAD_SIZE = 20 * 1024 * 1024  
+    ALLOWED_EXTENSIONS = {
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif', 'heic', 'heif',
+    }
+    MAX_UPLOAD_SIZE = 20 * 1024 * 1024
 
     def clean_image(self):
         image = self.cleaned_data.get('image')
@@ -42,9 +46,10 @@ class PosterUploadForm(forms.ModelForm):
         if image.size > self.MAX_UPLOAD_SIZE:
             raise forms.ValidationError("File troppo grande (massimo 20 MB).")
         mime = getattr(image, 'content_type', '')
-        if mime not in self.ALLOWED_MIME_TYPES:
+        ext = image.name.rsplit('.', 1)[-1].lower() if '.' in getattr(image, 'name', '') else ''
+        if mime not in self.ALLOWED_MIME_TYPES and ext not in self.ALLOWED_EXTENSIONS:
             raise forms.ValidationError(
-                "Tipo di file non valido. Formati ammessi: JPG, PNG, GIF, WEBP, BMP, TIFF."
+                "Tipo di file non valido. Formati ammessi: JPG, PNG, GIF, WEBP, BMP, TIFF, HEIC."
             )
         return image
 
@@ -86,9 +91,10 @@ class PosterEditForm(forms.ModelForm):
 
     class Meta:
         model = ResearchPoster
-        fields = ['title', 'authors', 'paper_link', 'github_link', 'summary', 'category', 'subfields', 'tags', 'publication_year', 'validation_status', 'notes']
+        fields = ['title', 'authors', 'paper_link', 'github_link', 'summary', 'why_useful', 'category', 'subfields', 'tags', 'publication_year', 'validation_status', 'notes']
         widgets = {
             'summary': forms.Textarea(attrs={'rows': 4}),
+            'why_useful': forms.Textarea(attrs={'rows': 3}),
             'notes': forms.Textarea(attrs={'rows': 4, 'maxlength': '500'}),
             'tags': forms.TextInput(attrs={'maxlength': '200', 'id': 'id_tags'}),
         }

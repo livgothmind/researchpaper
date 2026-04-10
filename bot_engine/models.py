@@ -1,9 +1,15 @@
 from datetime import timedelta
 import hashlib
+import io
+import logging
+import os
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 class ResearchPoster(models.Model):
@@ -139,6 +145,7 @@ class ResearchPoster(models.Model):
     }
 
     image = models.ImageField(upload_to="posters/")
+    thumbnail = models.ImageField(upload_to="posters/thumbs/", blank=True, null=True)
     image_sha256 = models.CharField(max_length=64, blank=True, null=True, db_index=True)
 
     title = models.CharField(max_length=255)
@@ -253,6 +260,34 @@ class ResearchPoster(models.Model):
                 self.category = cat
                 return
         self.category = "other"
+
+    def generate_thumbnail(self, max_size=300, quality=80, save=False):
+        """Generate a JPEG thumbnail from the poster image."""
+        if not self.image:
+            return
+        try:
+            from PIL import Image
+            self.image.open("rb")
+            with Image.open(self.image) as img:
+                img.thumbnail((max_size, max_size), Image.LANCZOS)
+                buf = io.BytesIO()
+                img.convert("RGB").save(buf, format="JPEG", quality=quality)
+                thumb_name = f"thumb_{os.path.splitext(os.path.basename(self.image.name))[0]}.jpg"
+                self.thumbnail.save(thumb_name, ContentFile(buf.getvalue()), save=save)
+        except Exception as e:
+            logger.warning("Thumbnail generation failed for poster %s: %s", self.pk, e)
+        finally:
+            try:
+                self.image.close()
+            except Exception:
+                pass
+
+    @property
+    def thumbnail_url(self):
+        """Return thumbnail URL if available, otherwise fall back to full image."""
+        if self.thumbnail:
+            return self.thumbnail.url
+        return self.image.url if self.image else ""
 
     def compute_image_sha256(self):
         if not self.image:

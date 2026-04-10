@@ -13,6 +13,8 @@ urlpatterns = [
 
     path("",           views.upload_poster, name="upload"),
     path("dashboard/", views.dashboard,     name="dashboard"),
+    path("conference/",            views.conference_view,   name="conference"),
+    path("api/conference-search/", views.conference_search, name="conference_search"),
 
     path("task-status/<str:task_id>/",    views.task_status,           name="task_status"),
     path("dashboard/live-status/",        views.dashboard_live_status, name="dashboard_live_status"),
@@ -23,6 +25,7 @@ urlpatterns = [
     path("delete/<int:poster_id>/",          views.delete_poster,  name="delete_poster"),
     path("toggle-favorite/<int:poster_id>/", views.toggle_favorite, name="toggle_favorite"),
     path("update-notes/<int:poster_id>/",    views.update_notes,   name="update_notes"),
+    path("update-tags/<int:poster_id>/",     views.update_tags,    name="update_tags"),
     path("bulk-action/",                     views.bulk_action,    name="bulk_action"),
     path("delete-all-activities/",           views.delete_all_activities, name="delete_all_activities"),
 

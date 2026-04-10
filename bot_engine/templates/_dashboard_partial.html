@@ -72,13 +72,13 @@
                     {% endif %}
                 </div>
                 {% if poster.is_incomplete and poster.analysis_status == 'ok' %}
-                    <div class="incomplete-note max-xl:tw-text-[0.78em] max-xl:tw-mt-1 max-xl:tw-mb-0 max-xl:tw-py-1 max-xl:tw-px-2">
-                        <svg class="btn-icon icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="incomplete-note max-xl:tw-text-[0.72em] max-xl:tw-mt-0.5 max-xl:tw-mb-1 max-xl:tw-py-0.5 max-xl:tw-px-2 max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-1">
+                        <svg class="btn-icon icon-warn max-xl:tw-w-3 max-xl:tw-h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                             <line x1="12" y1="9" x2="12" y2="13"/>
                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                         </svg>
-                        <span class="incomplete-label">Incomplete<br>metadata</span>
+                        <span class="incomplete-label"><span class="max-xl:tw-hidden">Incomplete<br>metadata</span><span class="tw-hidden max-xl:tw-inline">Incomplete metadata</span></span>
                     </div>
                 {% endif %}
                 <div class="article-authors max-xl:tw-text-[0.82em] max-xl:tw-leading-[1.3] max-xl:tw-text-[var(--text-muted)] max-xl:tw-line-clamp-1">{{ poster.authors }}</div>
@@ -132,9 +132,7 @@
                         {% endif %}
                     </div>
                     {% if poster.image %}
-                        <a href="{{ poster.image.url }}" target="_blank" class="poster-thumb-link max-xl:!tw-hidden">
-                            <img src="{{ poster.image.url }}" alt="{{ poster.title }}" class="poster-thumbnail max-xl:!tw-hidden">
-                        </a>
+                        <img src="{{ poster.thumbnail_url }}" alt="{{ poster.title }}" class="poster-thumbnail poster-thumb-link max-xl:!tw-hidden" style="cursor:zoom-in;" onclick="openLightbox('{{ poster.image.url }}')" loading="lazy">
                     {% endif %}
                 </div>
             </td>
@@ -199,24 +197,22 @@
               {% endif %}
             </td>
 
-            {# ── TD8: Status — inline-flex bottom row on mobile ── #}
-            <td class="max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-2 max-xl:tw-pt-2.5 max-xl:tw-w-full max-xl:tw-flex-wrap max-xl:tw-mt-2.5 max-xl:tw-border-t max-xl:tw-border-solid max-xl:tw-border-[var(--border)] max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
-                <div class="mobile-label max-xl:tw-hidden">Status</div>
+            {# ── TD8+TD9: Status + Actions — single row on mobile ── #}
+            <td class="max-xl:!tw-inline-flex max-xl:!tw-items-center max-xl:!tw-pt-2 max-xl:!tw-mt-2 max-xl:!tw-border-t max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)] max-xl:!tw-p-0 max-xl:!tw-border-b-0 max-xl:!tw-w-auto max-xl:!tw-align-middle">
                 <form method="post" action="{% url 'update_status' poster.id %}" class="status-form" data-poster-id="{{ poster.id }}">
                     {% csrf_token %}
-                    <select name="status" class="status-select status-{{ poster.validation_status }} max-xl:tw-flex-1 max-xl:tw-min-w-0 max-xl:tw-min-h-[36px] max-xl:!tw-py-[6px] max-xl:!tw-pl-3 max-xl:!tw-pr-7 max-xl:!tw-text-[0.82em] max-xl:tw-rounded-lg" onchange="updateStatus(this)">
+                    <select name="status" class="status-select status-{{ poster.validation_status }}" onchange="updateStatus(this)">
                         <option value="pending"  {% if poster.validation_status == 'pending'  %}selected{% endif %}>&#9679; Pending</option>
                         <option value="approved" {% if poster.validation_status == 'approved' %}selected{% endif %}>&#9679; Approved</option>
                         <option value="rejected" {% if poster.validation_status == 'rejected' %}selected{% endif %}>&#9679; Rejected</option>
                     </select>
                 </form>
+                <span class="status-mob-badge status-{{ poster.validation_status }}">&#9679; {{ poster.validation_status|capfirst }}</span>
             </td>
 
-            {# ── TD9: Actions — inline-flex on mobile ── #}
-            <td class="max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-gap-2 max-xl:tw-pt-1.5 max-xl:tw-w-auto max-xl:tw-p-0 max-xl:tw-border-b-0 max-xl:tw-text-[0.88em] max-xl:tw-leading-[1.4]">
-                <div class="mobile-label max-xl:tw-hidden">Actions</div>
-                <div class="action-buttons max-xl:tw-flex-row max-xl:tw-flex-nowrap max-xl:tw-gap-1.5 max-xl:tw-justify-start">
-                    <button class="action-btn favorite-btn max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none {% if poster.is_favorite %}favorited{% endif %}"
+            <td class="max-xl:!tw-inline-flex max-xl:!tw-items-center max-xl:!tw-gap-1 max-xl:!tw-pt-2 max-xl:!tw-mt-2 max-xl:!tw-w-auto max-xl:!tw-p-0 max-xl:!tw-border-b-0 max-xl:!tw-align-middle max-xl:!tw-ml-2">
+                <div class="action-buttons max-xl:!tw-flex-row max-xl:!tw-flex-nowrap max-xl:!tw-gap-1 max-xl:!tw-justify-start">
+                    <button class="action-btn favorite-btn max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)] {% if poster.is_favorite %}favorited{% endif %}"
                             onclick="toggleFavorite({{ poster.id }}, this)"
                             title="{% if poster.is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}"
                             {% if poster.analysis_status == 'processing' %}disabled{% endif %}>
@@ -231,27 +227,27 @@
                         {% endif %}
                     </button>
                     {% if poster.analysis_status == 'processing' %}
-                        <button class="action-btn action-btn-stop max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" onclick="stopAnalysis({{ poster.id }}, this)" title="Stop analysis">
+                        <button class="action-btn action-btn-stop max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)]" onclick="stopAnalysis({{ poster.id }}, this)" title="Stop analysis">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="3" y="3" width="18" height="18" rx="2"/>
                             </svg>
                         </button>
                     {% else %}
-                        <a href="{% url 'edit_poster' poster.id %}" class="action-btn max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" title="Edit">
+                        <a href="{% url 'edit_poster' poster.id %}" class="action-btn max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)]" title="Edit">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                         </a>
                         {% if poster.analysis_status == 'failed' %}
-                            <button class="action-btn action-btn-retry max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" onclick="retryAnalysis({{ poster.id }}, this)" title="Retry AI analysis">
+                            <button class="action-btn action-btn-retry max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)]" onclick="retryAnalysis({{ poster.id }}, this)" title="Retry AI analysis">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="1 4 1 10 7 10"/>
                                     <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
                                 </svg>
                             </button>
                         {% endif %}
-                        <button class="action-btn delete-btn max-xl:tw-w-[34px] max-xl:tw-h-[34px] max-xl:tw-text-[0.88em] max-xl:tw-rounded-lg max-xl:tw-shrink-0 max-xl:tw-bg-[var(--bg-surface)] max-xl:tw-shadow-none" onclick="confirmDelete({{ poster.id }}, '{{ poster.title|escapejs }}')" title="Delete">
+                        <button class="action-btn delete-btn max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)]" onclick="confirmDelete({{ poster.id }}, '{{ poster.title|escapejs }}')" title="Delete">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>

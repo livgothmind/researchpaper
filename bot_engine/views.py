@@ -22,6 +22,15 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+import io
+
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    _HEIF_AVAILABLE = True
+except ImportError:
+    _HEIF_AVAILABLE = False
+
 from .forms import PosterUploadForm, PosterEditForm
 from .models import ResearchPoster, ActivityLog, Favorite
 from .utils_ai import analyze_and_enrich, match_user_tags_to_subfields, generate_why_useful
@@ -125,8 +134,27 @@ def get_file_extension(filename, mime_type=None):
         "image/png":  "png",
         "image/gif":  "gif",
         "image/webp": "webp",
+        "image/heic": "heic",
+        "image/heif": "heif",
         "application/pdf": "pdf",
     }.get(mime_type, "jpg")
+
+
+def _convert_heic_to_jpeg(file_content, filename):
+    """Convert HEIC/HEIF bytes to JPEG. Returns (content, filename) tuple."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ("heic", "heif") or not _HEIF_AVAILABLE:
+        return file_content, filename
+    try:
+        from PIL import Image
+        with Image.open(io.BytesIO(file_content)) as img:
+            buf = io.BytesIO()
+            img.convert("RGB").save(buf, format="JPEG", quality=95)
+            new_name = filename.rsplit(".", 1)[0] + ".jpg"
+            return buf.getvalue(), new_name
+    except Exception as e:
+        logger.warning("HEIC→JPEG conversion failed for %s: %s", filename, e)
+        return file_content, filename
 
 
 MESSAGE_TEMPLATES = {
@@ -284,7 +312,7 @@ MESSAGE_TEMPLATES = {
     "link_confirmation": {
         "telegram": (
             "🔗 <b>Retrieved paper link:</b>\n"
-            "<code>{link}</code>\n\n"
+            "<a href=\"{link}\">{link}</a>\n\n"
             "Is this link correct?"
         ),
         "whatsapp": (
@@ -409,7 +437,7 @@ def send_message(platform, recipient, text):
                     "messaging_product": "whatsapp",
                     "to": recipient,
                     "type": "text",
-                    "text": {"body": text},
+                    "text": {"preview_url": True, "body": text},
                 },
                 timeout=5,
             )
@@ -436,6 +464,8 @@ def send_telegram_buttons(chat_id, text, buttons):
 
 def send_confirmation_buttons(platform, recipient, link):
     text = MESSAGE_TEMPLATES["link_confirmation"][platform].replace("{link}", link)
+    # Telegram: disable web preview so the clickable link isn't cluttered
+    # WhatsApp: enable preview_url so the link is rendered as clickable
     try:
         if platform == "telegram":
             requests.post(
@@ -518,7 +548,9 @@ def process_uploaded_poster(
         poster = existing_poster or ResearchPoster()
 
         if image_content and not existing_poster:
+            image_content, filename = _convert_heic_to_jpeg(image_content, filename)
             poster.image.save(filename, ContentFile(image_content))
+            poster.generate_thumbnail(save=False)
 
         if activity_user and not poster.uploaded_by_id:
             poster.uploaded_by = activity_user
@@ -618,20 +650,7 @@ def process_uploaded_poster(
                 poster.subfields = merged
                 poster.derive_category_from_subfields()
 
-            slug_to_label = {s: lbl for s, lbl in ResearchPoster.SUBFIELD_CHOICES}
-            absorbed = (
-                {slug_to_label.get(s, s).lower() for s in poster.subfields_list}
-                | {s.lower() for s in poster.subfields_list}
-            )
-            seen = set()
-            leftover = []
-            for t in user_tags.split(","):
-                t = t.strip()
-                key = t.lower()
-                if t and key not in absorbed and key not in seen:
-                    seen.add(key)
-                    leftover.append(t)
-            poster.tags = ", ".join(leftover)
+            poster.tags = _filter_tags_against_subfields(user_tags, poster.subfields_list)
         elif not poster.tags:
             poster.tags = enriched_data.get("tags", "")
 
@@ -696,6 +715,7 @@ def _send_analysis_result(platform, recipient, poster):
 
 def _save_image_only(image_content, filename, uploaded_by=None, source='web'):
     poster               = ResearchPoster()
+    image_content, filename = _convert_heic_to_jpeg(image_content, filename)
     poster.image.save(filename, ContentFile(image_content))
     poster.title         = "Pending analysis…"
     poster.authors       = ""
@@ -703,6 +723,7 @@ def _save_image_only(image_content, filename, uploaded_by=None, source='web'):
     poster.uploaded_by   = uploaded_by
     poster.upload_source = source
     poster.save()
+    poster.generate_thumbnail(save=True)
     return poster
 
 
@@ -1058,6 +1079,24 @@ def _handle_search_command(platform, recipient, query):
     send_message(platform, recipient, "\n".join(lines).strip())
 
 
+def _filter_tags_against_subfields(raw_tags, subfields_list):
+    """Remove tags already absorbed as subfields, deduplicate, return cleaned tag string."""
+    slug_to_label = {s: lbl for s, lbl in ResearchPoster.SUBFIELD_CHOICES}
+    absorbed = (
+        {slug_to_label.get(s, s).lower() for s in subfields_list}
+        | {s.lower() for s in subfields_list}
+    )
+    seen = set()
+    leftover = []
+    for t in raw_tags.split(","):
+        t = t.strip()
+        key = t.lower()
+        if key and key not in absorbed and key not in seen:
+            seen.add(key)
+            leftover.append(t)
+    return ", ".join(leftover)
+
+
 def _apply_filters(queryset, params, favorite_user=None):
     search = params.get("search", "")
     if search:
@@ -1188,10 +1227,62 @@ WEB_UPLOAD_COOLDOWN = 60
 
 
 @login_required(login_url="login")
+def conference_view(request):
+    return render(request, "conference.html")
+
+
+@login_required(login_url="login")
+def conference_search(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    paper_title = (body.get("paper_title") or "").strip()
+    conference = (body.get("conference") or "").strip()
+    year = (body.get("year") or "").strip()
+    day = (body.get("day") or "").strip()
+    tags = (body.get("tags") or "").strip()
+    other_conference = (body.get("other_conference") or "").strip()
+
+    if not paper_title or not conference or not year:
+        return JsonResponse({"error": "Paper title, conference and year are required."}, status=400)
+
+    from .utils_conference import search_conference
+
+    try:
+        result = search_conference(
+            paper_title=paper_title,
+            conference=conference,
+            year=year,
+            day=day,
+            tags=tags,
+            other_conference=other_conference,
+        )
+        return JsonResponse(result)
+    except Exception as e:
+        logger.exception("Conference search failed: %s", e)
+        return JsonResponse(
+            {"error": "Search failed — please try again later."},
+            status=500,
+        )
+
+
+@login_required(login_url="login")
 def upload_poster(request):
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if request.method == "POST":
         rate_key = f"web:upload_ratelimit:{request.user.pk}"
         if cache.get(rate_key):
+            if is_ajax:
+                return JsonResponse(
+                    {"error": "rate_limit", "message": "You are uploading too quickly. Please wait a minute before uploading again."},
+                    status=429,
+                )
             messages.warning(
                 request,
                 "You are uploading too quickly. Please wait a minute before uploading again.",
@@ -1203,6 +1294,11 @@ def upload_poster(request):
         user_tags = request.POST.get("tags", "") or ""
 
         if not files:
+            if is_ajax:
+                return JsonResponse(
+                    {"error": "no_files", "message": "Please select at least one image."},
+                    status=400,
+                )
             messages.error(request, "Please select at least one image.")
             return redirect("upload")
 
@@ -1213,18 +1309,22 @@ def upload_poster(request):
             user_tags = ""
 
         allowed_mimes = PosterUploadForm.ALLOWED_MIME_TYPES
+        allowed_exts = PosterUploadForm.ALLOWED_EXTENSIONS
         max_size = PosterUploadForm.MAX_UPLOAD_SIZE
         first_task_id = None
 
         for f in files:
             mime = getattr(f, "content_type", "")
-            if mime not in allowed_mimes:
+            ext = f.name.rsplit(".", 1)[-1].lower() if "." in getattr(f, "name", "") else ""
+            if mime not in allowed_mimes and ext not in allowed_exts:
                 continue
             if f.size > max_size:
                 continue
 
             poster_temp = ResearchPoster()
-            poster_temp.image.save(f.name, f)
+            raw = f.read()
+            converted, conv_name = _convert_heic_to_jpeg(raw, f.name)
+            poster_temp.image.save(conv_name, ContentFile(converted))
             poster_temp.title = "Pending analysis…"
             poster_temp.authors = ""
             poster_temp.summary = ""
@@ -1232,6 +1332,7 @@ def upload_poster(request):
             poster_temp.upload_source = "web"
             poster_temp.analysis_status = "processing"
             poster_temp.save()
+            poster_temp.generate_thumbnail(save=True)
 
             task = process_poster_task.delay(
                 poster_id=poster_temp.pk,
@@ -1244,15 +1345,28 @@ def upload_poster(request):
             if first_task_id is None:
                 first_task_id = task.id
 
+        if first_task_id is None:
+            if is_ajax:
+                return JsonResponse(
+                    {"error": "no_valid_files", "message": "No valid images found. Check file type and size."},
+                    status=400,
+                )
+            messages.error(request, "No valid images found. Check file type and size.")
+            return redirect("upload")
+
         cache.set(rate_key, 1, timeout=WEB_UPLOAD_COOLDOWN)
 
+        redirect_url = f"/dashboard/?task_id={first_task_id}"
         n = len(files)
+        if is_ajax:
+            return JsonResponse({"redirect": redirect_url})
+
         if n == 1:
             messages.info(request, "Poster uploaded. AI analysis is in progress.")
         else:
             messages.info(request, f"{n} posters uploaded. AI analysis is in progress for each one.")
 
-        return redirect(f"/dashboard/?task_id={first_task_id}")
+        return redirect(redirect_url)
     else:
         form = PosterUploadForm()
 
@@ -1261,7 +1375,18 @@ def upload_poster(request):
         .filter(uploaded_by=request.user, upload_source="web")
         .order_by("-created_at")[:3]
     )
-    return render(request, "upload.html", {"form": form, "recent_uploads": recent_uploads})
+    user_posters = ResearchPoster.objects.filter(uploaded_by=request.user)
+    upload_stats = {
+        "total": user_posters.count(),
+        "approved": user_posters.filter(validation_status="approved").count(),
+        "pending": user_posters.filter(validation_status="pending").count(),
+        "processing": user_posters.filter(analysis_status="processing").count(),
+    }
+    return render(request, "upload.html", {
+        "form": form,
+        "recent_uploads": recent_uploads,
+        "upload_stats": upload_stats,
+    })
 
 
 @login_required(login_url="login")
@@ -1409,10 +1534,12 @@ def edit_poster(request, poster_id):
                 details=f'Paper "{poster.title}" updated',
             )
             messages.success(request, "Paper updated successfully!")
-            return redirect("dashboard")
+            next_url = request.POST.get("next") or request.GET.get("next") or "dashboard"
+            return redirect(next_url)
     else:
         form = PosterEditForm(instance=poster)
-    return render(request, "edit_poster.html", {"form": form, "poster": poster})
+    next_url = request.GET.get("next", request.META.get("HTTP_REFERER", ""))
+    return render(request, "edit_poster.html", {"form": form, "poster": poster, "next_url": next_url})
 
 
 @login_required(login_url="login")
@@ -1528,6 +1655,41 @@ def update_notes(request, poster_id):
         messages.success(request, "Notes saved!")
         return redirect("dashboard")
     return JsonResponse({"success": False}, status=400)
+
+
+@login_required(login_url="login")
+def update_tags(request, poster_id):
+    if request.method != "POST":
+        return JsonResponse({"success": False}, status=400)
+    poster = get_object_or_404(ResearchPoster, id=poster_id)
+    try:
+        tags = json.loads(request.body).get("tags", "").strip()
+    except (json.JSONDecodeError, AttributeError):
+        tags = request.POST.get("tags", "").strip()
+    if len(tags) > 200:
+        return JsonResponse({"success": False, "message": "Tags too long (max 200 characters)."}, status=400)
+
+    # Match tags to subfields/category (same logic as upload)
+    if tags:
+        merged = match_user_tags_to_subfields(tags, poster.subfields)
+        if merged:
+            poster.subfields = merged
+            poster.derive_category_from_subfields()
+
+        poster.tags = _filter_tags_against_subfields(tags, poster.subfields_list)
+    else:
+        poster.tags = ""
+
+    poster.save(update_fields=["tags", "subfields", "category", "updated_at"])
+    ActivityLog.objects.create(
+        user=request.user, poster=poster, action="updated",
+        poster_title=poster.title, details="Tags updated",
+    )
+    return JsonResponse({
+        "success": True,
+        "message": "Tags saved!",
+        "tags_list": poster.tags_list,
+    })
 
 
 @login_required(login_url="login")

@@ -448,6 +448,34 @@
     .detail-action-bar .d-btn-danger   { background: transparent; color: var(--rejected); border-color: var(--border); }
     .detail-action-bar .d-btn-danger:hover   { border-color: var(--rejected); background: rgba(239,68,68,0.06); }
 
+    /* Tag remove button */
+    .tag-remove-btn {
+        background: none; border: none; color: inherit; opacity: 0.5;
+        font-size: 1.1em; cursor: pointer; padding: 0 0 0 4px; line-height: 1;
+        transition: opacity 0.15s;
+    }
+    .tag-remove-btn::before { display: none; }
+    .tag-remove-btn:hover { opacity: 1; transform: none; box-shadow: none; }
+
+    /* Inline tag editor */
+    .tag-editor-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .tag-editor-input {
+        flex: 1; padding: 7px 12px; border: 1.5px solid var(--border);
+        border-radius: var(--radius-sm); font-size: 0.86em;
+        background: var(--bg-input); color: var(--text);
+        font-family: inherit; box-sizing: border-box;
+        transition: border-color 0.2s;
+    }
+    .tag-editor-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    .tag-editor-btn {
+        padding: 7px 14px; border-radius: var(--radius-sm); font-size: 0.82em;
+        font-weight: 600; cursor: pointer; border: 1.5px solid var(--border);
+        background: var(--bg-surface); color: var(--text-primary);
+        transition: all 0.18s; white-space: nowrap;
+    }
+    .tag-editor-btn::before { display: none; }
+    .tag-editor-btn:hover { border-color: var(--primary); color: var(--primary); box-shadow: none; transform: none; }
+
 </style>
 {% endblock %}
 
@@ -456,7 +484,7 @@
     <div class="detail-container max-sm:tw-px-0 max-sm:tw-pb-10">
 
         <div class="detail-back" style="margin-bottom: 10px;">
-            <a href="{% url 'dashboard' %}" class="nav-link" style="display:inline-flex;align-items:center;gap:6px;">
+            <a href="{% url 'dashboard' %}" class="nav-link" onclick="if(document.referrer && document.referrer.includes('/dashboard')){event.preventDefault();history.back();}" style="display:inline-flex;align-items:center;gap:6px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="15 18 9 12 15 6"/>
                 </svg>
@@ -476,9 +504,7 @@
                         </span>
                     {% endif %}
                     {% if poster.image %}
-                        <a href="{{ poster.image.url }}" target="_blank">
-                            <img src="{{ poster.image.url }}" alt="{{ poster.title }}" class="detail-poster-img">
-                        </a>
+                        <img src="{{ poster.image.url }}" alt="{{ poster.title }}" class="detail-poster-img" onclick="openLightbox(this.src)">
                     {% else %}
                         <div class="detail-poster-placeholder">🖼</div>
                     {% endif %}
@@ -603,7 +629,7 @@
                 {% endif %}
             </div>
 
-            <div class="detail-section {% if not tags_display %}full-width{% endif %} max-md:tw-col-auto max-sm:tw-p-3 max-sm:tw-rounded-lg">
+            <div class="detail-section max-md:tw-col-auto max-sm:tw-p-3 max-sm:tw-rounded-lg">
                 <div class="detail-section-title max-sm:tw-text-[0.72em]">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -618,8 +644,7 @@
                 {% endif %}
             </div>
 
-            {% if tags_display %}
-            <div class="detail-section max-sm:tw-p-3 max-sm:tw-rounded-lg">
+            <div class="detail-section max-sm:tw-p-3 max-sm:tw-rounded-lg" id="tagsSection">
                 <div class="detail-section-title max-sm:tw-text-[0.72em]">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
@@ -627,13 +652,23 @@
                     </svg>
                     Tags
                 </div>
-                <div class="detail-tags-row">
+                <div class="detail-tags-row" id="tagsDisplay">
                     {% for tag in tags_display %}
-                        <span class="detail-tag-item">{{ tag }}</span>
+                        <span class="detail-tag-item detail-tag-removable" data-tag="{{ tag }}">{{ tag }} <button class="tag-remove-btn" onclick="removeTag(this)">&times;</button></span>
                     {% endfor %}
+                    {% if not tags_display %}
+                        <span class="detail-section-body empty" id="tagsEmpty">No tags yet.</span>
+                    {% endif %}
+                </div>
+                <div class="tag-editor-row">
+                    <div style="position:relative;flex:1;">
+                        <input type="text" class="tag-editor-input" id="tagEditorInput"
+                               placeholder="Add tags: e.g. brain tumor, segmentation…"
+                               maxlength="200">
+                    </div>
+                    <button type="button" class="tag-editor-btn" onclick="addTags({{ poster.id }})">Add</button>
                 </div>
             </div>
-            {% endif %}
 
         </div>
 
@@ -719,8 +754,86 @@
     </svg>
 </button>
 
+{% if poster.image %}
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
+    <button class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="{{ poster.title }}">
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/poster-detail.js' %}"></script>
+<script src="{% static 'js/tag-autocomplete.js' %}"></script>
+<script>
+(function() {
+    /* Inline tag editor */
+    if (typeof initTagAutocomplete === 'function') {
+        initTagAutocomplete('tagEditorInput');
+    }
+
+    var _posterId = {{ poster.id }};
+
+    function _getCurrentTags() {
+        return Array.from(document.querySelectorAll('#tagsDisplay .detail-tag-removable'))
+            .map(function(el) { return el.dataset.tag; });
+    }
+
+    function _renderTags(tagsList) {
+        var display = document.getElementById('tagsDisplay');
+        display.innerHTML = '';
+        if (tagsList && tagsList.length) {
+            tagsList.forEach(function(tag) {
+                var span = document.createElement('span');
+                span.className = 'detail-tag-item detail-tag-removable';
+                span.dataset.tag = tag;
+                span.innerHTML = tag + ' <button class="tag-remove-btn" onclick="removeTag(this)">&times;</button>';
+                display.appendChild(span);
+            });
+        } else {
+            var empty = document.createElement('span');
+            empty.className = 'detail-section-body empty';
+            empty.textContent = 'No tags yet.';
+            display.appendChild(empty);
+        }
+    }
+
+    function _saveTags(tagsString, customMsg) {
+        fetch('/update-tags/' + _posterId + '/', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'X-CSRFToken': getCSRFToken(), 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tags: tagsString }),
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) { showToast(data.message || 'Error', 'error'); return; }
+            _renderTags(data.tags_list);
+            showToast(customMsg || data.message);
+        })
+        .catch(function() { showToast('Network error', 'error'); });
+    }
+
+    window.removeTag = function(btn) {
+        var tagEl = btn.closest('.detail-tag-removable');
+        var removed = tagEl.dataset.tag;
+        var remaining = _getCurrentTags().filter(function(t) { return t !== removed; });
+        tagEl.remove();
+        _saveTags(remaining.join(', '), 'Tag "' + removed + '" removed');
+    };
+
+    window.addTags = function() {
+        var input = document.getElementById('tagEditorInput');
+        if (!input || !input.value.trim()) return;
+        var existing = _getCurrentTags();
+        var newTags = input.value.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+        var existingLower = existing.map(function(t) { return t.toLowerCase(); });
+        newTags.forEach(function(t) {
+            if (existingLower.indexOf(t.toLowerCase()) === -1) { existing.push(t); existingLower.push(t.toLowerCase()); }
+        });
+        input.value = '';
+        _saveTags(existing.join(', '));
+    };
+})();
+</script>
 {% endblock %}

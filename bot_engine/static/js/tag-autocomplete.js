@@ -16,9 +16,6 @@ function initTagAutocomplete(inputId, opts) {
 
     dropdown = document.createElement('div');
     dropdown.className = 'tag-ac-dropdown';
-    dropdown.style.cssText = 'display:none;position:absolute;left:0;right:0;z-index:100;' +
-        'background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);' +
-        'box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;margin-top:2px;';
     input.parentElement.style.position = 'relative';
     input.parentElement.appendChild(dropdown);
 
@@ -69,8 +66,6 @@ function initTagAutocomplete(inputId, opts) {
         filtered.forEach(function(tag, i) {
             var item = document.createElement('div');
             item.className = 'tag-ac-item';
-            item.style.cssText = 'padding:8px 14px;cursor:pointer;font-size:0.88em;color:var(--text-strong);' +
-                'transition:background 0.1s;';
             item.textContent = tag;
             item.dataset.index = i;
 
@@ -93,7 +88,7 @@ function initTagAutocomplete(inputId, opts) {
     function highlightItem() {
         var items = dropdown.querySelectorAll('.tag-ac-item');
         items.forEach(function(el, i) {
-            el.style.background = i === activeIdx ? 'var(--bg-hover, rgba(0,0,0,.05))' : '';
+            el.classList.toggle('active', i === activeIdx);
         });
     }
 

@@ -161,6 +161,16 @@ function applyFilters(options = {}) {
         });
 }
 
+/* Re-fetch data when returning to dashboard via back/forward or tab switch */
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) applyFilters({ pushHistory: false, showLoading: false });
+});
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && document.getElementById('dashboardData')) {
+        applyFilters({ pushHistory: false, showLoading: false });
+    }
+});
+
 window.addEventListener('popstate', () => {
     const p = new URLSearchParams(window.location.search);
 
@@ -439,12 +449,13 @@ function filterSubfieldOptions(query) {
     const q = query.toLowerCase().trim();
 
     document.querySelectorAll('.subfield-dd-option').forEach(opt => {
-        const visible = !q || (opt.dataset.label || '').includes(q) || (opt.dataset.slug || '').includes(q);
-        opt.style.display = visible ? '' : 'none';
+        const match = !q || (opt.dataset.label || '').includes(q) || (opt.dataset.slug || '').includes(q);
+        opt.style.display = match ? '' : 'none';
+        opt.classList.toggle('dd-hidden', !match);
     });
 
     document.querySelectorAll('.subfield-dd-group').forEach(group => {
-        const visible = group.querySelectorAll('.subfield-dd-option:not([style*="display: none"])');
+        const visible = group.querySelectorAll('.subfield-dd-option:not(.dd-hidden)');
         group.style.display = visible.length ? '' : 'none';
     });
 }
@@ -852,6 +863,13 @@ function updateStatus(selectEl) {
 
                 const row = selectEl.closest('tr');
                 if (row) {
+                    const mobBadge = row.querySelector('.status-mob-badge');
+                    if (mobBadge) {
+                        mobBadge.className = `status-mob-badge status-${newStatus}`;
+                        mobBadge.textContent = `● ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`;
+                    }
+                }
+                if (row) {
                     row.classList.remove('row-approved', 'row-pending', 'row-rejected');
                     row.classList.add(`row-${newStatus}`);
                 }
@@ -979,7 +997,13 @@ function executeDelete() {
 }
 
 function clearAllActivities() {
-    if (!confirm('Delete all activity logs? This cannot be undone.')) return;
+    var modal = document.getElementById('clearActivityModal');
+    if (modal) modal.style.display = '';
+}
+
+function executeClearActivities() {
+    var modal = document.getElementById('clearActivityModal');
+    if (modal) modal.style.display = 'none';
 
     fetch('/delete-all-activities/', {
         method: 'POST',
@@ -1019,10 +1043,19 @@ function toggleText(type, posterId) {
     const btn     = document.getElementById(`${type}-btn-${posterId}`);
     if (!preview || !full || !btn) return;
 
+    const row = btn.closest('tr');
+    const rowTop = row ? row.getBoundingClientRect().top : null;
+
     const collapsed = preview.style.display === 'none';
     preview.style.display = collapsed ? 'inline' : 'none';
     full.style.display    = collapsed ? 'none'   : 'inline';
     btn.textContent       = collapsed ? '↓ Read more' : '↑ Hide';
+
+    if (row && rowTop !== null) {
+        const newRowTop = row.getBoundingClientRect().top;
+        const drift = newRowTop - rowTop;
+        if (Math.abs(drift) > 1) window.scrollBy(0, drift);
+    }
 }
 
 const backToTopBtn = document.getElementById('backToTop');
@@ -1089,14 +1122,21 @@ function saveNotes(posterId) {
 
             const display = document.getElementById(`notes-display-${posterId}`);
             if (display) {
-                display.textContent = notes;
+                if (notes) {
+                    display.textContent = '\u{1F4DD} ' + (notes.length > 120 ? notes.slice(0, 117) + '...' : notes);
+                } else {
+                    display.remove();
+                }
             } else if (notes) {
                 const container = document.getElementById(`notes-container-${posterId}`);
-                if (container) {
+                const toggleBtn = container ? container.querySelector('.notes-toggle') : null;
+                if (container && toggleBtn) {
                     const div = document.createElement('div');
                     div.id = `notes-display-${posterId}`;
-                    div.textContent = notes;
-                    container.prepend(div);
+                    div.className = 'text-muted';
+                    div.style.cssText = 'font-size:0.82em; margin-top:4px;';
+                    div.textContent = '\u{1F4DD} ' + (notes.length > 120 ? notes.slice(0, 117) + '...' : notes);
+                    container.insertBefore(div, toggleBtn);
                 }
             }
 
