@@ -239,7 +239,7 @@
                                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                         </a>
-                        {% if poster.analysis_status == 'failed' %}
+                        {% if poster.analysis_status != 'processing' %}
                             <button class="action-btn action-btn-retry max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)]" onclick="retryAnalysis({{ poster.id }}, this)" title="Retry AI analysis">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="1 4 1 10 7 10"/>

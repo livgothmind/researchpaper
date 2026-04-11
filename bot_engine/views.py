@@ -574,7 +574,16 @@ def process_uploaded_poster(
         except Exception as e:
             logger.warning("Image hash check failed (continuing): %s", e)
 
-        enriched_data = analyze_and_enrich(poster.image.path)
+        overrides = {}
+        if existing_poster:
+            if existing_poster.paper_link and existing_poster.ai_paper_link is not None \
+                    and existing_poster.paper_link != existing_poster.ai_paper_link:
+                overrides["paper_link"] = existing_poster.paper_link
+            if existing_poster.github_link and existing_poster.ai_github_link is not None \
+                    and existing_poster.github_link != existing_poster.ai_github_link:
+                overrides["github_link"] = existing_poster.github_link
+
+        enriched_data = analyze_and_enrich(poster.image.path, overrides=overrides)
 
         if enriched_data.get("_ai_error"):
             if poster.title in ("Pending analysis…", ""):
@@ -634,6 +643,9 @@ def process_uploaded_poster(
             "github_link": ("github_link", ""),
         }.items():
             setattr(poster, field, enriched_data.get(key, default))
+
+        poster.ai_paper_link = enriched_data.get("paper_link", "")
+        poster.ai_github_link = enriched_data.get("github_link", "")
 
         raw_year = enriched_data.get("publication_year", "")
         if raw_year:
@@ -1795,8 +1807,8 @@ def retry_analysis(request, poster_id):
     if request.method != "POST":
         return JsonResponse({"success": False}, status=405)
     poster = get_object_or_404(ResearchPoster, id=poster_id)
-    if poster.analysis_status != 'failed':
-        return JsonResponse({"success": False, "error": "Paper is not in failed state"}, status=400)
+    if poster.analysis_status == 'processing':
+        return JsonResponse({"success": False, "error": "Analysis is already running"}, status=400)
     poster.analysis_status = 'processing'
     poster.save(update_fields=["analysis_status", "updated_at"])
     task = process_poster_task.delay(

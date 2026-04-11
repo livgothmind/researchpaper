@@ -152,6 +152,8 @@ class ResearchPoster(models.Model):
     authors = models.TextField()
     paper_link = models.URLField(max_length=500, blank=True, null=True)
     github_link = models.URLField(max_length=500, blank=True, null=True)
+    ai_paper_link = models.URLField(max_length=500, blank=True, null=True)
+    ai_github_link = models.URLField(max_length=500, blank=True, null=True)
     summary = models.TextField()
     why_useful = models.TextField(blank=True, null=True)
 

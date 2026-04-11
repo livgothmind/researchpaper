@@ -1019,7 +1019,8 @@ def _resolve_year(ai_year, paper_result, paper_link):
     return ""
 
 
-def analyze_and_enrich(image_path):
+def analyze_and_enrich(image_path, overrides=None):
+    overrides = overrides or {}
     info = extract_poster_info(image_path)
 
     if info.get("_ai_error"):
@@ -1042,19 +1043,23 @@ def analyze_and_enrich(image_path):
     title        = info.get("title", "")
     search_query = info.get("search_query", "")
 
-    paper_result = search_paper(search_query)
-    if not paper_result and title and title != search_query:
-        logger.debug("Retrying search with full title: %s", title)
-        paper_result = search_paper(title)
+    user_paper_link = overrides.get("paper_link", "")
 
-    paper_link        = ""
+    paper_result = None
+    if not user_paper_link:
+        paper_result = search_paper(search_query)
+        if not paper_result and title and title != search_query:
+            logger.debug("Retrying search with full title: %s", title)
+            paper_result = search_paper(title)
+
+    paper_link        = user_paper_link
     pdf_url_hint      = ""
     doi               = ""
     authors_from_api  = ""
     abstract_from_api = ""
 
     if paper_result:
-        paper_link        = paper_result.get("paper_url", "")
+        paper_link        = paper_link or paper_result.get("paper_url", "")
         pdf_url_hint      = paper_result.get("pdf_url", "")
         doi               = paper_result.get("doi", "")
         authors_from_api  = paper_result.get("authors", "")
@@ -1073,13 +1078,12 @@ def analyze_and_enrich(image_path):
         github_query=info.get("github_query", ""),
         paper_url=paper_link,
         doi=doi,
-    )
+    ) or overrides.get("github_link", "")
 
-    authors_from_page = ""
-    if paper_link and not authors_from_api:
-        authors_from_page = fetch_authors(paper_link, title=title)
-    authors_raw = authors_from_page or authors_from_api or info.get("authors", "")
-    # Deduplicate authors (GPT may extract the same name twice from poster)
+    gpt_authors = info.get("authors", "")
+    if not gpt_authors and paper_link:
+        gpt_authors = fetch_authors(paper_link, title=title) or authors_from_api
+    authors_raw = gpt_authors
     seen = set()
     unique = []
     for a in (x.strip() for x in authors_raw.split(",") if x.strip()):

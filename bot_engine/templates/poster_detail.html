@@ -673,7 +673,7 @@
         </div>
 
         <div class="detail-action-bar max-sm:tw-flex-row max-sm:tw-gap-2 max-sm:tw-flex-wrap max-sm:tw-mt-4 max-sm:tw-px-0.5">
-            {% if poster.analysis_status == 'failed' %}
+            {% if poster.analysis_status != 'processing' %}
                 <button id="retryBtn" onclick="retryAnalysisDetail({{ poster.id }})" class="d-btn d-btn-warning max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[34px] max-sm:tw-px-3 max-sm:tw-text-[0.76em]">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="1 4 1 10 7 10"/>
@@ -681,7 +681,7 @@
                     </svg>
                     Retry Analysis
                 </button>
-            {% elif poster.analysis_status == 'processing' %}
+            {% else %}
                 <button id="stopBtn" onclick="stopAnalysisDetail({{ poster.id }})" class="d-btn d-btn-stop max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[34px] max-sm:tw-px-3 max-sm:tw-text-[0.76em]">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="18" height="18" rx="2"/>
