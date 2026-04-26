@@ -37,6 +37,26 @@ urlpatterns = [
     path("export/approved/csv/",  views.export_approved_csv,  name="export_approved_csv"),
     path("export/approved/json/", views.export_approved_json, name="export_approved_json"),
 
+    # Group management
+    path("groups/",                                          views.group_list,          name="group_list"),
+    path("groups/create/",                                   views.group_create,        name="group_create"),
+    path("groups/<int:group_id>/edit/",                      views.group_edit,          name="group_edit"),
+    path("groups/<int:group_id>/delete/",                    views.group_delete,        name="group_delete"),
+    path("groups/<int:group_id>/add-member/",                views.group_add_member,    name="group_add_member"),
+    path("groups/<int:group_id>/remove-member/<int:user_id>/", views.group_remove_member, name="group_remove_member"),
+    path("groups/<int:group_id>/set-primary/<int:user_id>/", views.group_set_primary,   name="group_set_primary"),
+    path("api/set-my-primary-group/",                        views.set_my_primary_group, name="set_my_primary_group"),
+    path("api/poster/<int:poster_id>/why-useful/",           views.poster_why_useful_for_group, name="poster_why_useful_for_group"),
+    path("poster/<int:poster_id>/update-groups/",            views.update_poster_groups,        name="update_poster_groups"),
+
+    # User self-service (any logged-in user)
+    path("my-groups/",                                       views.my_groups,           name="my_groups"),
+
+    # User/admin management (superuser only)
+    path("users/",                                           views.user_admin_list,     name="user_admin_list"),
+    path("users/<int:user_id>/toggle-staff/",                views.user_toggle_staff,   name="user_toggle_staff"),
+    path("users/<int:user_id>/delete/",                      views.user_delete,         name="user_delete"),
+
     path("telegram-webhook/",  views.telegram_webhook,  name="telegram_webhook"),
     path("whatsapp-webhook/",  views.whatsapp_webhook,  name="whatsapp_webhook"),
 ]

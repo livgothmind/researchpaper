@@ -221,7 +221,7 @@ def _clear_bot_ratelimit(platform, recipient):
 
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=15, acks_late=True, reject_on_worker_lost=True)
-def process_poster_task(self, poster_id, user_notes=None, user_tags=None, source="web", user_id=None):
+def process_poster_task(self, poster_id, user_notes=None, user_tags=None, source="web", user_id=None, group_ids=None):
     close_old_connections()
 
     lock_client = None
@@ -274,6 +274,7 @@ def process_poster_task(self, poster_id, user_notes=None, user_tags=None, source
             user_notes=user_notes,
             user_tags=user_tags,
             activity_user=activity_user,
+            group_ids=group_ids,
         )
 
         if error == "no_text":
@@ -361,7 +362,7 @@ def download_and_handle_media_task(self, platform, recipient, media_id, filename
 
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=15, acks_late=True, reject_on_worker_lost=True)
-def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, tags=None):
+def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, tags=None, user_id=None):
     close_old_connections()
 
     cache_key = f"bot:{platform}:{recipient}"
@@ -395,12 +396,13 @@ def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, ta
             raise self.retry(countdown=30)
 
     try:
-        from bot_engine.models import ResearchPoster
+        from bot_engine.models import ResearchPoster, UserGroupMembership
         from bot_engine.views import (
             process_uploaded_poster,
             send_message,
             MESSAGE_TEMPLATES,
         )
+        from django.contrib.auth import get_user_model
 
         logger.info("[Task:bot] Starting analysis poster_id=%d platform=%s", poster_id, platform)
 
@@ -411,6 +413,19 @@ def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, ta
             logger.error("[Task:bot] Poster %d not found in DB", poster_id)
             return {"error": "poster not found"}
 
+        User = get_user_model()
+        activity_user = User.objects.filter(pk=user_id).first() if user_id else None
+        group_ids = []
+        if activity_user:
+            primary_group_id = (
+                UserGroupMembership.objects
+                .filter(user=activity_user, is_primary=True)
+                .values_list("group_id", flat=True)
+                .first()
+            )
+            if primary_group_id:
+                group_ids = [primary_group_id]
+
         new_poster, _, error = process_uploaded_poster(
             image_content=None,
             filename=None,
@@ -418,7 +433,8 @@ def process_bot_poster_task(self, platform, recipient, poster_id, notes=None, ta
             existing_poster=poster,
             user_notes=notes,
             user_tags=tags or None,
-            activity_user=None,
+            activity_user=activity_user,
+            group_ids=group_ids or None,
         )
 
         if error == "no_text":

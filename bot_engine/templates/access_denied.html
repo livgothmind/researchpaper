@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access denied — PaperProject</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260425c">
+    <style>
+        .denied-wrap {
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .denied-card {
+            max-width: 520px;
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 40px 36px;
+            text-align: center;
+        }
+        .denied-icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.12);
+            color: #dc2626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .denied-icon svg { width: 28px; height: 28px; }
+        .denied-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--text-strong);
+            margin-bottom: 10px;
+        }
+        .denied-body {
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <div class="denied-wrap">
+        <div class="denied-card">
+            <div class="denied-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                </svg>
+            </div>
+            <div class="denied-title">Access not allowed</div>
+            <div class="denied-body">
+                This platform is reserved for authorized researchers. Your account is not allowed to access PaperProject.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

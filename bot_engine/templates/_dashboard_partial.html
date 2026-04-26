@@ -105,28 +105,12 @@
                 <div class="links-poster-cell">
                     <div class="links-row">
                         {% if poster.paper_link %}
-                            <div class="link-cell max-xl:tw-inline-flex max-xl:tw-gap-1.5 max-xl:tw-items-center">
-                                <a href="{{ poster.paper_link }}" class="link-button max-xl:tw-text-[0.78em] max-xl:tw-py-[4px] max-xl:tw-px-3 max-xl:tw-rounded-md" target="_blank">Paper</a>
-                                <button class="copy-btn max-xl:tw-min-w-[30px] max-xl:tw-h-[30px] max-xl:tw-p-0 max-xl:tw-text-[0.75em] max-xl:tw-rounded-md max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center" onclick="copyToClipboard('{{ poster.paper_link }}', this)" title="Copy link">
-                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                    </svg>
-                                </button>
-                            </div>
+                            <a href="{{ poster.paper_link }}" class="link-button max-xl:tw-text-[0.78em] max-xl:tw-py-[4px] max-xl:tw-px-3 max-xl:tw-rounded-md" target="_blank">Paper</a>
                         {% else %}
                             <span class="text-muted max-xl:tw-text-[0.78em]">Paper: N/A</span>
                         {% endif %}
                         {% if poster.github_link %}
-                            <div class="link-cell max-xl:tw-inline-flex max-xl:tw-gap-1.5 max-xl:tw-items-center">
-                                <a href="{{ poster.github_link }}" class="link-button max-xl:tw-text-[0.78em] max-xl:tw-py-[4px] max-xl:tw-px-3 max-xl:tw-rounded-md" target="_blank">GitHub</a>
-                                <button class="copy-btn max-xl:tw-min-w-[30px] max-xl:tw-h-[30px] max-xl:tw-p-0 max-xl:tw-text-[0.75em] max-xl:tw-rounded-md max-xl:tw-inline-flex max-xl:tw-items-center max-xl:tw-justify-center" onclick="copyToClipboard('{{ poster.github_link }}', this)" title="Copy link">
-                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                    </svg>
-                                </button>
-                            </div>
+                            <a href="{{ poster.github_link }}" class="link-button max-xl:tw-text-[0.78em] max-xl:tw-py-[4px] max-xl:tw-px-3 max-xl:tw-rounded-md" target="_blank">GitHub</a>
                         {% else %}
                             <span class="text-muted max-xl:tw-text-[0.78em]">GitHub: N/A</span>
                         {% endif %}
@@ -139,7 +123,9 @@
 
             {# ── TD6: Summary — HIDDEN on mobile ── #}
             <td class="line-height-normal max-xl:!tw-hidden">
-                {% if poster.summary %}
+              {% if poster.analysis_status == 'processing' %}
+                <span class="text-muted" style="font-size:0.82em; font-style:italic;">Analyzing&hellip;</span>
+              {% elif poster.summary %}
                     {% if poster.summary|length > 200 %}
                         <div class="expandable-text">
                             <span class="text-preview" id="desc-preview-{{ poster.id }}">{{ poster.summary|slice:"0:200" }}...</span>
@@ -151,7 +137,7 @@
                     {% else %}
                         {{ poster.summary }}
                     {% endif %}
-                {% endif %}
+              {% endif %}
             </td>
 
             {# ── TD7: Why Useful — HIDDEN on mobile ── #}
@@ -233,7 +219,7 @@
                             </svg>
                         </button>
                     {% else %}
-                        <a href="{% url 'edit_poster' poster.id %}" class="action-btn max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)]" title="Edit">
+                        <a href="{% url 'edit_poster' poster.id %}" onclick="this.href=this.href.split('?')[0]+'?next='+encodeURIComponent(location.pathname+location.search)" class="action-btn max-xl:!tw-w-[28px] max-xl:!tw-h-[28px] max-xl:!tw-text-[0.8em] max-xl:!tw-rounded-md max-xl:!tw-shrink-0 max-xl:!tw-bg-transparent max-xl:!tw-shadow-none max-xl:!tw-border max-xl:!tw-border-solid max-xl:!tw-border-[var(--border)]" title="Edit">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>

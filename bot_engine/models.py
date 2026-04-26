@@ -180,6 +180,7 @@ class ResearchPoster(models.Model):
     subfields = models.CharField(max_length=500, blank=True, default="")
     tags = models.CharField(max_length=200, blank=True, null=True)
     publication_year = models.PositiveSmallIntegerField(blank=True, null=True, db_index=True)
+    conference = models.CharField(max_length=200, blank=True, default="", db_index=True)
     notes = models.TextField(max_length=500, blank=True, null=True)
 
     uploaded_by = models.ForeignKey(
@@ -466,3 +467,125 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.action} - {self.poster_title or 'Unknown'} - {self.timestamp}"
+
+
+class ResearchGroup(models.Model):
+    name = models.CharField(max_length=150, unique=True)
+    research_interests = models.TextField(
+        blank=True,
+        default="",
+        help_text="Brief description of the group's research activity",
+    )
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="UserGroupMembership",
+        related_name="research_groups",
+    )
+    posters = models.ManyToManyField(
+        ResearchPoster,
+        related_name="groups",
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class UserGroupMembership(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="group_memberships",
+    )
+    group = models.ForeignKey(
+        ResearchGroup,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+    )
+    is_primary = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "group"],
+                name="unique_user_group_membership",
+            ),
+        ]
+        ordering = ["-is_primary", "joined_at"]
+
+    def __str__(self):
+        primary = " (primary)" if self.is_primary else ""
+        return f"{self.user} -> {self.group}{primary}"
+
+    def save(self, *args, **kwargs):
+        if self.is_primary:
+            # Ensure only one primary group per user
+            UserGroupMembership.objects.filter(
+                user=self.user, is_primary=True,
+            ).exclude(pk=self.pk).update(is_primary=False)
+        super().save(*args, **kwargs)
+
+
+class PosterGroupWhyUseful(models.Model):
+    """Caches the per-group why_useful text for a poster."""
+    poster = models.ForeignKey(
+        ResearchPoster,
+        on_delete=models.CASCADE,
+        related_name="group_why_useful_entries",
+    )
+    group = models.ForeignKey(
+        ResearchGroup,
+        on_delete=models.CASCADE,
+        related_name="poster_why_useful_entries",
+    )
+    why_useful = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["poster", "group"],
+                name="unique_poster_group_why_useful",
+            ),
+        ]
+
+    def __str__(self):
+        return f"WhyUseful: {self.poster} / {self.group}"
+
+
+class BotAccount(models.Model):
+    """Links a Telegram/WhatsApp identity to a Django user, so bot uploads
+    can be attributed and routed to the user's primary research group."""
+    PLATFORM_CHOICES = [
+        ("telegram", "Telegram"),
+        ("whatsapp", "WhatsApp"),
+    ]
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES)
+    recipient = models.CharField(max_length=64, help_text="chat_id for Telegram, phone for WhatsApp")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="bot_accounts",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["platform", "recipient"],
+                name="unique_bot_account",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["platform", "recipient"]),
+        ]
+
+    def __str__(self):
+        return f"{self.platform}:{self.recipient} -> {self.user}"

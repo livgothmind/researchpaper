@@ -8,6 +8,7 @@ TEST_PAPER.txt
 
 # Database
 *.sqlite3
+*.session.sql
 
 # Python
 __pycache__/

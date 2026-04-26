@@ -6,9 +6,12 @@ const F = {
     has_github: '',
     has_paper: '',
     favorites: '',
+    mine: '',
     search: '',
     author: '',
     summary: '',
+    conference: [],
+    group: '',
     date_from: '',
     date_to: '',
     year_from: '',
@@ -28,6 +31,7 @@ function initFilterState() {
     F.has_github = d.dataset.hasGithubFilter || '';
     F.has_paper  = d.dataset.hasPaperFilter  || '';
     F.favorites  = d.dataset.favoritesFilter || '';
+    F.mine       = d.dataset.mineFilter      || '';
     F.search     = d.dataset.searchQuery     || '';
     F.author     = d.dataset.authorFilter    || '';
     F.summary    = d.dataset.summaryFilter   || '';
@@ -35,6 +39,9 @@ function initFilterState() {
     F.date_to    = d.dataset.dateToFilter    || '';
     F.year_from  = d.dataset.yearFromFilter  || '';
     F.year_to    = d.dataset.yearToFilter    || '';
+    const cf = d.dataset.conferenceFilter || '';
+    F.conference = cf ? cf.split(',').map(s => s.trim()).filter(Boolean) : [];
+    F.group      = d.dataset.groupFilter     || '';
     F.sort       = d.dataset.sortBy          || 'date';
     F.order      = d.dataset.sortOrder       || 'desc';
     F.per_page   = parseInt(d.dataset.perPage, 10)      || 15;
@@ -63,14 +70,17 @@ function buildQueryString() {
     if (F.has_github) p.set('has_github', '1');
     if (F.has_paper)  p.set('has_paper',  '1');
     if (F.favorites)  p.set('favorites',  '1');
+    if (F.mine)       p.set('mine',       '1');
     if (F.search)    p.set('search',    F.search);
     if (F.author)    p.set('author',    F.author);
     if (F.summary)   p.set('summary',   F.summary);
     if (F.date_from)  p.set('date_from',  F.date_from);
     if (F.date_to)    p.set('date_to',    F.date_to);
-    if (F.year_from)  p.set('year_from',  F.year_from);
-    if (F.year_to)    p.set('year_to',    F.year_to);
-    if (F.sort)       p.set('sort',       F.sort);
+    if (F.year_from)   p.set('year_from',   F.year_from);
+    if (F.year_to)     p.set('year_to',     F.year_to);
+    F.conference.forEach(c => p.append('conference', c));
+    if (F.group)       p.set('group',       F.group);
+    if (F.sort)        p.set('sort',        F.sort);
     if (F.order)     p.set('order',     F.order);
     if (F.page > 1)  p.set('page',      F.page);
     if (F.per_page && F.per_page !== 15) p.set('per_page', String(F.per_page));
@@ -180,26 +190,29 @@ window.addEventListener('popstate', () => {
     F.has_github = p.get('has_github') || '';
     F.has_paper  = p.get('has_paper')  || '';
     F.favorites  = p.get('favorites')  || '';
+    F.mine       = p.get('mine')       || '';
     F.search    = p.get('search')    || '';
     F.author    = p.get('author')    || '';
     F.summary   = p.get('summary')   || '';
     F.date_from = p.get('date_from') || '';
     F.date_to   = p.get('date_to')   || '';
-    F.year_from = p.get('year_from') || '';
-    F.year_to   = p.get('year_to')   || '';
-    F.sort      = p.get('sort')      || 'date';
+    F.year_from   = p.get('year_from')   || '';
+    F.year_to     = p.get('year_to')     || '';
+    F.conference  = p.getAll('conference');
+    F.group       = p.get('group')       || '';
+    F.sort        = p.get('sort')        || 'date';
     F.order     = p.get('order')     || 'desc';
     F.page      = parseInt(p.get('page'),     10) || 1;
     F.per_page  = parseInt(p.get('per_page'), 10) || 15;
 
     const fields = {
-        searchInput:    'search',
-        filterAuthor:   'author',
-        filterSummary:  'summary',
-        filterDateFrom: 'date_from',
-        filterDateTo:   'date_to',
-        filterYearFrom: 'year_from',
-        filterYearTo:   'year_to',
+        searchInput:      'search',
+        filterAuthor:     'author',
+        filterSummary:    'summary',
+        filterDateFrom:   'date_from',
+        filterDateTo:     'date_to',
+        filterYearFrom:   'year_from',
+        filterYearTo:     'year_to',
     };
 
     Object.entries(fields).forEach(([id, key]) => {
@@ -229,9 +242,9 @@ function syncFilterButtons() {
         let match = false;
 
         if (text === 'all' && !F.has_github && !F.has_paper && !F.favorites) match = true;
-        else if (text.includes('github')     && F.has_github)  match = true;
-        else if (text.includes('paper link') && F.has_paper)   match = true;
-        else if (text.includes('starred')    && F.favorites)   match = true;
+        if (text.includes('github')     && F.has_github)  match = true;
+        if (text.includes('paper')       && F.has_paper)   match = true;
+        if (text.includes('starred')    && F.favorites)   match = true;
 
         btn.classList.toggle('active', match);
     });
@@ -242,6 +255,22 @@ function syncFilterButtons() {
         if (m) btn.classList.toggle('active', m[1] === F.category);
     });
 
+    document.querySelectorAll('#groupButtons .filter-btn').forEach(btn => {
+        const onclick = btn.getAttribute('onclick') || '';
+        const m = onclick.match(/setFilter\('group','([^']*)'\)/);
+        if (m) {
+            btn.classList.toggle('active', m[1] === F.group);
+        } else if (onclick.includes("toggleFilter('mine'")) {
+            btn.classList.toggle('active', !!F.mine);
+        }
+    });
+
+    document.querySelectorAll('#conferenceButtons .filter-btn').forEach(btn => {
+        const conf = btn.dataset.conf || '';
+        const isAll = conf === '';
+        btn.classList.toggle('active', isAll ? F.conference.length === 0 : F.conference.includes(conf));
+    });
+
     const favCard = document.getElementById('stat-favorites-card');
     if (favCard) favCard.classList.toggle('stat-favorites-active', !!F.favorites);
 }
@@ -250,6 +279,21 @@ function setFilter(key, value) {
     F[key]  = value;
     F.page  = 1;
     if (key === 'category') F.subfield = [];
+    applyFilters();
+}
+
+function toggleConference(value) {
+    if (!value) return;
+    const i = F.conference.indexOf(value);
+    if (i === -1) F.conference.push(value);
+    else          F.conference.splice(i, 1);
+    F.page = 1;
+    applyFilters();
+}
+
+function clearConferences() {
+    F.conference = [];
+    F.page = 1;
     applyFilters();
 }
 
@@ -270,8 +314,9 @@ function clearLinksFilters() {
 function clearAllFilters() {
     Object.assign(F, {
         status: '', category: '', subfield: [],
-        has_github: '', has_paper: '', favorites: '',
-        search: '', author: '', summary: '',
+        has_github: '', has_paper: '', favorites: '', mine: '',
+        search: '', author: '', summary: '', conference: [],
+        group: '',
         date_from: '', date_to: '',
         year_from: '', year_to: '',
         sort: 'date', order: 'desc', page: 1,
@@ -322,13 +367,13 @@ document.addEventListener('DOMContentLoaded', () => {
 function applyAdvancedFilters() {
     const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
 
-    F.author    = get('filterAuthor');
-    F.summary   = get('filterSummary');
-    F.date_from = get('filterDateFrom');
-    F.date_to   = get('filterDateTo');
-    F.year_from = get('filterYearFrom');
-    F.year_to   = get('filterYearTo');
-    F.page      = 1;
+    F.author     = get('filterAuthor');
+    F.summary    = get('filterSummary');
+    F.date_from  = get('filterDateFrom');
+    F.date_to    = get('filterDateTo');
+    F.year_from  = get('filterYearFrom');
+    F.year_to    = get('filterYearTo');
+    F.page       = 1;
 
     applyFilters();
 }
@@ -344,12 +389,12 @@ function _syncAdvancedBadge() {
     const btn = document.querySelector('.advanced-toggle-btn');
     if (!btn) return;
     let count = 0;
-    if (F.author && F.author.trim())       count++;
-    if (F.summary && F.summary.trim())     count++;
-    if (F.date_from && F.date_from.trim()) count++;
-    if (F.date_to && F.date_to.trim())     count++;
-    if (F.year_from && F.year_from.trim()) count++;
-    if (F.year_to && F.year_to.trim())     count++;
+    if (F.author && F.author.trim())           count++;
+    if (F.summary && F.summary.trim())         count++;
+    if (F.date_from && F.date_from.trim())     count++;
+    if (F.date_to && F.date_to.trim())         count++;
+    if (F.year_from && F.year_from.trim())     count++;
+    if (F.year_to && F.year_to.trim())         count++;
 
     let badge = document.getElementById('advancedFilterBadge');
     if (count > 0) {
@@ -596,7 +641,7 @@ function addActivity(activity) {
 }
 
 
-function _createBanner() {
+function _createBanner(text) {
     if (!document.getElementById('_live-spin-style')) {
         const style = document.createElement('style');
         style.id    = '_live-spin-style';
@@ -616,7 +661,7 @@ function _createBanner() {
 
     el.innerHTML = `
         <span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:white;border-radius:50%;animation:_spin .8s linear infinite"></span>
-        <span>AI analysis…</span>
+        <span>${text || 'AI analysis\u2026'}</span>
     `;
 
     return el;
@@ -667,8 +712,9 @@ let _liveProcessing    = 0;
 let _liveBaselineReady = false;
 let _liveTimer         = null;
 let _liveBanner        = null;
+let _liveSuppressed    = false;
 
-function _showLiveBanner() { if (_liveBanner) return; _liveBanner = _createBanner(); document.body.appendChild(_liveBanner); }
+function _showLiveBanner() { if (_liveBanner || _liveSuppressed) return; _liveBanner = _createBanner(); document.body.appendChild(_liveBanner); }
 function _hideLiveBanner()  { if (!_liveBanner) return; _removeBanner(_liveBanner); _liveBanner = null; }
 
 async function checkLiveStatus() {
@@ -768,7 +814,11 @@ function retryAnalysis(posterId, button) {
                 return;
             }
 
-            showToast('🔄 Analysis restarted…', 'info');
+            _liveSuppressed = true;
+            _hideLiveBanner();
+            const banner = _createBanner('Retry analysis\u2026');
+            document.body.appendChild(banner);
+            applyFilters({ pushHistory: false });
 
             const warningMsgs = {
                 no_text:         ['⚠️ No scientific content detected',          'error'],
@@ -777,8 +827,17 @@ function retryAnalysis(posterId, button) {
                 analysis_failed: ['❌ Analysis failed again — check connection', 'error'],
             };
 
+            function _retryDone() {
+                _removeBanner(banner);
+                _liveSuppressed = false;
+                _hideLiveBanner();
+                _liveBaselineReady = false;
+                setTimeout(() => applyFilters({ pushHistory: false }), 600);
+            }
+
             pollTask(data.task_id, {
                 onSuccess: result => {
+                    _retryDone();
                     const key = result.warning || result.status;
                     if (key && warningMsgs[key]) {
                         const [msg, type] = warningMsgs[key];
@@ -786,15 +845,14 @@ function retryAnalysis(posterId, button) {
                     } else {
                         showToast(`✅ "${result.title || 'Paper'}" analysed!`);
                     }
-                    setTimeout(() => applyFilters({ pushHistory: false }), 600);
                 },
                 onFailure: result => {
+                    _retryDone();
                     showToast('❌ Retry failed: ' + (result?.error || 'unknown'), 'error');
-                    setTimeout(() => applyFilters({ pushHistory: false }), 600);
                 },
                 onTimeout: () => {
+                    _retryDone();
                     showToast('⚠️ Analysis timeout', 'error');
-                    setTimeout(() => applyFilters({ pushHistory: false }), 600);
                 },
             });
         })
@@ -1044,17 +1102,23 @@ function toggleText(type, posterId) {
     if (!preview || !full || !btn) return;
 
     const row = btn.closest('tr');
-    const rowTop = row ? row.getBoundingClientRect().top : null;
+    const scrollBefore = window.scrollY;
+    const rowTopBefore = row ? row.getBoundingClientRect().top : 0;
 
     const collapsed = preview.style.display === 'none';
     preview.style.display = collapsed ? 'inline' : 'none';
     full.style.display    = collapsed ? 'none'   : 'inline';
     btn.textContent       = collapsed ? '↓ Read more' : '↑ Hide';
 
-    if (row && rowTop !== null) {
-        const newRowTop = row.getBoundingClientRect().top;
-        const drift = newRowTop - rowTop;
-        if (Math.abs(drift) > 1) window.scrollBy(0, drift);
+    if (row) {
+        const rowTopAfter = row.getBoundingClientRect().top;
+        const drift = rowTopAfter - rowTopBefore;
+        if (Math.abs(drift) > 1) {
+            window.scrollTo({ top: scrollBefore + drift, behavior: 'instant' });
+        }
+        if (rowTopAfter < 0) {
+            row.scrollIntoView({ behavior: 'instant', block: 'start' });
+        }
     }
 }
 
@@ -1186,8 +1250,24 @@ function getSelectedIds() {
 function bulkAction(action) {
     const ids = getSelectedIds();
     if (!ids.length) return;
-    if (action === 'delete' && !confirm(`Delete ${ids.length} papers? This cannot be undone.`)) return;
+    if (action === 'delete') {
+        const run = () => _runBulkAction(ids, action);
+        if (typeof window.confirmDialog === 'function') {
+            window.confirmDialog(
+                'Delete papers',
+                `Delete ${ids.length} paper${ids.length > 1 ? 's' : ''}? This cannot be undone.`,
+                'Delete',
+                run,
+            );
+        } else {
+            run();
+        }
+        return;
+    }
+    _runBulkAction(ids, action);
+}
 
+function _runBulkAction(ids, action) {
     fetch('/bulk-action/', {
         method: 'POST',
         credentials: 'same-origin',
@@ -1254,7 +1334,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     
-    const hasAdvancedFilters = !!(F.author || F.summary || F.date_from || F.date_to);
+    const hasAdvancedFilters = !!(F.author || F.summary || F.date_from || F.date_to || F.year_from || F.year_to);
     const wasOpen = localStorage.getItem('advancedFiltersOpen') === 'true';
     if (hasAdvancedFilters || wasOpen) {
         const af = document.getElementById('advancedFilters');

@@ -651,19 +651,18 @@ def _scrape_page_for_github(url):
 
 
 def find_github_repo(pdf_url="", title="", github_query="", paper_url="", doi=""):
+    if pdf_url:
+        url = _find_github_in_pdf(pdf_url)
+        if url:
+            return url
+
     pages_to_try = []
     if doi:
         pages_to_try.append(f"https://doi.org/{doi}")
     if paper_url:
         pages_to_try.append(paper_url)
-
     for page in pages_to_try:
         url = _scrape_page_for_github(page)
-        if url:
-            return url
-
-    if pdf_url:
-        url = _find_github_in_pdf(pdf_url)
         if url:
             return url
 
@@ -969,16 +968,21 @@ def match_user_tags_to_subfields(user_tags, existing_subfields_csv=""):
         return existing_subfields_csv
 
 
-def generate_why_useful(summary="", user_notes="", user_tags=""):
-    """Genera perché il paper è utile combinando summary AI + note + tag utente."""
+def generate_why_useful(summary="", user_notes="", user_tags="", research_interests=""):
+    """Genera perché il paper è utile combinando summary AI + note + tag utente + interessi gruppo."""
     if not API_KEY_CONFIGURED or _openai_client is None:
         return ""
 
     parts = []
+    if research_interests and research_interests.strip():
+        parts.append(f"Research group interests:\n{research_interests.strip()}")
     if summary and summary.strip():
         parts.append(f"Abstract/summary:\n{summary.strip()}")
     if user_notes and user_notes.strip():
         parts.append(f"User notes:\n{user_notes.strip()}")
+    elif not research_interests and summary:
+        # Fallback: if no user notes and no group context, use summary as main input
+        pass
     if user_tags and user_tags.strip():
         parts.append(f"User tags:\n{user_tags.strip()}")
 
@@ -1114,6 +1118,7 @@ def analyze_and_enrich(image_path, overrides=None):
         "paper_link":  paper_link,
         "github_link": github_url,
         "publication_year": _resolve_year(info.get("year", ""), paper_result, paper_link),
+        "conference":  (info.get("conference") or "").strip(),
         "notes": (
             f"Auto-extracted by AI. "
             f"Conference: {info.get('conference', 'N/A')}, "

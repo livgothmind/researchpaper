@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Groups — PaperProject{% endblock %}
+
+{% block extra_head %}
+<style>
+    .groups-container { max-width: 960px; margin: 0 auto; padding: 0 0 60px; }
+    .groups-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .groups-header h1 { font-size: 1.5em; font-weight: 700; color: var(--text-strong); }
+    .group-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 14px; box-shadow: var(--shadow-card); transition: box-shadow 0.2s, transform 0.2s; }
+    .group-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .group-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
+    .group-card-name { font-size: 1.1em; font-weight: 700; color: var(--text-strong); }
+    .group-card-desc { font-size: 0.88em; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px; }
+    .group-card-members { font-size: 0.8em; color: var(--text-faint); }
+    .group-actions { display: flex; gap: 6px; }
+    .group-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: var(--radius-sm); font-size: 0.8em; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-surface); color: var(--text-primary); transition: all 0.18s; text-decoration: none; }
+    .group-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+    .group-btn.danger { color: #ef4444; }
+    .group-btn.danger:hover { border-color: #ef4444; background: rgba(239,68,68,0.06); }
+    .group-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
+    .group-btn.primary:hover { box-shadow: 0 4px 16px var(--primary-glow); }
+    .group-btn::before { display: none; }
+    .create-form { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 20px; box-shadow: var(--shadow-card); }
+    .create-form h3 { font-size: 0.9em; font-weight: 700; color: var(--text-strong); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .form-field { flex: 1; min-width: 200px; }
+    .form-field label { display: block; font-size: 0.78em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+    .form-field input, .form-field textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; box-sizing: border-box; }
+    .form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    .member-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 0.78em; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted); margin-right: 4px; margin-bottom: 4px; }
+    .member-chip.is-primary { background: var(--primary-faint); border-color: var(--primary-muted); color: var(--primary-darker); font-weight: 600; }
+    .flash-alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-surface); }
+    .flash-alert.success { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); color: #065f46; }
+    .flash-alert.error   { border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08);  color: #991b1b; }
+    [data-theme="dark"] .flash-alert.success { color: #6ee7b7; }
+    [data-theme="dark"] .flash-alert.error   { color: #fca5a5; }
+    .flash-alert .flash-close { margin-left: auto; background: none; border: none; cursor: pointer; opacity: 0.55; color: inherit; font-size: 1.1em; line-height: 1; padding: 2px 6px; }
+    .flash-alert .flash-close:hover { opacity: 1; }
+
+    .pending-card { background: var(--bg-card); border: 1px solid rgba(234,179,8,0.45); border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 18px; box-shadow: var(--shadow-card); }
+    .pending-card .pending-title { font-size: 0.82em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b45309; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .pending-card .pending-sub { font-size: 0.82em; color: var(--text-muted); margin-bottom: 12px; }
+    .pending-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--border); flex-wrap: wrap; }
+    .pending-row:first-of-type { border-top: none; }
+    .pending-name { flex: 1; min-width: 180px; font-size: 0.9em; color: var(--text); font-weight: 500; }
+    .pending-name .pending-username { color: var(--text-faint); font-size: 0.82em; font-family: ui-monospace, monospace; margin-left: 4px; }
+    .pending-name .pending-email { display: block; color: var(--text-faint); font-size: 0.78em; margin-top: 1px; }
+    .pending-form { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+    .pending-form select { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.82em; min-width: 0; width: 200px; font-family: inherit; }
+    .pending-form button { white-space: nowrap; flex-shrink: 0; }
+    .pending-form select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    [data-theme="dark"] .pending-card .pending-title { color: #fbbf24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="groups-container">
+
+        <div style="margin-bottom: 10px;">
+            <a href="{% url 'dashboard' %}" class="nav-link" style="display:inline-flex;align-items:center;gap:6px;font-size:0.86em;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="groups-header">
+            <h1>Research Groups</h1>
+        </div>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="flash-alert {{ message.tags }}">
+            <span>{% if message.tags == 'success' %}&#10003;{% elif message.tags == 'error' %}&#10005;{% else %}&#8505;{% endif %}</span>
+            <span>{{ message }}</span>
+            <button type="button" class="flash-close" onclick="this.parentElement.remove()" aria-label="Close">&#10005;</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if pending_users %}
+        <div class="pending-card">
+            <div class="pending-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                {{ pending_users|length }} user{{ pending_users|length|pluralize }} awaiting group assignment
+            </div>
+            <div class="pending-sub">These accounts have logged in but cannot interact with the platform until you place them into a research group.</div>
+            {% for u in pending_users %}
+            <div class="pending-row">
+                <div class="pending-name">
+                    {% if u.first_name or u.last_name %}{{ u.first_name|title }} {{ u.last_name|title }}{% else %}{{ u.username }}{% endif %}
+                    <span class="pending-username">{{ u.username }}</span>
+                    {% if u.email %}<span class="pending-email">{{ u.email }}</span>{% endif %}
+                </div>
+                {% if groups %}
+                <form method="POST" action="" class="pending-form" data-pending-user-id="{{ u.pk }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="user_ids" value="{{ u.pk }}">
+                    <select name="group_select" required onchange="onPendingGroupChange(this)">
+                        <option value="" disabled selected>Add to group…</option>
+                        {% for g in groups %}
+                            <option value="{% url 'group_add_member' g.pk %}">{{ g.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="group-btn primary" style="height:32px; font-size:0.78em;">Add</button>
+                </form>
+                {% else %}
+                <span style="font-size:0.8em; color:var(--text-faint); font-style:italic;">Create a group first</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="create-form">
+            <h3>Create New Group</h3>
+            <form method="POST" action="{% url 'group_create' %}">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-field">
+                        <label>Group Name</label>
+                        <input type="text" name="name" required placeholder="e.g. AImageLab" maxlength="150">
+                    </div>
+                    <div class="form-field" style="flex:2;">
+                        <label>Research Interests</label>
+                        <input type="text" name="research_interests" placeholder="Brief description of the group's research activity..." maxlength="500">
+                    </div>
+                    <button type="submit" class="group-btn primary" style="height:38px;">Create</button>
+                </div>
+            </form>
+        </div>
+
+        {% for group in groups %}
+        <div class="group-card">
+            <div class="group-card-header">
+                <div>
+                    <span class="group-card-name">{{ group.name }}</span>
+                </div>
+                <div class="group-actions">
+                    <a href="{% url 'group_edit' group.pk %}" class="group-btn">Edit</a>
+                    <form method="POST" action="{% url 'group_delete' group.pk %}" style="display:inline;"
+                          data-confirm="Delete the group &quot;{{ group.name|escapejs }}&quot;?&#10;&#10;Its members will lose access to the papers assigned only to this group."
+                          data-confirm-title="Delete group"
+                          data-confirm-label="Delete">
+                        {% csrf_token %}
+                        <button type="submit" class="group-btn danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% if group.research_interests %}
+                <div class="group-card-desc">{{ group.research_interests }}</div>
+            {% endif %}
+            <div class="group-card-members">
+                {% with members=group.memberships.all %}
+                    {% if members %}
+                        <strong>Members ({{ members|length }}):</strong>
+                        {% for m in members %}
+                            <span class="member-chip {% if m.is_primary %}is-primary{% endif %}">
+                                {{ m.user.get_full_name|title|default:m.user.username }}{% if m.is_primary %} &#9733;{% endif %}
+                            </span>
+                        {% endfor %}
+                    {% else %}
+                        <span style="opacity:0.5;">No members yet</span>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        {% empty %}
+        <div style="text-align:center; color:var(--text-faint); padding:40px;">
+            No groups created yet. Use the form above to create one.
+        </div>
+        {% endfor %}
+
+    </div>
+</div>
+
+<script>
+    function onPendingGroupChange(select) {
+        var form = select.closest('form');
+        if (!form) return;
+        if (select.value) {
+            form.setAttribute('action', select.value);
+        }
+    }
+    document.querySelectorAll('form.pending-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            var sel = form.querySelector('select[name="group_select"]');
+            if (sel && sel.value) {
+                form.setAttribute('action', sel.value);
+            } else {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

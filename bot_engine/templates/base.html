@@ -23,7 +23,7 @@
             },
         }
     </script>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260410d">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260425c">
     {% block extra_head %}{% endblock %}
     <script>
         try {
@@ -33,7 +33,29 @@
         } catch (e) {}
     </script>
 </head>
-<body class="max-xl:tw-p-1.5 {% block body_class %}{% endblock %}" {% block body_attrs %}{% endblock %}>
+<body class="max-xl:tw-p-1.5 {% block body_class %}{% endblock %}"{% if show_no_groups_banner %} data-has-banner{% endif %} {% block body_attrs %}{% endblock %}>
+
+    {% if show_no_groups_banner %}
+    <div class="no-groups-banner" role="alert" aria-live="polite">
+        <svg class="banner-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <div>
+            <strong>You are not in any research group yet</strong>
+            <span>
+                Until an administrator adds you to a group, you will not be able to access any papers on this platform.
+                {% if no_groups_admin_emails %}
+                Please contact an administrator:
+                {% for email in no_groups_admin_emails %}<a href="mailto:{{ email }}">{{ email }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
+                {% else %}
+                Please contact the platform administrators.
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% endif %}
 
     {% block content %}{% endblock %}
 
@@ -82,6 +104,77 @@
     </script>
 
     <script src="{% static 'js/common.js' %}"></script>
+
+    <div id="confirmModal" class="modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal-content">
+            <h3 id="confirmModalTitle" style="color:#dc2626; display:flex; align-items:center; gap:10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0;">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span id="confirmModalTitleText">Confirm action</span>
+            </h3>
+            <p id="confirmModalBody" style="white-space:pre-line;"></p>
+            <div class="modal-actions">
+                <button type="button" id="confirmModalCancel" class="btn">Cancel</button>
+                <button type="button" id="confirmModalOk" class="btn delete-confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var modal = document.getElementById('confirmModal');
+            var titleEl = document.getElementById('confirmModalTitleText');
+            var bodyEl = document.getElementById('confirmModalBody');
+            var okBtn = document.getElementById('confirmModalOk');
+            var cancelBtn = document.getElementById('confirmModalCancel');
+            var pending = null;
+
+            function hide() {
+                modal.style.display = 'none';
+                pending = null;
+            }
+            function show(title, body, confirmLabel, onConfirm) {
+                titleEl.textContent = title || 'Confirm action';
+                bodyEl.textContent = body || 'Are you sure?';
+                okBtn.textContent = confirmLabel || 'Confirm';
+                pending = onConfirm;
+                modal.style.display = '';
+            }
+
+            okBtn.addEventListener('click', function () {
+                var fn = pending;
+                hide();
+                if (typeof fn === 'function') fn();
+            });
+            cancelBtn.addEventListener('click', hide);
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modal.style.display !== 'none') hide();
+            });
+
+            // Intercept submissions on any <form data-confirm="...">.
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+                if (!form.matches('form[data-confirm]')) return;
+                if (form.dataset.confirmed === '1') return;     // already confirmed
+                e.preventDefault();
+                show(
+                    form.dataset.confirmTitle || 'Confirm action',
+                    form.dataset.confirm,
+                    form.dataset.confirmLabel || 'Confirm',
+                    function () {
+                        form.dataset.confirmed = '1';
+                        form.submit();
+                    }
+                );
+            }, true);
+
+            // Expose for programmatic use (e.g. links).
+            window.confirmDialog = show;
+        })();
+    </script>
 
     <div id="logoutModal" class="modal" style="display:none;" onclick="if(event.target===this)document.getElementById('logoutModal').style.display='none'">
         <div class="modal-content">

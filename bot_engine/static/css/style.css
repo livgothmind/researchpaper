@@ -266,6 +266,13 @@ input[type="date"]:focus, input[type="password"]:focus, textarea:focus, select:f
   box-shadow: 0 0 0 3px rgba(224,122,95,0.12);
 }
 
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
 textarea { resize: vertical; min-height: 100px; }
 form { position: relative; }
 .form-group { margin-bottom: 25px; text-align: left; }
@@ -385,9 +392,76 @@ body.upload-page { display: flex; align-items: center; justify-content: center; 
 .message { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; padding: 14px 18px; border-radius: var(--radius-sm); margin-bottom: 25px; font-weight: 500; font-size: 0.95em; }
 [data-theme="dark"] .message { background: #062218; border-color: #0f8b5f; color: #34d399; }
 
-.nav-link { display: inline-block; margin-top: 20px; color: var(--primary-darker); text-decoration: none; font-weight: 500; font-size: 0.95em; transition: color 0.2s ease; }
+/* "You are not in any group" banner — in-flow at the top of the body so it
+   doesn't overlap absolute/fixed siblings (user bar on upload, back link on
+   my_groups). On flex-centered bodies (upload/edit/login) we also switch the
+   body to block layout so the card flows naturally below the banner instead
+   of sitting beside it. */
+.no-groups-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: calc(100% - 24px);
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    padding: 12px 16px;
+    background: #fef3c7;
+    color: #78350f;
+    border: 1px solid #f59e0b;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    font-size: 0.92em;
+    line-height: 1.45;
+}
+.no-groups-banner svg.banner-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #b45309;
+}
+.no-groups-banner strong { display: block; margin-bottom: 2px; font-size: 0.98em; }
+.no-groups-banner a { color: #78350f; text-decoration: underline; font-weight: 600; }
+.no-groups-banner a:hover { color: #b45309; }
+[data-theme="dark"] .no-groups-banner {
+    background: rgba(245, 158, 11, 0.14);
+    color: #fcd9a0;
+    border-color: rgba(245, 158, 11, 0.6);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+[data-theme="dark"] .no-groups-banner svg.banner-icon { color: #fbbf24; }
+[data-theme="dark"] .no-groups-banner a { color: #fcd9a0; }
+[data-theme="dark"] .no-groups-banner a:hover { color: #fde3b8; }
+
+/* Drop the flex-centering on upload-style bodies when the banner is present,
+   otherwise the banner would become a flex sibling of .container and sit
+   next to the card instead of above it. The upload card's own centering
+   still works because .container has margin:0 auto. */
+body[data-has-banner].upload-page,
+body[data-has-banner].conference-page {
+    display: block;
+    align-items: initial;
+    justify-content: initial;
+}
+/* Push absolute-positioned top user bars (upload + conference) below the
+   banner so they don't overlap the alert. */
+body[data-has-banner].upload-page .upload-user-bar,
+body[data-has-banner].conference-page .conf-user-bar {
+    position: static;
+    justify-content: flex-end;
+    margin: 0 auto 12px;
+    width: calc(100% - 24px);
+    max-width: 1100px;
+}
+
+@media (max-width: 640px) {
+    .no-groups-banner { font-size: 0.82em; padding: 10px 12px; gap: 8px; margin-bottom: 14px; }
+    .no-groups-banner svg.banner-icon { width: 18px; height: 18px; }
+}
+
+.nav-link { display: inline-block; margin-top: 20px; color: var(--primary-darker); text-decoration: none; font-weight: 500; font-size: 0.95em; white-space: nowrap; transition: color 0.2s ease; }
 [data-theme="dark"] .nav-link { color: var(--primary); }
-.nav-link:hover { color: var(--text-heading); text-decoration: underline; transform: translateX(5px); }
+.nav-link:hover { color: var(--text-heading); text-decoration: underline; }
 
 .current-file { display: block; margin: 10px 0; padding: 10px; background: var(--bg-surface); border-radius: var(--radius-sm); font-size: 0.9em; color: #475569; }
 [data-theme="dark"] .current-file { background: var(--bg-surface); color: var(--text-muted); }
@@ -478,8 +552,11 @@ h1.dashboard-title { font-size: 2em; margin-bottom: 2px; text-align: left; lette
 
 .advanced-filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
 .advanced-filter-field label { display: block; font-size: 0.75em; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-.advanced-filter-field input { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 0.88em; background: var(--bg-input); color: var(--text); box-sizing: border-box; transition: all 0.2s ease; }
-.advanced-filter-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+.advanced-filter-field input,
+.advanced-filter-field select { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 0.88em; background: var(--bg-input); color: var(--text); box-sizing: border-box; transition: all 0.2s ease; font-family: inherit; }
+.advanced-filter-field select { cursor: pointer; }
+.advanced-filter-field input:focus,
+.advanced-filter-field select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
 .advanced-filters-actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
 
 .advanced-clear-btn { padding: 10px 20px; background: transparent !important; color: #ef4444 !important; font-weight: 600; font-size: 0.85em; border-radius: 12px; box-shadow: none !important; transform: none !important; transition: border-color 0.15s ease, color 0.15s ease; }
@@ -531,7 +608,7 @@ tbody tr.row-approved:hover { box-shadow: inset 3px 0 0 var(--approved); }
 tbody tr.row-pending:hover  { box-shadow: inset 3px 0 0 var(--pending); }
 tbody tr.row-rejected:hover { box-shadow: inset 3px 0 0 var(--rejected); }
 
-.article-title { font-weight: 600; color: var(--text-strong); margin-bottom: 4px; line-height: 1.4; letter-spacing: -0.01em; }
+.article-title { font-weight: 600; color: var(--text-strong); margin-bottom: 4px; line-height: 1.4; letter-spacing: -0.01em; word-break: break-word; overflow-wrap: break-word; }
 .article-title-link { color: inherit; text-decoration: none; transition: color 0.2s ease; }
 .article-title-link:hover { color: var(--primary); text-decoration: underline; }
 .article-authors { font-size: 0.84em; color: var(--text-muted); line-height: 1.4; }

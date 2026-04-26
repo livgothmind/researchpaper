@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Groups — PaperProject{% endblock %}
+
+{% block extra_head %}
+<style>
+    .mg-container { max-width: 800px; margin: 0 auto; padding: 0 0 60px; }
+    .mg-header { margin-bottom: 18px; }
+    .mg-header h1 { font-size: 1.5em; font-weight: 700; color: var(--text-strong); }
+    .mg-intro { font-size: 0.88em; color: var(--text-muted); line-height: 1.55; margin-top: 6px; }
+    .mg-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 12px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px; transition: border-color 0.18s; }
+    .mg-card.is-primary { border-color: var(--primary); }
+    .mg-card-body { flex: 1; min-width: 0; }
+    .mg-card-name { font-size: 1.02em; font-weight: 700; color: var(--text-strong); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .mg-card-desc { font-size: 0.84em; color: var(--text-muted); margin-top: 4px; line-height: 1.55; }
+    .mg-star { color: var(--primary); font-size: 1.1em; }
+    .mg-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 0.7em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .mg-badge.primary { background: var(--primary-faint); color: var(--primary-darker); }
+    .mg-badge.secondary { background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border); }
+    .mg-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 0.82em; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-surface); color: var(--text-primary); transition: all 0.18s; white-space: nowrap; }
+    .mg-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .mg-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
+    .mg-btn.primary:hover { box-shadow: 0 4px 16px var(--primary-glow); }
+    .mg-btn::before { display: none; }
+    .mg-empty { text-align: center; color: var(--text-faint); padding: 40px 20px; background: var(--bg-card); border: 1px dashed var(--border); border-radius: var(--radius-lg); font-size: 0.92em; }
+    .mg-saved-hint { font-size: 0.85em; color: #10b981; opacity: 0; transition: opacity 0.3s; margin-left: 8px; }
+    .mg-saved-hint.visible { opacity: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="mg-container">
+
+        <div style="margin-bottom: 10px;">
+            <a href="{% url back_target %}" class="nav-link" style="display:inline-flex;align-items:center;gap:6px;font-size:0.86em;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Back to {% if back_target == 'upload' %}Upload{% elif back_target == 'conference' %}Conference{% else %}Dashboard{% endif %}
+            </a>
+        </div>
+
+        <div class="mg-header">
+            <h1>My Research Groups</h1>
+            <p class="mg-intro">
+                These are the groups you belong to. Your <strong>primary group</strong> (&#9733;) is used by default when generating the &laquo;Why useful&raquo; explanation for a paper.
+                You can change your primary group anytime. To join another group, contact an admin.
+            </p>
+        </div>
+
+        {% for m in memberships %}
+        <div class="mg-card {% if m.is_primary %}is-primary{% endif %}" data-group-id="{{ m.group.pk }}">
+            <div class="mg-card-body">
+                <div class="mg-card-name">
+                    {{ m.group.name }}
+                    {% if m.is_primary %}
+                        <span class="mg-star" title="Primary group">&#9733;</span>
+                        <span class="mg-badge primary">Primary</span>
+                    {% else %}
+                        <span class="mg-badge secondary">Secondary</span>
+                    {% endif %}
+                </div>
+                {% if m.group.research_interests %}
+                    <div class="mg-card-desc">{{ m.group.research_interests }}</div>
+                {% endif %}
+            </div>
+            <div>
+                {% if m.is_primary %}
+                    <span style="font-size:0.82em; color:var(--text-faint);">Already primary</span>
+                {% else %}
+                    <button type="button" class="mg-btn primary" onclick="makePrimary({{ m.group.pk }}, this)">
+                        &#9733; Make Primary
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="mg-empty">
+            You are not a member of any research group yet. Ask an admin to add you to one.
+        </div>
+        {% endfor %}
+
+    </div>
+</div>
+
+<script>
+    function makePrimary(groupId, btn) {
+        btn.disabled = true;
+        const originalLabel = btn.innerHTML;
+        btn.innerHTML = '…';
+        fetch('/api/set-my-primary-group/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ group_id: groupId }),
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = originalLabel;
+                    showToast(data.error || 'Error updating primary group', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalLabel;
+                showToast('Network error', 'error');
+            });
+    }
+</script>
+{% endblock %}

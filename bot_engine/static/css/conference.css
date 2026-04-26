@@ -4,13 +4,14 @@
     display: flex; align-items: center; gap: 10px;
     font-size: 0.85em; color: var(--text-muted);
 }
-.conf-user-bar .user-name { font-weight: 600; color: var(--text-heading); }
+.conf-user-bar .user-name { font-weight: 600; color: var(--text-heading); text-decoration: none; transition: color 0.2s; cursor: pointer; }
+.conf-user-bar .user-name:hover { color: var(--primary); }
 .conf-user-bar .user-sep { opacity: 0.35; }
-.conf-user-bar a {
+.conf-user-bar a:not(.user-name) {
     color: var(--primary); text-decoration: none; font-weight: 500;
     transition: opacity 0.2s;
 }
-.conf-user-bar a:hover { opacity: 0.75; }
+.conf-user-bar a:not(.user-name):hover { opacity: 0.75; }
 
 
 .conf-container {

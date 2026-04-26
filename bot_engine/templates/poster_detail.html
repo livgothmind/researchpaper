@@ -262,6 +262,39 @@
         border-color: var(--primary-muted);
     }
 
+    .detail-groups-row {
+        align-items: center;
+        margin-top: -8px;
+    }
+
+    .detail-groups-label {
+        font-size: 0.7em;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        font-weight: 700;
+        margin-right: 4px;
+    }
+
+    .detail-tag-item.group-chip {
+        background: var(--primary-glow, rgba(249, 115, 22, 0.12));
+        color: var(--primary);
+        border-color: var(--primary);
+        text-decoration: none;
+    }
+
+    .detail-tag-item.group-chip::before {
+        content: '';
+        margin-right: 0;
+    }
+
+    .detail-tag-item.group-chip:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
     .detail-tag-item.subfield::before {
         content: '';
         width: 6px;
@@ -504,7 +537,7 @@
                         </span>
                     {% endif %}
                     {% if poster.image %}
-                        <img src="{{ poster.image.url }}" alt="{{ poster.title }}" class="detail-poster-img" onclick="openLightbox(this.src)">
+                        <img src="{{ poster.thumbnail_url }}" alt="{{ poster.title }}" class="detail-poster-img" onclick="openLightbox('{{ poster.image.url }}')">
                     {% else %}
                         <div class="detail-poster-placeholder">🖼</div>
                     {% endif %}
@@ -546,6 +579,49 @@
                         </div>
                     {% endif %}
 
+                    {% if poster_groups or can_edit_groups %}
+                        <div class="detail-tags-row detail-groups-row max-sm:tw-gap-1 max-sm:tw-flex-wrap" id="detailGroupsRow">
+                            <span class="detail-groups-label">Groups</span>
+                            <span id="detailGroupsChips" style="display:contents;">
+                                {% for g in poster_groups %}
+                                    <a href="{% url 'dashboard' %}?group={{ g.id }}" class="detail-tag-item group-chip" title="Filter dashboard by {{ g.name }}">{{ g.name }}</a>
+                                {% empty %}
+                                    <span id="detailGroupsEmpty" style="font-size:0.82em; color:var(--text-faint); font-style:italic;">Not assigned to any group yet.</span>
+                                {% endfor %}
+                            </span>
+                            {% if can_edit_groups %}
+                            <button type="button" id="editGroupsBtn" onclick="openGroupsEditor()" title="Edit assigned groups" style="display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border:1.5px solid var(--border); border-radius:20px; background:var(--bg-input); color:var(--text-muted); font-size:0.74em; font-weight:600; cursor:pointer; transition:all 0.18s;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                                Edit
+                            </button>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if can_edit_groups %}
+                    <div id="groupsEditorPanel" style="display:none; margin-top:10px; padding:14px 16px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md);">
+                        <div style="font-size:0.78em; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:10px;">Assign this paper to your groups</div>
+                        <div id="groupsEditorChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                            {% for g in user_groups_for_edit %}
+                                <label class="group-chip" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1.5px solid var(--border); border-radius:20px; background:var(--bg-input); cursor:pointer; font-size:0.82em;">
+                                    <input type="checkbox" data-group-id="{{ g.id }}" {% if g.is_assigned %}checked{% endif %} style="accent-color:var(--primary);">
+                                    {{ g.name }}{% if g.is_primary %} <span style="color:var(--primary); font-size:0.9em;">★</span>{% endif %}
+                                </label>
+                            {% empty %}
+                                <span style="font-size:0.82em; color:var(--text-faint);">You don't belong to any group yet.</span>
+                            {% endfor %}
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" id="saveGroupsBtn" onclick="saveGroupAssignments()" class="detail-action-btn" style="font-size:0.78em;">Save</button>
+                            <button type="button" onclick="closeGroupsEditor()" class="detail-action-btn" style="font-size:0.78em;">Cancel</button>
+                            <span id="groupsEditorStatus" style="font-size:0.78em; color:var(--text-faint); align-self:center; margin-left:6px;"></span>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="detail-actions-row max-sm:tw-flex-row max-sm:tw-flex-wrap max-sm:tw-gap-[5px]">
                         {% if poster.paper_link %}
                             <a href="{{ poster.paper_link }}" target="_blank" class="detail-action-btn max-sm:tw-flex-1 max-sm:tw-justify-center max-sm:tw-h-[32px] max-sm:tw-px-2.5 max-sm:tw-text-[0.74em]">
@@ -580,7 +656,17 @@
 
                     <div class="detail-meta-row max-sm:tw-flex-col max-sm:tw-items-start max-sm:tw-gap-[3px] max-sm:tw-text-[0.7em]">
                         {% if poster.uploaded_by %}
-                            <span>{{ poster.uploaded_by.username }}</span>
+                            <span>
+                                Uploaded by
+                                {% if poster.uploaded_by.first_name or poster.uploaded_by.last_name %}
+                                    <strong>{{ poster.uploaded_by.first_name|title }} {{ poster.uploaded_by.last_name|title }}</strong>
+                                {% else %}
+                                    <strong>{{ poster.uploaded_by.username }}</strong>
+                                {% endif %}
+                                {% if poster.upload_source == 'telegram' %} via Telegram
+                                {% elif poster.upload_source == 'whatsapp' %} via WhatsApp
+                                {% endif %}
+                            </span>
                             <span class="detail-meta-sep max-sm:tw-hidden">·</span>
                         {% elif poster.upload_source == 'telegram' %}
                             <span>via Telegram</span>
@@ -616,17 +702,32 @@
             </div>
 
             <div class="detail-section max-sm:tw-p-3 max-sm:tw-rounded-lg">
-                <div class="detail-section-title max-sm:tw-text-[0.72em]">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                    Why Useful
+                <div class="detail-section-title max-sm:tw-text-[0.72em]" style="display:flex;align-items:center;justify-content:space-between;">
+                    <span style="display:flex;align-items:center;gap:7px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        Why Useful
+                    </span>
+                    {% if poster_groups %}
+                    <select id="whyUsefulGroupSelect" onchange="loadWhyUsefulForGroup(this.value)" style="font-size:0.88em;padding:3px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-weight:500;max-width:200px;text-transform:none;letter-spacing:normal;">
+                        <option value="">Default</option>
+                        {% for g in poster_groups %}
+                            <option value="{{ g.id }}">{{ g.name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
                 </div>
-                {% if poster.why_useful %}
-                    <div class="detail-section-body">{{ poster.why_useful }}</div>
-                {% else %}
-                    <div class="detail-section-body empty">No evaluation available.</div>
-                {% endif %}
+                <div id="whyUsefulContent">
+                    {% if poster.why_useful %}
+                        <div class="detail-section-body">{{ poster.why_useful }}</div>
+                    {% else %}
+                        <div class="detail-section-body empty">No evaluation available.</div>
+                    {% endif %}
+                </div>
+                <div id="whyUsefulLoading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:0.88em;">
+                    Generating...
+                </div>
             </div>
 
             <div class="detail-section max-md:tw-col-auto max-sm:tw-p-3 max-sm:tw-rounded-lg">
@@ -799,41 +900,170 @@
         }
     }
 
-    function _saveTags(tagsString, customMsg) {
+    function _saveTags(tagsString, customMsg, fallbackTags) {
         fetch('/update-tags/' + _posterId + '/', {
             method: 'POST', credentials: 'same-origin',
             headers: { 'X-CSRFToken': getCSRFToken(), 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' },
             body: JSON.stringify({ tags: tagsString }),
         })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (!data.success) { showToast(data.message || 'Error', 'error'); return; }
-            _renderTags(data.tags_list);
-            showToast(customMsg || data.message);
+        .then(function(r) {
+            return r.json().then(function (data) { return { ok: r.ok, data: data }; });
         })
-        .catch(function() { showToast('Network error', 'error'); });
+        .then(function(res) {
+            if (!res.ok || !res.data || !res.data.success) {
+                showToast((res.data && res.data.message) || 'Error', 'error');
+                if (fallbackTags) _renderTags(fallbackTags);
+                return;
+            }
+            _renderTags(res.data.tags_list);
+            showToast(customMsg || res.data.message);
+        })
+        .catch(function() {
+            showToast('Network error', 'error');
+            if (fallbackTags) _renderTags(fallbackTags);
+        });
     }
 
     window.removeTag = function(btn) {
         var tagEl = btn.closest('.detail-tag-removable');
         var removed = tagEl.dataset.tag;
-        var remaining = _getCurrentTags().filter(function(t) { return t !== removed; });
-        tagEl.remove();
-        _saveTags(remaining.join(', '), 'Tag "' + removed + '" removed');
+        var before = _getCurrentTags();
+        var remaining = before.filter(function(t) { return t !== removed; });
+        _renderTags(remaining); // optimistic
+        _saveTags(remaining.join(', '), 'Tag "' + removed + '" removed', before);
     };
 
     window.addTags = function() {
         var input = document.getElementById('tagEditorInput');
         if (!input || !input.value.trim()) return;
-        var existing = _getCurrentTags();
+        var before = _getCurrentTags();
+        var existing = before.slice();
         var newTags = input.value.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
         var existingLower = existing.map(function(t) { return t.toLowerCase(); });
         newTags.forEach(function(t) {
             if (existingLower.indexOf(t.toLowerCase()) === -1) { existing.push(t); existingLower.push(t.toLowerCase()); }
         });
         input.value = '';
-        _saveTags(existing.join(', '));
+        _renderTags(existing); // optimistic — show chip immediately
+        _saveTags(existing.join(', '), null, before);
     };
 })();
+
+/* Why Useful group switcher */
+var _whyUsefulDefault = document.getElementById('whyUsefulContent') ? document.getElementById('whyUsefulContent').innerHTML : '';
+var _whyUsefulCache = {};
+
+window.loadWhyUsefulForGroup = function(groupId) {
+    var contentEl = document.getElementById('whyUsefulContent');
+    var loadingEl = document.getElementById('whyUsefulLoading');
+    if (!groupId) {
+        contentEl.innerHTML = _whyUsefulDefault;
+        contentEl.style.display = '';
+        loadingEl.style.display = 'none';
+        return;
+    }
+    if (_whyUsefulCache[groupId]) {
+        _renderWhyUseful(contentEl, _whyUsefulCache[groupId]);
+        loadingEl.style.display = 'none';
+        return;
+    }
+    contentEl.style.display = 'none';
+    loadingEl.style.display = '';
+    fetch('/api/poster/{{ poster.id }}/why-useful/?group_id=' + groupId, {
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var text = data.why_useful || '';
+        _whyUsefulCache[groupId] = text;
+        _renderWhyUseful(contentEl, text);
+        loadingEl.style.display = 'none';
+    })
+    .catch(function() {
+        contentEl.innerHTML = '<div class="detail-section-body empty">Failed to load.</div>';
+        contentEl.style.display = '';
+        loadingEl.style.display = 'none';
+    });
+};
+
+function _renderWhyUseful(el, text) {
+    if (text) {
+        el.innerHTML = '<div class="detail-section-body">' + text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+    } else {
+        el.innerHTML = '<div class="detail-section-body empty">No evaluation available for this group.</div>';
+    }
+    el.style.display = '';
+}
+
+/* ── Edit assigned groups ── */
+function openGroupsEditor() {
+    var panel = document.getElementById('groupsEditorPanel');
+    if (panel) panel.style.display = 'block';
+    var btn = document.getElementById('editGroupsBtn');
+    if (btn) btn.style.display = 'none';
+    var status = document.getElementById('groupsEditorStatus');
+    if (status) status.textContent = '';
+}
+function closeGroupsEditor() {
+    var panel = document.getElementById('groupsEditorPanel');
+    if (panel) panel.style.display = 'none';
+    var btn = document.getElementById('editGroupsBtn');
+    if (btn) btn.style.display = '';
+}
+function saveGroupAssignments() {
+    var checkboxes = document.querySelectorAll('#groupsEditorChips input[type="checkbox"]');
+    var ids = [];
+    checkboxes.forEach(function (cb) { if (cb.checked) ids.push(parseInt(cb.dataset.groupId, 10)); });
+
+    var saveBtn = document.getElementById('saveGroupsBtn');
+    var status = document.getElementById('groupsEditorStatus');
+    if (saveBtn) saveBtn.disabled = true;
+    if (status) { status.textContent = 'Saving…'; status.style.color = 'var(--text-faint)'; }
+
+    var csrf = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    fetch('{% url "update_poster_groups" poster.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrf ? csrf.value : '',
+        },
+        body: JSON.stringify({ group_ids: ids }),
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+    .then(function (res) {
+        if (saveBtn) saveBtn.disabled = false;
+        if (!res.ok || !res.data || !res.data.success) {
+            if (status) {
+                status.textContent = (res.data && res.data.message) || 'Failed to save.';
+                status.style.color = '#dc2626';
+            }
+            return;
+        }
+        var chipsRow = document.getElementById('detailGroupsChips');
+        if (chipsRow) {
+            chipsRow.innerHTML = '';
+            if (res.data.groups.length === 0) {
+                chipsRow.innerHTML = '<span id="detailGroupsEmpty" style="font-size:0.82em; color:var(--text-faint); font-style:italic;">Not assigned to any group yet.</span>';
+            } else {
+                res.data.groups.forEach(function (g) {
+                    var a = document.createElement('a');
+                    a.href = '/dashboard/?group=' + g.id;
+                    a.className = 'detail-tag-item group-chip';
+                    a.title = 'Filter dashboard by ' + g.name;
+                    a.textContent = g.name;
+                    chipsRow.appendChild(a);
+                });
+            }
+        }
+        if (status) { status.textContent = 'Saved.'; status.style.color = '#16a34a'; }
+        setTimeout(closeGroupsEditor, 600);
+    })
+    .catch(function () {
+        if (saveBtn) saveBtn.disabled = false;
+        if (status) { status.textContent = 'Network error.'; status.style.color = '#dc2626'; }
+    });
+}
 </script>
 {% endblock %}

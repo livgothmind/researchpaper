@@ -18,6 +18,35 @@ var multiSummary = document.getElementById('multiSummary');
 var multiGrid    = document.getElementById('multiGrid');
 var selectedFiles = [];
 
+
+var USER_GROUPS = (function () {
+    var out = [];
+    document.querySelectorAll('#uploadGroupChips input[name="group_ids"]').forEach(function (cb) {
+        out.push({
+            id: cb.value,
+            name: (cb.parentNode.textContent || '').replace('★', '').trim(),
+            isPrimary: cb.defaultChecked,
+        });
+    });
+    return out;
+})();
+
+function defaultGroupSelection() {
+    var primary = USER_GROUPS.filter(function (g) { return g.isPrimary; });
+    var first = primary.length ? [primary[0].id] : (USER_GROUPS.length ? [USER_GROUPS[0].id] : []);
+    return new Set(first);
+}
+
+
+var groupsByFile = new Map();
+
+function ensureFileGroups(file) {
+    if (!groupsByFile.has(file)) {
+        groupsByFile.set(file, defaultGroupSelection());
+    }
+    return groupsByFile.get(file);
+}
+
 function getFileExtension(name) {
     var parts = name.split('.');
     return parts.length > 1 ? parts.pop().toLowerCase() : '';
@@ -47,7 +76,9 @@ function dismissError() {
 
 function resetDropZone() {
     selectedFiles = [];
+    groupsByFile.clear();
     dropIdle.style.display    = '';
+    dropIdle.classList.remove('drop-zone-idle-compact');
     dropPreview.style.display = 'none';
     previewImg.src            = '';
     previewImg.style.display  = '';
@@ -84,7 +115,8 @@ function validateFile(file) {
 }
 
 function removeFileAt(index) {
-    selectedFiles.splice(index, 1);
+    var removed = selectedFiles.splice(index, 1)[0];
+    if (removed) groupsByFile.delete(removed);
     syncFileInput();
     if (selectedFiles.length === 0) {
         resetDropZone();
@@ -96,9 +128,21 @@ function removeFileAt(index) {
 function renderPreviews() {
     dismissError();
 
+    var extrasPanel = document.getElementById('uploadExtras');
+    var notesField  = document.getElementById('extrasNotesField');
+    var tagsField   = document.getElementById('extrasTagsField');
+    var groupsField = document.getElementById('extrasGroupsField');
+    var hintSingle  = document.getElementById('groupsHintSingle');
+    var hintMulti   = document.getElementById('groupsHintMulti');
+
     if (selectedFiles.length === 1) {
-        /* Single file: show full preview + notes/tags */
-        document.getElementById('uploadExtras').style.display = 'block';
+        /* Single file: show full preview + notes/tags + groups */
+        extrasPanel.style.display = 'block';
+        if (groupsField) groupsField.style.display = '';
+        if (notesField)  notesField.style.display  = '';
+        if (tagsField)   tagsField.style.display   = '';
+        if (hintSingle)  hintSingle.style.display  = '';
+        if (hintMulti)   hintMulti.style.display   = 'none';
         multiPreview.style.display = 'none';
         var file = selectedFiles[0];
         var heic = isHeicFile(file);
@@ -123,6 +167,7 @@ function renderPreviews() {
         }
 
         dropIdle.style.display    = 'none';
+        dropIdle.classList.remove('drop-zone-idle-compact');
         dropPreview.style.display = 'flex';
         fileNameVal.textContent = file.name;
         fileSizeVal.textContent = formatBytes(file.size);
@@ -131,56 +176,102 @@ function renderPreviews() {
         if (heic) {
             fileDimVal.textContent = 'N/A (HEIC)';
         } else {
-            fileDimVal.textContent = 'Loading\u2026';
+            fileDimVal.textContent = 'Loading…';
             var tempImg = new Image();
             var tempUrl = URL.createObjectURL(file);
             tempImg.onload = function () {
-                fileDimVal.textContent = tempImg.naturalWidth + ' \u00D7 ' + tempImg.naturalHeight + ' px';
+                fileDimVal.textContent = tempImg.naturalWidth + ' × ' + tempImg.naturalHeight + ' px';
                 URL.revokeObjectURL(tempUrl);
             };
             tempImg.src = tempUrl;
         }
     } else {
-        /* Multiple files: grid of thumbnails, hide notes/tags */
-        document.getElementById('uploadExtras').style.display = 'none';
+        /* Multiple files: per-file rows with their own group chips. The shared
+           "Assign to groups" panel is hidden because each row carries its own. */
+        extrasPanel.style.display = 'none';
         dropPreview.style.display = 'none';
         metaBox.style.display     = 'none';
-        dropIdle.style.display    = 'none';
+        dropIdle.style.display    = '';
+        dropIdle.classList.add('drop-zone-idle-compact');
 
         var totalSize = 0;
         selectedFiles.forEach(function (f) { totalSize += f.size; });
-        multiSummary.innerHTML = '<strong>' + selectedFiles.length + ' images selected</strong> \u00B7 ' + formatBytes(totalSize)
+        multiSummary.innerHTML = '<strong>' + selectedFiles.length + ' images selected</strong> · ' + formatBytes(totalSize)
             + '<div style="font-size:0.88em;color:var(--text-muted);margin-top:4px;font-weight:400;">'
-            + 'Each poster will be analyzed individually by the AI. Click the area above to add or replace images.</div>';
+            + 'Pick one or more groups for each paper. The primary is preselected.</div>';
         multiGrid.innerHTML = '';
 
         selectedFiles.forEach(function (file, idx) {
-            var wrap = document.createElement('div');
-            wrap.className = 'multi-thumb-wrap';
-            var img;
+            ensureFileGroups(file);
+
+            var row = document.createElement('div');
+            row.className = 'multi-row';
+
+            var thumb;
             if (isHeicFile(file)) {
-                img = document.createElement('div');
-                img.className = 'multi-thumb multi-thumb-heic';
-                img.textContent = '\uD83D\uDDBC';
+                thumb = document.createElement('div');
+                thumb.className = 'multi-row-thumb multi-thumb-heic';
+                thumb.textContent = '🖼';
             } else {
-                img = document.createElement('img');
-                img.className = 'multi-thumb';
+                thumb = document.createElement('img');
+                thumb.className = 'multi-row-thumb';
                 var thumbUrl = URL.createObjectURL(file);
-                img.onload = function () { URL.revokeObjectURL(thumbUrl); };
-                img.src = thumbUrl;
+                thumb.onload = function () { URL.revokeObjectURL(thumbUrl); };
+                thumb.src = thumbUrl;
             }
+            row.appendChild(thumb);
+
+            var info = document.createElement('div');
+            info.className = 'multi-row-info';
+
+            var nameEl = document.createElement('div');
+            nameEl.className = 'multi-row-name';
+            nameEl.textContent = file.name;
+            nameEl.title = file.name;
+            info.appendChild(nameEl);
+
+            var metaEl = document.createElement('div');
+            metaEl.className = 'multi-row-meta';
+            metaEl.textContent = formatBytes(file.size);
+            info.appendChild(metaEl);
+
+            if (USER_GROUPS.length) {
+                var chips = document.createElement('div');
+                chips.className = 'multi-row-groups';
+                USER_GROUPS.forEach(function (g) {
+                    var label = document.createElement('label');
+                    label.className = 'group-chip';
+                    label.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1.5px solid var(--border);border-radius:20px;background:var(--bg-input);cursor:pointer;font-size:0.74em;transition:all 0.18s;';
+                    var cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.value = g.id;
+                    cb.style.accentColor = 'var(--primary)';
+                    cb.checked = groupsByFile.get(file).has(g.id);
+                    cb.addEventListener('change', function () {
+                        var sel = groupsByFile.get(file);
+                        if (cb.checked) sel.add(g.id);
+                        else             sel.delete(g.id);
+                    });
+                    label.appendChild(cb);
+                    label.appendChild(document.createTextNode(' ' + g.name + (g.isPrimary ? ' ★' : '')));
+                    chips.appendChild(label);
+                });
+                info.appendChild(chips);
+            }
+            row.appendChild(info);
+
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'multi-thumb-remove';
-            btn.textContent = '\u2715';
+            btn.className = 'multi-row-remove';
+            btn.textContent = '✕';
             btn.title = 'Remove ' + file.name;
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 removeFileAt(idx);
             });
-            wrap.appendChild(img);
-            wrap.appendChild(btn);
-            multiGrid.appendChild(wrap);
+            row.appendChild(btn);
+
+            multiGrid.appendChild(row);
         });
 
         multiPreview.style.display = 'block';
@@ -252,8 +343,8 @@ function setProgress(pct, phase, status) {
 function showProgress() {
     progressWrap.style.display = 'block';
     var label = selectedFiles.length > 1
-        ? 'Uploading ' + selectedFiles.length + ' images\u2026'
-        : 'Uploading\u2026';
+        ? 'Uploading ' + selectedFiles.length + ' images…'
+        : 'Uploading…';
     setProgress(0, label, '');
 }
 
@@ -271,9 +362,21 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
     showProgress();
 
     var formData = new FormData(document.getElementById('uploadForm'));
-    /* Remove existing image entries and re-add from selectedFiles */
+    /* Re-add files in current order */
     formData.delete('image');
     selectedFiles.forEach(function (f) { formData.append('image', f); });
+
+    if (selectedFiles.length > 1) {
+        /* Multi-upload: per-file group selection overrides the shared one. */
+        formData.delete('group_ids');
+        selectedFiles.forEach(function (f, i) {
+            var sel = groupsByFile.get(f);
+            if (!sel) return;
+            sel.forEach(function (gid) {
+                formData.append('group_ids_' + i, gid);
+            });
+        });
+    }
 
     var xhr = new XMLHttpRequest();
 
@@ -282,15 +385,15 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
             setProgress(
                 (ev.loaded / ev.total) * 100,
                 selectedFiles.length > 1
-                    ? 'Uploading ' + selectedFiles.length + ' images\u2026'
-                    : 'Uploading\u2026',
+                    ? 'Uploading ' + selectedFiles.length + ' images…'
+                    : 'Uploading…',
                 formatBytes(ev.loaded) + ' / ' + formatBytes(ev.total)
             );
         }
     });
 
     xhr.upload.addEventListener('load', function () {
-        setProgress(100, 'Upload complete', 'Redirecting\u2026');
+        setProgress(100, 'Upload complete', 'Redirecting…');
     });
 
     xhr.addEventListener('load', function () {
@@ -344,24 +447,3 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
     bindCounter('id_notes', 'notesCharCount', 500);
     bindCounter('id_tags', 'tagsCharCount', 200);
 })();
-
-function updateTagChips() {
-    var el = document.getElementById('id_tags');
-    var preview = document.getElementById('tagChipPreview');
-    if (!el || !preview) return;
-    preview.innerHTML = '';
-    el.value.split(',').forEach(function (t) {
-        t = t.trim();
-        if (!t) return;
-        var chip = document.createElement('span');
-        chip.className = 'tag-chip';
-        chip.textContent = t;
-        preview.appendChild(chip);
-    });
-}
-
-document.getElementById('id_tags').addEventListener('input', updateTagChips);
-
-if (typeof initTagAutocomplete === 'function') {
-    initTagAutocomplete('id_tags', { onTagChange: updateTagChips });
-}

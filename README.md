@@ -11,6 +11,22 @@ A Django web application for building a searchable, AI-powered library of scient
 - **Telegram bot** -- send a photo or document to receive structured results
 - **WhatsApp bot** -- same workflow, with interactive button prompts
 
+### Research Groups
+- Each paper can be assigned to one or more research groups; the dashboard, donut stats, and exports are always scoped to the groups the user belongs to (no cross-group leakage)
+- One **primary group** per user, used to pre-select chips on upload and to drive the per-group "Why useful" generation
+- **Per-paper, per-group group selection** at upload time: in multi-file batches each paper has its own group chips so different posters can land in different groups within the same submission
+- **Group editor on paper detail**: pencil button next to the Groups badges opens an inline panel with the user's groups; toggles only the user's memberships and preserves any other group's link to the paper
+- **Mine** filter: dashboard pill that scopes the table and the donut to papers the current user uploaded
+- **Group management UI** (`/groups/`, admin-only): create/edit/delete groups, add/remove members, set primary, and a "users awaiting group assignment" panel listing every active account with no membership and a one-click add-to-group select
+- **My Groups** page (`/my-groups/`): each user can pick which of their groups is primary
+
+### Access Control
+- **Shibboleth SSO** integration for production (`SHIBBOLETH_AUTH=true`); auto-creates Django users from `HTTP_X_SHIB_*` headers and signs them in transparently
+- **Email blacklist** (env-driven): emails matching any pattern in `BLACKLIST_EMAIL_PATTERNS` (default `@studenti.`) are blocked at the middleware before the user is even created. Existing matching accounts get logged out on the next request and shown a dedicated `access_denied` page
+- **Whitelist overrides** via `BLACKLIST_EXEMPT_EMAILS` and `BLACKLIST_EXEMPT_USERNAMES` for individual exceptions; staff and superusers are always exempt
+- **Restricted mode for unassigned users**: a logged-in account that is not in any research group can reach the site but the dashboard is replaced with a "Dashboard locked" notice, the upload form is replaced with a placeholder, and every write/AJAX endpoint (upload, analyses, bulk actions, conference search, favorites/notes/tags) is blocked by a `_groups_required` decorator
+- **User admin** (`/users/`, superuser-only): list active users, toggle staff status, delete accounts
+
 ### AI-Powered Extraction (GPT-4o Vision)
 From a single poster image the system extracts:
 - Title, authors, abstract, keywords, category, conference, year, institution
@@ -45,9 +61,11 @@ From a single poster image the system extracts:
 
 ### Upload Page
 - Drag-and-drop single or multiple images at once
-- Multi-image batch upload: each image becomes a separate analysis task
+- Multi-image batch upload: each image becomes a separate analysis task with its own group selection
+- Single-file mode shows notes/tags fields plus a shared group chip row; multi-file mode renders one row per paper (thumbnail + filename + per-paper group chips), so different papers can be filed into different groups in the same submission
+- Compact "drop more here" hint stays visible above the multi-file list so additional files can be added at any time
+- Backend validates that every uploaded paper has at least one group selected, with a per-file error message when a paper is missing its assignment
 - Collapsible tips panel for best upload results
-- Optional notes and tags (shared across batch uploads)
 - Collapsible recent uploads section showing the last 3 uploads with status
 - Upload progress bar with real-time feedback
 
@@ -169,6 +187,14 @@ SEMANTIC_SCHOLAR_API_KEY=your_key
 
 # GitHub API (optional, higher rate limits)
 GITHUB_TOKEN=your_github_token
+
+# Shibboleth SSO (production only)
+SHIBBOLETH_AUTH=true
+
+# Email-based access control (defaults shown)
+BLACKLIST_EMAIL_PATTERNS=@studenti.
+BLACKLIST_EXEMPT_EMAILS=
+BLACKLIST_EXEMPT_USERNAMES=
 ```
 
 ### 3. Start all services
@@ -208,12 +234,15 @@ PaperProject/
 │   ├── Dockerfile
 │   └── httpd.conf
 ├── bot_engine/
-│   ├── models.py          # ResearchPoster, ActivityLog, Favorite
-│   ├── views.py           # Web views + bot webhook handlers
-│   ├── tasks.py           # Celery tasks (media download, AI analysis)
-│   ├── utils_ai.py        # OpenAI integration, paper/code search
-│   ├── prompts.py         # GPT-4o system prompts
-│   ├── forms.py           # Upload and edit forms
+│   ├── models.py              # ResearchPoster, ResearchGroup, UserGroupMembership, BotAccount, ...
+│   ├── views.py               # Web views, group/user management, bot webhook handlers
+│   ├── tasks.py               # Celery tasks (media download, AI analysis)
+│   ├── middleware.py          # Shibboleth auth + email blacklist
+│   ├── access.py              # Blacklist + group-membership helpers
+│   ├── context_processors.py  # No-groups banner / user_can_interact flag
+│   ├── utils_ai.py            # OpenAI integration, paper/code search
+│   ├── prompts.py             # GPT-4o system prompts
+│   ├── forms.py               # Upload and edit forms
 │   ├── migrations/
 │   ├── static/
 │   │   ├── css/style.css
@@ -224,6 +253,10 @@ PaperProject/
 │       ├── upload.html
 │       ├── poster_detail.html
 │       ├── edit_poster.html
+│       ├── access_denied.html
+│       ├── my_groups.html
+│       ├── groups/            # Admin group management
+│       ├── users/             # Superuser user admin
 │       └── login.html
 ├── tesi_project/
 │   ├── settings.py
@@ -247,6 +280,7 @@ PaperProject/
 | `/dashboard/` | GET | Dashboard with filters and search |
 | `/dashboard/live-status/` | GET | Live processing status (AJAX) |
 | `/poster/<id>/` | GET | Paper detail page |
+| `/poster/<id>/update-groups/` | POST | Toggle the paper's group assignments (own groups only) |
 | `/edit/<id>/` | GET/POST | Edit paper metadata |
 | `/login/` | GET/POST | Login page |
 | `/task-status/<task_id>/` | GET | Celery task status (AJAX) |
@@ -257,6 +291,11 @@ PaperProject/
 | `/update-notes/<id>/` | POST | Save inline notes |
 | `/bulk-action/` | POST | Bulk actions on selected papers |
 | `/api/tags-autocomplete/` | GET | Tag autocomplete suggestions |
+| `/api/poster/<id>/why-useful/` | GET | Generate / fetch a per-group "Why useful" snippet |
+| `/api/set-my-primary-group/` | POST | Set the user's primary group |
+| `/groups/`, `/groups/<id>/edit/`, `/groups/<id>/...` | various | Group management (admin) |
+| `/my-groups/` | GET | User's own groups + primary picker |
+| `/users/`, `/users/<id>/...` | various | User admin (superuser) |
 | `/export/approved/csv/` | GET | Export approved papers (CSV) |
 | `/export/approved/json/` | GET | Export approved papers (JSON) |
 | `/telegram-webhook/` | POST | Telegram bot webhook |

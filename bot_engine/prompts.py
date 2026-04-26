@@ -51,8 +51,9 @@ If a field is not visible, use empty string "" (or empty list [] for subfields).
 # ---------------------------------------------------------------------------
 WHY_USEFUL_PROMPT = """
 You are an academic research assistant.
-Given a paper abstract and optional user notes/tags, write ONE sentence (max 25 words)
-that captures the paper's core contribution and practical value to a researcher.
+Given a paper abstract and optional context (user notes, tags, or a research group description),
+write ONE sentence (max 25 words) that explains why this paper is relevant and useful.
+If a research group description is provided, tailor the explanation to that group's interests.
 Return ONLY the plain-text sentence, no labels, no bullet points.
 """
 

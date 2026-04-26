@@ -20,8 +20,7 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-/* Lightbox with zoom + pan */
-var _lb = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0 };
+var _lb = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, didDrag: false };
 
 function _lbApply() {
     var img = document.getElementById('lightboxImg');
@@ -29,7 +28,7 @@ function _lbApply() {
 }
 
 function _lbReset() {
-    _lb.scale = 1; _lb.x = 0; _lb.y = 0; _lb.dragging = false;
+    _lb.scale = 1; _lb.x = 0; _lb.y = 0; _lb.dragging = false; _lb.didDrag = false;
     var img = document.getElementById('lightboxImg');
     if (img) { img.style.transform = ''; img.style.cursor = 'zoom-in'; }
 }
@@ -58,20 +57,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!lb) return;
     var img = document.getElementById('lightboxImg');
 
-    /* Wheel zoom */
     lb.addEventListener('wheel', function(e) {
         e.preventDefault();
         var prev = _lb.scale;
-        _lb.scale = Math.min(Math.max(0.5, _lb.scale + (e.deltaY < 0 ? 0.2 : -0.2)), 8);
+        _lb.scale = Math.min(Math.max(0.5, _lb.scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15)), 8);
+        var vcx = window.innerWidth / 2;
+        var vcy = window.innerHeight / 2;
+        var ratio = _lb.scale / prev;
+        _lb.x = (e.clientX - vcx) * (1 - ratio) + _lb.x * ratio;
+        _lb.y = (e.clientY - vcy) * (1 - ratio) + _lb.y * ratio;
         if (_lb.scale <= 1) { _lb.x = 0; _lb.y = 0; }
-        else { _lb.x *= _lb.scale / prev; _lb.y *= _lb.scale / prev; }
         img.style.cursor = _lb.scale > 1 ? 'grab' : 'zoom-in';
         _lbApply();
     }, { passive: false });
 
-    /* Click to zoom in/out */
+    /* Click to zoom in/out — ignore if user dragged */
     img.addEventListener('click', function(e) {
         e.stopPropagation();
+        if (_lb.didDrag) { _lb.didDrag = false; return; }
         if (_lb.scale > 1) { _lbReset(); _lbApply(); }
         else { _lb.scale = 2.5; img.style.cursor = 'grab'; _lbApply(); }
     });
@@ -81,12 +84,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (_lb.scale <= 1) return;
         e.preventDefault();
         _lb.dragging = true;
+        _lb.didDrag = false;
         _lb.startX = e.clientX - _lb.x;
         _lb.startY = e.clientY - _lb.y;
         img.style.cursor = 'grabbing';
     });
     document.addEventListener('mousemove', function(e) {
         if (!_lb.dragging) return;
+        var dx = e.clientX - _lb.startX - _lb.x;
+        var dy = e.clientY - _lb.startY - _lb.y;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) _lb.didDrag = true;
         _lb.x = e.clientX - _lb.startX;
         _lb.y = e.clientY - _lb.startY;
         _lbApply();
@@ -150,4 +157,3 @@ function showToast(message, type) {
         setTimeout(function () { toast.remove(); }, 300);
     }, delay);
 }
-

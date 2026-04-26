@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Users — PaperProject{% endblock %}
+
+{% block extra_head %}
+<style>
+    .users-container { max-width: 960px; margin: 0 auto; padding: 0 0 60px; }
+    .users-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .users-header h1 { font-size: 1.5em; font-weight: 700; color: var(--text-strong); }
+    .users-help { font-size: 0.85em; color: var(--text-muted); margin-bottom: 16px; line-height: 1.55; }
+    .user-table { width: 100%; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-card); border-collapse: separate; border-spacing: 0; }
+    .user-table th, .user-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.88em; vertical-align: middle; }
+    .user-table th { background: var(--bg-surface); font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
+    .user-table tr:last-child td { border-bottom: none; }
+    .user-table tr:hover td { background: var(--bg-surface); }
+    .role-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 0.72em; font-weight: 700; letter-spacing: 0.02em; }
+    .role-super { background: #fee2e2; color: #991b1b; }
+    .role-admin { background: var(--primary-faint); color: var(--primary-darker); }
+    .role-user  { background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border); }
+    [data-theme="dark"] .role-super { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    .group-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.78em; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-surface); color: var(--text-primary); transition: all 0.18s; text-decoration: none; }
+    .group-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .group-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
+    .group-btn.primary:hover { box-shadow: 0 4px 16px var(--primary-glow); }
+    .group-btn.danger { color: #ef4444; border-color: rgba(239,68,68,0.4); }
+    .group-btn.danger:hover { border-color: #ef4444; background: rgba(239,68,68,0.06); }
+    .group-btn::before { display: none; }
+    .flash-alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-surface); }
+    .flash-alert.success { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); color: #065f46; }
+    .flash-alert.error   { border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08);  color: #991b1b; }
+    [data-theme="dark"] .flash-alert.success { color: #6ee7b7; }
+    [data-theme="dark"] .flash-alert.error   { color: #fca5a5; }
+    .flash-alert .flash-close { margin-left: auto; background: none; border: none; cursor: pointer; opacity: 0.55; color: inherit; font-size: 1.1em; line-height: 1; padding: 2px 6px; }
+    .flash-alert .flash-close:hover { opacity: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="users-container">
+
+        <div style="margin-bottom: 10px;">
+            <a href="{% url 'dashboard' %}" class="nav-link" style="display:inline-flex;align-items:center;gap:6px;font-size:0.86em;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="users-header">
+            <h1>Manage Users</h1>
+        </div>
+
+        <p class="users-help">
+            Admins can create research groups and assign members. Only superusers can promote, demote, or remove users
+            from this page. Deleting a user wipes their group memberships, favorites and bot accounts, but preserves any
+            papers they uploaded (attribution is cleared).
+        </p>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="flash-alert {{ message.tags }}">
+            <span>{% if message.tags == 'success' %}&#10003;{% elif message.tags == 'error' %}&#10005;{% else %}&#8505;{% endif %}</span>
+            <span>{{ message }}</span>
+            <button type="button" class="flash-close" onclick="this.parentElement.remove()" aria-label="Close">&#10005;</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Groups</th>
+                    <th style="text-align:center;">Uploads</th>
+                    <th>Role</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        {% if u.first_name or u.last_name %}
+                            {{ u.first_name|title }} {{ u.last_name|title }}
+                        {% else %}
+                            <span style="color:var(--text-faint);">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--text-muted); font-family:ui-monospace,monospace; font-size:0.85em;">{{ u.username }}</td>
+                    <td style="color:var(--text-muted); font-size:0.85em;">{{ u.email|default:"—" }}</td>
+                    <td style="color:var(--text-muted); font-size:0.85em;">
+                        {% if u.group_names %}
+                            {{ u.group_names|join:", " }}
+                        {% else %}
+                            <span style="color:#b45309;" title="No group — cannot access papers">none</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center; color:var(--text-muted); font-size:0.85em;">{{ u.uploaded_count }}</td>
+                    <td>
+                        {% if u.is_superuser %}
+                            <span class="role-badge role-super">Superuser</span>
+                        {% elif u.is_staff %}
+                            <span class="role-badge role-admin">Admin</span>
+                        {% else %}
+                            <span class="role-badge role-user">User</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        {% if u.pk == request.user.pk %}
+                            <span style="font-size:0.78em; color:var(--text-faint);">(you)</span>
+                        {% elif u.is_superuser %}
+                            <span style="font-size:0.78em; color:var(--text-faint);">Protected</span>
+                        {% else %}
+                            {% if u.is_staff %}
+                            <form method="POST" action="{% url 'user_toggle_staff' u.pk %}" style="display:inline;"
+                                  data-confirm="Remove admin rights from {{ u.get_full_name|default:u.username|escapejs }}?"
+                                  data-confirm-title="Demote admin"
+                                  data-confirm-label="Demote">
+                                {% csrf_token %}
+                                <button type="submit" class="group-btn danger">Demote</button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="{% url 'user_toggle_staff' u.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="group-btn primary">Promote to Admin</button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="{% url 'user_delete' u.pk %}" style="display:inline; margin-left:6px;"
+                                  data-confirm="Delete {{ u.get_full_name|default:u.username|escapejs }}?&#10;&#10;This removes the account, group memberships, favorites and bot links. Uploaded papers are kept but lose attribution."
+                                  data-confirm-title="Delete user"
+                                  data-confirm-label="Delete">
+                                {% csrf_token %}
+                                <button type="submit" class="group-btn danger" title="Remove user from the platform">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                                    Delete
+                                </button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</div>
+{% endblock %}
