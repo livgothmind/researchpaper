@@ -31,6 +31,16 @@
     .add-member-form option { padding: 6px 10px; }
     .add-member-hint { width: 100%; font-size: 0.75em; color: var(--text-faint); margin-top: 2px; }
     .add-member-side { display: flex; flex-direction: column; gap: 10px; min-width: 150px; }
+    .interest-row { display: flex; align-items: stretch; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .interest-row:last-of-type { border-bottom: none; }
+    .interest-row form.edit-form { display: flex; flex: 1; gap: 8px; align-items: stretch; }
+    .interest-row input[type="text"] { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; }
+    .interest-row input[type="text"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    .interest-row form.delete-form { display: flex; }
+    .add-interest-form { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
+    .add-interest-form textarea { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; resize: vertical; min-height: 38px; }
+    .add-interest-form textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    .interests-hint { font-size: 0.78em; color: var(--text-faint); margin-bottom: 10px; line-height: 1.5; }
     .flash-alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-surface); }
     .flash-alert.success { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); color: #065f46; }
     .flash-alert.error   { border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08);  color: #991b1b; }
@@ -72,13 +82,41 @@
                         <input type="text" name="name" value="{{ group.name }}" required maxlength="150">
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-field">
-                        <label>Research Interests</label>
-                        <textarea name="research_interests" rows="3" placeholder="Brief description of the group's research activity...">{{ group.research_interests }}</textarea>
-                    </div>
-                </div>
                 <button type="submit" class="group-btn primary">Save Changes</button>
+            </form>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title">Research Interests ({{ interests|length }})</div>
+            <div class="interests-hint">
+                List the topics this group cares about. Each entry is editable and deletable individually,
+                but the AI receives all entries joined together as a single block of context — it picks the
+                most relevant ones for each paper based on its tags and summary.
+            </div>
+
+            {% for i in interests %}
+            <div class="interest-row">
+                <form method="POST" action="{% url 'interest_edit' i.pk %}" class="edit-form">
+                    {% csrf_token %}
+                    <input type="text" name="text" value="{{ i.text }}" required>
+                    <button type="submit" class="group-btn small primary">Save</button>
+                </form>
+                <form method="POST" action="{% url 'interest_delete' i.pk %}" class="delete-form"
+                      data-confirm="Delete this research interest?&#10;&#10;{{ i.text|escapejs }}"
+                      data-confirm-title="Delete interest"
+                      data-confirm-label="Delete">
+                    {% csrf_token %}
+                    <button type="submit" class="group-btn small danger">Delete</button>
+                </form>
+            </div>
+            {% empty %}
+            <div style="color:var(--text-faint); font-size:0.88em; padding:10px 0;">No research interests yet — add one below.</div>
+            {% endfor %}
+
+            <form method="POST" action="{% url 'interest_add' group.pk %}" class="add-interest-form">
+                {% csrf_token %}
+                <textarea name="text" rows="2" placeholder="Add a new research interest (one per line for multiple)..." required></textarea>
+                <button type="submit" class="group-btn primary">Add</button>
             </form>
         </div>
 

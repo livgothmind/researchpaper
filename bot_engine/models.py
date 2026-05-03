@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from datetime import timedelta
 import hashlib
 import io
@@ -240,14 +241,10 @@ class ResearchPoster(models.Model):
 
     @property
     def tags_list(self):
-        
         if not self.tags:
             return []
-        sf_labels = {s.lower() for s in self.subfields_display}
-        sf_slugs = {s.lower() for s in self.subfields_list}
-        excluded = sf_labels | sf_slugs
-        seen = set()
-        result = []
+        excluded = {s.lower() for s in self.subfields_display} | {s.lower() for s in self.subfields_list}
+        seen, result = set(), []
         for t in self.tags.split(","):
             t = t.strip()
             key = t.lower()
@@ -257,21 +254,28 @@ class ResearchPoster(models.Model):
         return result
 
     def derive_category_from_subfields(self):
-        for sf in self.subfields_list:
-            cat = self.SUBFIELD_TO_CATEGORY.get(sf)
-            if cat:
-                self.category = cat
-                return
-        self.category = "other"
+        self.category = next(
+            (cat for sf in self.subfields_list if (cat := self.SUBFIELD_TO_CATEGORY.get(sf))),
+            "other",
+        )
+
+    @contextmanager
+    def _open_image(self):
+        self.image.open("rb")
+        try:
+            yield self.image
+        finally:
+            try:
+                self.image.close()
+            except Exception:
+                pass
 
     def generate_thumbnail(self, max_size=300, quality=80, save=False):
-        """Generate a JPEG thumbnail from the poster image."""
         if not self.image:
             return
         try:
             from PIL import Image
-            self.image.open("rb")
-            with Image.open(self.image) as img:
+            with self._open_image() as f, Image.open(f) as img:
                 img.thumbnail((max_size, max_size), Image.LANCZOS)
                 buf = io.BytesIO()
                 img.convert("RGB").save(buf, format="JPEG", quality=quality)
@@ -279,15 +283,9 @@ class ResearchPoster(models.Model):
                 self.thumbnail.save(thumb_name, ContentFile(buf.getvalue()), save=save)
         except Exception as e:
             logger.warning("Thumbnail generation failed for poster %s: %s", self.pk, e)
-        finally:
-            try:
-                self.image.close()
-            except Exception:
-                pass
 
     @property
     def thumbnail_url(self):
-        """Return thumbnail URL if available, otherwise fall back to full image."""
         if self.thumbnail:
             return self.thumbnail.url
         return self.image.url if self.image else ""
@@ -295,19 +293,10 @@ class ResearchPoster(models.Model):
     def compute_image_sha256(self):
         if not self.image:
             return None
-
         hasher = hashlib.sha256()
-
-        try:
-            self.image.open("rb")
-            for chunk in self.image.chunks():
+        with self._open_image() as f:
+            for chunk in f.chunks():
                 hasher.update(chunk)
-        finally:
-            try:
-                self.image.close()
-            except Exception:
-                pass
-
         return hasher.hexdigest()
 
     def ensure_image_sha256(self, save=False):
@@ -318,79 +307,15 @@ class ResearchPoster(models.Model):
         return self.image_sha256
 
     @classmethod
-    def find_existing_by_hash(cls, image_sha256, exclude_id=None):
+    def find_existing_by_hash(cls, image_sha256, exclude_id=None, group_ids=None):
         if not image_sha256:
             return None
-
         qs = cls.objects.filter(image_sha256=image_sha256)
         if exclude_id:
             qs = qs.exclude(pk=exclude_id)
+        if group_ids is not None:
+            qs = qs.filter(groups__id__in=group_ids)
         return qs.order_by("created_at").first()
-
-    def mark_processing(self, token=None, save=True):
-        self.analysis_status = "processing"
-        self.processing_started_at = timezone.now()
-        self.analysis_error = None
-        if token is not None:
-            self.processing_token = token
-
-        if save:
-            self.save(update_fields=[
-                "analysis_status",
-                "processing_started_at",
-                "analysis_error",
-                "processing_token",
-                "updated_at",
-            ])
-
-    def mark_ok(self, save=True):
-        self.analysis_status = "ok"
-        self.processed_at = timezone.now()
-        self.analysis_error = None
-        self.processing_token = None
-
-        if save:
-            self.save(update_fields=[
-                "analysis_status",
-                "processed_at",
-                "analysis_error",
-                "processing_token",
-                "updated_at",
-            ])
-
-    def mark_failed(self, reason=None, save=True):
-        self.analysis_status = "failed"
-        self.processed_at = timezone.now()
-        self.processing_token = None
-        if reason:
-            self.analysis_error = reason
-
-        if save:
-            update_fields = [
-                "analysis_status",
-                "processed_at",
-                "processing_token",
-                "updated_at",
-            ]
-            if reason:
-                update_fields.append("analysis_error")
-            self.save(update_fields=update_fields)
-
-    def can_send_success_notification(self):
-        return self.last_success_notified_at is None
-
-    def can_send_failure_notification(self):
-        return self.last_failure_notified_at is None
-
-    def mark_success_notified(self, save=True):
-        self.last_success_notified_at = timezone.now()
-        if save:
-            self.save(update_fields=["last_success_notified_at", "updated_at"])
-
-    def mark_failure_notified(self, save=True):
-        self.last_failure_notified_at = timezone.now()
-        if save:
-            self.save(update_fields=["last_failure_notified_at", "updated_at"])
 
     def save(self, *args, **kwargs):
         update_fields = kwargs.get("update_fields")
@@ -471,11 +396,6 @@ class ActivityLog(models.Model):
 
 class ResearchGroup(models.Model):
     name = models.CharField(max_length=150, unique=True)
-    research_interests = models.TextField(
-        blank=True,
-        default="",
-        help_text="Brief description of the group's research activity",
-    )
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through="UserGroupMembership",
@@ -491,9 +411,34 @@ class ResearchGroup(models.Model):
 
     class Meta:
         ordering = ["name"]
+        verbose_name = "Research group"
+        verbose_name_plural = "Research groups"
 
     def __str__(self):
         return self.name
+
+    @property
+    def research_interests_text(self):
+        return "\n".join(
+            i.text for i in self.interests.all() if i.text and i.text.strip()
+        )
+
+
+class ResearchInterest(models.Model):
+    group = models.ForeignKey(
+        ResearchGroup,
+        on_delete=models.CASCADE,
+        related_name="interests",
+    )
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["pk"]
+
+    def __str__(self):
+        return (self.text or "")[:60]
 
 
 class UserGroupMembership(models.Model):
@@ -525,7 +470,6 @@ class UserGroupMembership(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_primary:
-            # Ensure only one primary group per user
             UserGroupMembership.objects.filter(
                 user=self.user, is_primary=True,
             ).exclude(pk=self.pk).update(is_primary=False)
@@ -533,7 +477,6 @@ class UserGroupMembership(models.Model):
 
 
 class PosterGroupWhyUseful(models.Model):
-    """Caches the per-group why_useful text for a poster."""
     poster = models.ForeignKey(
         ResearchPoster,
         on_delete=models.CASCADE,
@@ -560,9 +503,28 @@ class PosterGroupWhyUseful(models.Model):
         return f"WhyUseful: {self.poster} / {self.group}"
 
 
+class PendingAssignmentDismissal(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="pending_dismissal",
+    )
+    dismissed_at = models.DateTimeField(auto_now_add=True)
+    dismissed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        ordering = ["-dismissed_at"]
+
+    def __str__(self):
+        return f"Dismissed: {self.user}"
+
+
 class BotAccount(models.Model):
-    """Links a Telegram/WhatsApp identity to a Django user, so bot uploads
-    can be attributed and routed to the user's primary research group."""
     PLATFORM_CHOICES = [
         ("telegram", "Telegram"),
         ("whatsapp", "WhatsApp"),

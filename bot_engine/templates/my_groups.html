@@ -26,6 +26,14 @@
     .mg-empty { text-align: center; color: var(--text-faint); padding: 40px 20px; background: var(--bg-card); border: 1px dashed var(--border); border-radius: var(--radius-lg); font-size: 0.92em; }
     .mg-saved-hint { font-size: 0.85em; color: #10b981; opacity: 0; transition: opacity 0.3s; margin-left: 8px; }
     .mg-saved-hint.visible { opacity: 1; }
+
+    @media (max-width: 640px) {
+        .mg-container { padding: 0 0 40px; }
+        .mg-card { flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px 16px; }
+        .mg-card > div:last-child { width: 100%; }
+        .mg-btn { width: 100%; justify-content: center; padding: 10px 14px; }
+        .mg-card-name { font-size: 0.98em; }
+    }
 </style>
 {% endblock %}
 
@@ -60,9 +68,15 @@
                         <span class="mg-badge secondary">Secondary</span>
                     {% endif %}
                 </div>
-                {% if m.group.research_interests %}
-                    <div class="mg-card-desc">{{ m.group.research_interests }}</div>
-                {% endif %}
+                {% with interests=m.group.interests.all %}
+                    {% if interests %}
+                        <div class="mg-card-desc">
+                            {% for i in interests %}
+                                <div>&bull; {{ i.text }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
             </div>
             <div>
                 {% if m.is_primary %}

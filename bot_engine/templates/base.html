@@ -23,7 +23,7 @@
             },
         }
     </script>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260425c">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260429a">
     {% block extra_head %}{% endblock %}
     <script>
         try {
@@ -42,18 +42,7 @@
             <line x1="12" y1="9" x2="12" y2="13"/>
             <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        <div>
-            <strong>You are not in any research group yet</strong>
-            <span>
-                Until an administrator adds you to a group, you will not be able to access any papers on this platform.
-                {% if no_groups_admin_emails %}
-                Please contact an administrator:
-                {% for email in no_groups_admin_emails %}<a href="mailto:{{ email }}">{{ email }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
-                {% else %}
-                Please contact the platform administrators.
-                {% endif %}
-            </span>
-        </div>
+        <span>You are not in any research group — contact the admins to be added.</span>
     </div>
     {% endif %}
 

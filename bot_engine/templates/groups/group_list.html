@@ -8,6 +8,14 @@
     .groups-container { max-width: 960px; margin: 0 auto; padding: 0 0 60px; }
     .groups-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
     .groups-header h1 { font-size: 1.5em; font-weight: 700; color: var(--text-strong); }
+    .search-form { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; }
+    .search-form .search-input-wrap { position: relative; flex: 1; min-width: 220px; }
+    .search-form .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
+    .search-form input[type="search"] { width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.9em; font-family: inherit; box-sizing: border-box; }
+    .search-form input[type="search"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    .search-meta { font-size: 0.82em; color: var(--text-muted); margin-bottom: 14px; }
+    .search-meta a { color: var(--primary); text-decoration: none; margin-left: 6px; }
+    .search-meta a:hover { text-decoration: underline; }
     .group-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 14px; box-shadow: var(--shadow-card); transition: box-shadow 0.2s, transform 0.2s; }
     .group-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
     .group-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
@@ -22,13 +30,17 @@
     .group-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
     .group-btn.primary:hover { box-shadow: 0 4px 16px var(--primary-glow); }
     .group-btn::before { display: none; }
-    .create-form { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 20px; box-shadow: var(--shadow-card); }
-    .create-form h3 { font-size: 0.9em; font-weight: 700; color: var(--text-strong); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-    .form-field { flex: 1; min-width: 200px; }
-    .form-field label { display: block; font-size: 0.78em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
-    .form-field input, .form-field textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; box-sizing: border-box; }
+    .create-form { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 20px; box-shadow: var(--shadow-card); }
+    .create-form h3 { font-size: 0.9em; font-weight: 700; color: var(--text-strong); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .create-form .form-stack { display: flex; flex-direction: column; gap: 14px; }
+    .create-form .form-actions { margin-top: 4px; display: flex; justify-content: flex-end; }
+    .form-field { display: flex; flex-direction: column; min-width: 0; }
+    .form-field label { display: block; font-size: 0.78em; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .form-field label .label-hint { font-weight: 400; color: var(--text-faint); margin-left: 4px; }
+    .form-field input, .form-field textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; box-sizing: border-box; line-height: 1.45; }
+    .form-field textarea { resize: vertical; min-height: 84px; }
     .form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    .create-form .group-btn.primary { padding: 9px 22px; font-size: 0.85em; }
     .member-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 0.78em; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted); margin-right: 4px; margin-bottom: 4px; }
     .member-chip.is-primary { background: var(--primary-faint); border-color: var(--primary-muted); color: var(--primary-darker); font-weight: 600; }
     .flash-alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-surface); }
@@ -47,11 +59,28 @@
     .pending-name { flex: 1; min-width: 180px; font-size: 0.9em; color: var(--text); font-weight: 500; }
     .pending-name .pending-username { color: var(--text-faint); font-size: 0.82em; font-family: ui-monospace, monospace; margin-left: 4px; }
     .pending-name .pending-email { display: block; color: var(--text-faint); font-size: 0.78em; margin-top: 1px; }
+    .pending-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .pending-form { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
     .pending-form select { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.82em; min-width: 0; width: 200px; font-family: inherit; }
     .pending-form button { white-space: nowrap; flex-shrink: 0; }
     .pending-form select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
     [data-theme="dark"] .pending-card .pending-title { color: #fbbf24; }
+
+    @media (max-width: 640px) {
+        .groups-container { padding: 0 0 40px; }
+        .group-card { padding: 14px 16px; }
+        .group-card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .group-actions { width: 100%; }
+        .group-actions .group-btn { flex: 1; justify-content: center; }
+        .pending-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+        .pending-name { min-width: 0; width: 100%; }
+        .pending-actions { width: 100%; flex-direction: column; }
+        .pending-form { width: 100%; flex-wrap: wrap; }
+        .pending-form select { flex: 1; min-width: 0; width: 100%; }
+        .pending-form button { width: 100%; justify-content: center; }
+        .create-form { padding: 16px; }
+        .create-form .group-btn.primary { width: 100%; justify-content: center; }
+    }
 </style>
 {% endblock %}
 
@@ -69,6 +98,20 @@
         <div class="groups-header">
             <h1>Research Groups</h1>
         </div>
+
+        <form method="GET" action="" class="search-form" role="search">
+            <div class="search-input-wrap">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Search groups by name, research interest, or member..." autocomplete="off">
+            </div>
+        </form>
+
+        {% if search_query %}
+        <div class="search-meta">
+            {{ groups|length }} result{{ groups|length|pluralize }} for &ldquo;{{ search_query }}&rdquo;
+            <a href="{% url 'group_list' %}">Clear</a>
+        </div>
+        {% endif %}
 
         {% if messages %}
         {% for message in messages %}
@@ -98,21 +141,30 @@
                     <span class="pending-username">{{ u.username }}</span>
                     {% if u.email %}<span class="pending-email">{{ u.email }}</span>{% endif %}
                 </div>
-                {% if groups %}
-                <form method="POST" action="" class="pending-form" data-pending-user-id="{{ u.pk }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="user_ids" value="{{ u.pk }}">
-                    <select name="group_select" required onchange="onPendingGroupChange(this)">
-                        <option value="" disabled selected>Add to group…</option>
-                        {% for g in groups %}
-                            <option value="{% url 'group_add_member' g.pk %}">{{ g.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="group-btn primary" style="height:32px; font-size:0.78em;">Add</button>
-                </form>
-                {% else %}
-                <span style="font-size:0.8em; color:var(--text-faint); font-style:italic;">Create a group first</span>
-                {% endif %}
+                <div class="pending-actions">
+                    {% if groups %}
+                    <form method="POST" action="" class="pending-form" data-pending-user-id="{{ u.pk }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_ids" value="{{ u.pk }}">
+                        <select name="group_select" required onchange="onPendingGroupChange(this)">
+                            <option value="" disabled selected>Add to group…</option>
+                            {% for g in groups %}
+                                <option value="{% url 'group_add_member' g.pk %}">{{ g.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="group-btn primary" style="height:32px; font-size:0.78em;">Add</button>
+                    </form>
+                    {% else %}
+                    <span style="font-size:0.8em; color:var(--text-faint); font-style:italic;">Create a group first</span>
+                    {% endif %}
+                    <form method="POST" action="{% url 'dismiss_pending_user' u.pk %}" style="display:inline;"
+                          data-confirm="Skip {{ u.get_full_name|default:u.username|escapejs }} for now?&#10;&#10;They will stay logged in but won't appear in this pending list. They will not be able to use the platform until you eventually add them to a group."
+                          data-confirm-title="Skip user"
+                          data-confirm-label="Skip">
+                        {% csrf_token %}
+                        <button type="submit" class="group-btn" style="height:32px; font-size:0.78em;" title="Don't add to any group right now">Skip</button>
+                    </form>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -122,16 +174,18 @@
             <h3>Create New Group</h3>
             <form method="POST" action="{% url 'group_create' %}">
                 {% csrf_token %}
-                <div class="form-row">
+                <div class="form-stack">
                     <div class="form-field">
                         <label>Group Name</label>
                         <input type="text" name="name" required placeholder="e.g. AImageLab" maxlength="150">
                     </div>
-                    <div class="form-field" style="flex:2;">
-                        <label>Research Interests</label>
-                        <input type="text" name="research_interests" placeholder="Brief description of the group's research activity..." maxlength="500">
+                    <div class="form-field">
+                        <label>Research Interests <span class="label-hint">(optional, one per line)</span></label>
+                        <textarea name="research_interests" rows="3" placeholder="e.g.&#10;Computer vision for medical imaging&#10;Self-supervised representation learning"></textarea>
                     </div>
-                    <button type="submit" class="group-btn primary" style="height:38px;">Create</button>
+                    <div class="form-actions">
+                        <button type="submit" class="group-btn primary">Create Group</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -153,9 +207,15 @@
                     </form>
                 </div>
             </div>
-            {% if group.research_interests %}
-                <div class="group-card-desc">{{ group.research_interests }}</div>
-            {% endif %}
+            {% with group_interests=group.interests.all %}
+                {% if group_interests %}
+                    <ul class="group-card-desc" style="list-style:disc; padding-left:20px; margin:0 0 10px;">
+                        {% for i in group_interests %}
+                            <li>{{ i.text }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
             <div class="group-card-members">
                 {% with members=group.memberships.all %}
                     {% if members %}
@@ -173,9 +233,15 @@
         </div>
         {% empty %}
         <div style="text-align:center; color:var(--text-faint); padding:40px;">
-            No groups created yet. Use the form above to create one.
+            {% if search_query %}
+                No groups match &ldquo;{{ search_query }}&rdquo;.
+            {% else %}
+                No groups created yet. Use the form above to create one.
+            {% endif %}
         </div>
         {% endfor %}
+
+        {% include "_pagination_simple.html" %}
 
     </div>
 </div>

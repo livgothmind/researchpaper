@@ -17,15 +17,22 @@ A Django web application for building a searchable, AI-powered library of scient
 - **Per-paper, per-group group selection** at upload time: in multi-file batches each paper has its own group chips so different posters can land in different groups within the same submission
 - **Group editor on paper detail**: pencil button next to the Groups badges opens an inline panel with the user's groups; toggles only the user's memberships and preserves any other group's link to the paper
 - **Mine** filter: dashboard pill that scopes the table and the donut to papers the current user uploaded
-- **Group management UI** (`/groups/`, admin-only): create/edit/delete groups, add/remove members, set primary, and a "users awaiting group assignment" panel listing every active account with no membership and a one-click add-to-group select
+- **Group management UI** (`/groups/`, group-manager or admin): create/edit/delete groups, add/remove members, set primary, and a "users awaiting group assignment" panel with one-click add-to-group plus a **Skip** action that suppresses the alert for users you do not want to assign
 - **My Groups** page (`/my-groups/`): each user can pick which of their groups is primary
 
-### Access Control
+### Access Control & Roles
+
+The platform has three role levels:
+
+| Role | How it's set | Capabilities |
+|---|---|---|
+| **Admin** | `is_superuser=True` (set via `/users/` or Django admin) | Full access: manage users, manage groups, edit any paper, all AJAX endpoints |
+| **Group Manager** | Member of the Django auth group `GestoreGruppi` | Manage research groups (create/edit/delete, add/remove members, manage research interests) and dismiss pending users — but **cannot** manage users or change roles |
+| **User** | Default | Can use the platform only when added to a research group; otherwise sees a banner and locked screens |
+
 - **Shibboleth SSO** integration for production (`SHIBBOLETH_AUTH=true`); auto-creates Django users from `HTTP_X_SHIB_*` headers and signs them in transparently
-- **Email blacklist** (env-driven): emails matching any pattern in `BLACKLIST_EMAIL_PATTERNS` (default `@studenti.`) are blocked at the middleware before the user is even created. Existing matching accounts get logged out on the next request and shown a dedicated `access_denied` page
-- **Whitelist overrides** via `BLACKLIST_EXEMPT_EMAILS` and `BLACKLIST_EXEMPT_USERNAMES` for individual exceptions; staff and superusers are always exempt
-- **Restricted mode for unassigned users**: a logged-in account that is not in any research group can reach the site but the dashboard is replaced with a "Dashboard locked" notice, the upload form is replaced with a placeholder, and every write/AJAX endpoint (upload, analyses, bulk actions, conference search, favorites/notes/tags) is blocked by a `_groups_required` decorator
-- **User admin** (`/users/`, superuser-only): list active users, toggle staff status, delete accounts
+- **Restricted mode for unassigned users**: a logged-in account that is not in any research group can reach the site but the dashboard is replaced with a "Dashboard locked" notice, the upload form is replaced with a placeholder, and every write/AJAX endpoint (upload, analyses, bulk actions, conference search, favorites/notes/tags) is blocked by the `_groups_required` decorator. Group managers still see a "Manage Groups" button on the locked screen
+- **User admin** (`/users/`, admin-only): list active users with their groups and uploads; promote/demote admins; toggle group-manager role; delete accounts. Hard delete also removes the row from `auth_user` and from `/admin/auth/user/`
 
 ### AI-Powered Extraction (GPT-4o Vision)
 From a single poster image the system extracts:
@@ -88,8 +95,8 @@ From a single poster image the system extracts:
 
 | Platform | Commands |
 |----------|----------|
-| Telegram | `/start`, `/help`, `/dashboard`, `/search <keyword>`, send photo/document |
-| WhatsApp | `start`, `help`, `dashboard`, `search <keyword>`, send photo/document |
+| Telegram | `/start`, `/link <email>`, `/help`, `/dashboard`, `/search <keyword>`, send photo/document |
+| WhatsApp | `start`, `link <email>`, `help`, `dashboard`, `search <keyword>`, send photo/document |
 
 Both bots support:
 - Inline notes and tags via captions (e.g. `note: interesting  tag: deep learning, mri`)
@@ -190,11 +197,6 @@ GITHUB_TOKEN=your_github_token
 
 # Shibboleth SSO (production only)
 SHIBBOLETH_AUTH=true
-
-# Email-based access control (defaults shown)
-BLACKLIST_EMAIL_PATTERNS=@studenti.
-BLACKLIST_EXEMPT_EMAILS=
-BLACKLIST_EXEMPT_USERNAMES=
 ```
 
 ### 3. Start all services
@@ -202,16 +204,15 @@ BLACKLIST_EXEMPT_USERNAMES=
 docker compose up --build -d
 ```
 
-This starts six containers:
+This starts five containers (plus the front Apache, when enabled):
 
 | Container | Role |
 |-----------|------|
-| `paperproject-db` | MySQL 8.4 database |
-| `paperproject-redis` | Redis 7 (Celery broker + cache) |
-| `paperproject-django` | Gunicorn (3 workers, 120s timeout) |
-| `paperproject-apache` | Apache reverse proxy (port 80) |
-| `paperproject-worker` | Celery worker (async tasks) |
-| `paperproject-beat` | Celery beat (scheduled tasks, persistent schedule) |
+| `posterhub-db` | MySQL 8.4 database |
+| `posterhub-redis` | Redis 7 (Celery broker + cache) |
+| `posterhub-django` | Gunicorn (3 workers, 120s timeout); runs `migrate` + `collectstatic` on entrypoint |
+| `posterhub-worker` | Celery worker (async tasks) |
+| `posterhub-beat` | Celery beat (scheduled tasks, persistent schedule) |
 
 ### 4. Configure bot webhooks
 Set webhook URLs in each platform's dashboard:
@@ -234,15 +235,17 @@ PaperProject/
 │   ├── Dockerfile
 │   └── httpd.conf
 ├── bot_engine/
-│   ├── models.py              # ResearchPoster, ResearchGroup, UserGroupMembership, BotAccount, ...
+│   ├── models.py              # ResearchPoster, ResearchGroup, UserGroupMembership,
+│   │                          # PendingAssignmentDismissal, BotAccount, ...
 │   ├── views.py               # Web views, group/user management, bot webhook handlers
 │   ├── tasks.py               # Celery tasks (media download, AI analysis)
-│   ├── middleware.py          # Shibboleth auth + email blacklist
-│   ├── access.py              # Blacklist + group-membership helpers
-│   ├── context_processors.py  # No-groups banner / user_can_interact flag
+│   ├── middleware.py          # Shibboleth auth (auto-creates Django users from headers)
+│   ├── access.py              # is_group_manager / user_can_interact helpers
+│   ├── context_processors.py  # No-groups banner + role flags for templates
 │   ├── utils_ai.py            # OpenAI integration, paper/code search
 │   ├── prompts.py             # GPT-4o system prompts
 │   ├── forms.py               # Upload and edit forms
+│   ├── admin.py               # Django admin registrations (ResearchGroup, memberships, ...)
 │   ├── migrations/
 │   ├── static/
 │   │   ├── css/style.css
@@ -250,14 +253,18 @@ PaperProject/
 │   └── templates/
 │       ├── base.html
 │       ├── dashboard.html
+│       ├── _dashboard_partial.html
+│       ├── _pagination_partial.html         # AJAX pagination (dashboard)
+│       ├── _pagination_simple.html          # href-based pagination (users / groups)
+│       ├── subfields_grouped.html           # custom widget template
 │       ├── upload.html
 │       ├── poster_detail.html
 │       ├── edit_poster.html
-│       ├── access_denied.html
+│       ├── conference.html
 │       ├── my_groups.html
-│       ├── groups/            # Admin group management
-│       ├── users/             # Superuser user admin
-│       └── login.html
+│       ├── login.html
+│       ├── groups/            # /groups/ (group-manager + admin)
+│       └── users/             # /users/ (admin only)
 ├── tesi_project/
 │   ├── settings.py
 │   ├── urls.py
@@ -293,9 +300,13 @@ PaperProject/
 | `/api/tags-autocomplete/` | GET | Tag autocomplete suggestions |
 | `/api/poster/<id>/why-useful/` | GET | Generate / fetch a per-group "Why useful" snippet |
 | `/api/set-my-primary-group/` | POST | Set the user's primary group |
-| `/groups/`, `/groups/<id>/edit/`, `/groups/<id>/...` | various | Group management (admin) |
+| `/groups/`, `/groups/<id>/edit/`, `/groups/<id>/...` | various | Group management (group manager / admin) |
+| `/groups/pending/<user_id>/dismiss/` | POST | Dismiss a no-group user from the pending banner |
 | `/my-groups/` | GET | User's own groups + primary picker |
-| `/users/`, `/users/<id>/...` | various | User admin (superuser) |
+| `/users/` | GET | User admin (admin only) |
+| `/users/<id>/toggle-superuser/` | POST | Promote / demote admin |
+| `/users/<id>/toggle-group-manager/` | POST | Add / remove from `GestoreGruppi` |
+| `/users/<id>/delete/` | POST | Hard-delete user (cascades to memberships, favorites, bot accounts, dismissal) |
 | `/export/approved/csv/` | GET | Export approved papers (CSV) |
 | `/export/approved/json/` | GET | Export approved papers (JSON) |
 | `/telegram-webhook/` | POST | Telegram bot webhook |

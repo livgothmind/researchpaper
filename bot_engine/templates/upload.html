@@ -388,12 +388,53 @@
             transition: all 0.15s;
         }
         .multi-row-remove:hover { color: #ef4444; border-color: #ef4444; }
+
+        /* Aurora — soft blurred blobs drifting behind the card */
+        .aurora-blob {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.55;
+            will-change: transform;
+            mix-blend-mode: normal;
+        }
+        .aurora-blob-1 {
+            width: 520px; height: 520px;
+            top: -160px; left: -140px;
+            background: radial-gradient(circle, var(--primary, #f97316), transparent 70%);
+            animation: aurora-drift-1 20s ease-in-out infinite alternate;
+        }
+        .aurora-blob-2 {
+            width: 580px; height: 580px;
+            bottom: -200px; right: -160px;
+            background: radial-gradient(circle, #fb923c, transparent 70%);
+            animation: aurora-drift-2 26s ease-in-out infinite alternate;
+        }
+        @keyframes aurora-drift-1 {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(140px, 90px) scale(1.18); }
+        }
+        @keyframes aurora-drift-2 {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(-120px, -100px) scale(1.12); }
+        }
+        [data-theme="dark"] .aurora-blob { opacity: 0.32; filter: blur(120px); }
+        @media (prefers-reduced-motion: reduce) {
+            .aurora-blob { animation: none; }
+        }
+
+        .upload-page .container { position: relative; z-index: 1; }
     </style>
 {% endblock %}
 
 {% block body_class %}upload-page max-sm:tw-p-0 max-sm:tw-m-0 max-sm:tw-items-center max-sm:tw-justify-center max-sm:tw-min-h-dvh max-sm:tw-max-h-dvh max-sm:tw-overflow-hidden{% endblock %}
 
 {% block content %}
+    <div class="aurora-blob aurora-blob-1" aria-hidden="true"></div>
+    <div class="aurora-blob aurora-blob-2" aria-hidden="true"></div>
+
     <div class="upload-user-bar max-sm:tw-fixed max-sm:tw-top-[max(8px,env(safe-area-inset-top,8px))] max-sm:tw-right-[max(8px,env(safe-area-inset-right,8px))] max-sm:tw-z-50 max-sm:tw-text-[0.78em]">
         <a href="{% url 'my_groups' %}" class="user-name" title="My Groups">{{ user.get_full_name|title|default:user.username }}</a>
         <span class="user-sep">|</span>

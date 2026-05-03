@@ -35,17 +35,6 @@ INSTALLED_APPS = [
 
 SHIBBOLETH_AUTH = os.getenv("SHIBBOLETH_AUTH", "false").lower() == "true"
 
-# Access control: emails matching any of these substrings (case-insensitive)
-# are blocked from logging in unless their email or Shibboleth uid appears
-# in the exempt lists. Defaults target Unimore student accounts.
-def _csv_env(name, default):
-    raw = os.getenv(name, default)
-    return [v.strip().lower() for v in raw.split(",") if v.strip()]
-
-BLACKLIST_EMAIL_PATTERNS = _csv_env("BLACKLIST_EMAIL_PATTERNS", "@studenti.")
-BLACKLIST_EXEMPT_EMAILS = _csv_env("BLACKLIST_EXEMPT_EMAILS", "")
-BLACKLIST_EXEMPT_USERNAMES = _csv_env("BLACKLIST_EXEMPT_USERNAMES", "")
-
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",

@@ -366,6 +366,22 @@ def _parse_cvf_fulltext(soup):
     return lines
 
 
+def _llm_json(system_prompt, user_content, max_tokens, temperature):
+    resp = _client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_content},
+        ],
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    raw = resp.choices[0].message.content.strip()
+    raw = re.sub(r"^```json\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    return json.loads(raw)
+
+
 def _llm_extract(text, paper_title, conf_label, year, day=""):
     if not _client:
         return None
@@ -374,48 +390,40 @@ def _llm_extract(text, paper_title, conf_label, year, day=""):
         text = _smart_chunk(text, paper_title)
 
     day_clause = f"\nThe user is attending on: {day}" if day else ""
-
     try:
-        resp = _client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": CONFERENCE_EXTRACT_PROMPT},
-                {"role": "user", "content": (
-                    f"Conference: {conf_label} {year}{day_clause}\n"
-                    f"Paper title to find: {paper_title}\n\n"
-                    f"--- PROGRAM TEXT ---\n{text}"
-                )},
-            ],
+        data = _llm_json(
+            CONFERENCE_EXTRACT_PROMPT,
+            (
+                f"Conference: {conf_label} {year}{day_clause}\n"
+                f"Paper title to find: {paper_title}\n\n"
+                f"--- PROGRAM TEXT ---\n{text}"
+            ),
             max_tokens=500,
             temperature=0.1,
         )
-        raw = resp.choices[0].message.content.strip()
-        raw = re.sub(r"^```json\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-        data = json.loads(raw)
-
-        if not data.get("found"):
-            return None
-
-        paper_id = data.get("paper_id") or None
-        if conf_label.upper() in ("CVPR", "ICCV", "ECCV", "WACV") and paper_id:
-            if re.fullmatch(r"\d+", str(paper_id).strip()):
-                paper_id = None
-
-        return {
-            "title":           data.get("title", paper_title),
-            "paper_id":        paper_id,
-            "session":         data.get("session") or None,
-            "room":            data.get("room") or None,
-            "time_slot":       data.get("time_slot") or None,
-            "poster_board":    data.get("poster_board") or None,
-            "authors":         data.get("authors") or None,
-            "partial":         data.get("partial", False),
-            "partial_message": data.get("partial_message") or None,
-        }
     except Exception as e:
         logger.warning("LLM extract failed: %s", e)
         return None
+
+    if not data.get("found"):
+        return None
+
+    paper_id = data.get("paper_id") or None
+    if (conf_label.upper() in ("CVPR", "ICCV", "ECCV", "WACV")
+            and paper_id and re.fullmatch(r"\d+", str(paper_id).strip())):
+        paper_id = None
+
+    return {
+        "title":           data.get("title", paper_title),
+        "paper_id":        paper_id,
+        "session":         data.get("session") or None,
+        "room":            data.get("room") or None,
+        "time_slot":       data.get("time_slot") or None,
+        "poster_board":    data.get("poster_board") or None,
+        "authors":         data.get("authors") or None,
+        "partial":         data.get("partial", False),
+        "partial_message": data.get("partial_message") or None,
+    }
 
 
 def _llm_similar(text, paper_title, tags, conf_label, year):
@@ -426,44 +434,37 @@ def _llm_similar(text, paper_title, tags, conf_label, year):
         text = text[:80_000]
 
     try:
-        resp = _client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": CONFERENCE_SIMILAR_PROMPT},
-                {"role": "user", "content": (
-                    f"Conference: {conf_label} {year}\n"
-                    f"Original paper: {paper_title}\n"
-                    f"Tags/topics of interest: {tags}\n\n"
-                    f"--- PROGRAM TEXT ---\n{text}"
-                )},
-            ],
+        data = _llm_json(
+            CONFERENCE_SIMILAR_PROMPT,
+            (
+                f"Conference: {conf_label} {year}\n"
+                f"Original paper: {paper_title}\n"
+                f"Tags/topics of interest: {tags}\n\n"
+                f"--- PROGRAM TEXT ---\n{text}"
+            ),
             max_tokens=2000,
             temperature=0.2,
         )
-        raw = resp.choices[0].message.content.strip()
-        raw = re.sub(r"^```json\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-        data = json.loads(raw)
-
-        if not isinstance(data, list):
-            data = data.get("papers", [])
-
-        similar = []
-        for p in data[:15]:
-            if _norm(p.get("title", "")) == _norm(paper_title):
-                continue
-            similar.append({
-                "title":     p.get("title", ""),
-                "authors":   p.get("authors") or "",
-                "session":   p.get("session") or None,
-                "room":      p.get("room") or None,
-                "time_slot": p.get("time_slot") or None,
-                "tags":      p.get("tags", []),
-            })
-        return similar
     except Exception as e:
         logger.warning("LLM similar failed: %s", e)
         return []
+
+    if not isinstance(data, list):
+        data = data.get("papers", [])
+
+    similar = []
+    for p in data[:15]:
+        if _norm(p.get("title", "")) == _norm(paper_title):
+            continue
+        similar.append({
+            "title":     p.get("title", ""),
+            "authors":   p.get("authors") or "",
+            "session":   p.get("session") or None,
+            "room":      p.get("room") or None,
+            "time_slot": p.get("time_slot") or None,
+            "tags":      p.get("tags", []),
+        })
+    return similar
 
 
 def _smart_chunk(text, paper_title):

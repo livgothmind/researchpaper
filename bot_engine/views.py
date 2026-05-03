@@ -1,15 +1,17 @@
 import csv
+import io
 import json
 import logging
 import os
 import re
+from functools import wraps
 
 import requests
 from celery import current_app as celery_app
 from celery.result import AsyncResult
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.cache import cache
@@ -22,8 +24,6 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
-import io
-
 try:
     from pillow_heif import register_heif_opener
     register_heif_opener()
@@ -31,39 +31,50 @@ try:
 except ImportError:
     _HEIF_AVAILABLE = False
 
-from django.contrib.auth import get_user_model
-
-from .access import user_can_interact
+from .access import is_group_manager, user_can_interact
 from .forms import PosterUploadForm, PosterEditForm
 from .models import (
     ResearchPoster, ActivityLog, Favorite,
-    ResearchGroup, UserGroupMembership, PosterGroupWhyUseful,
-    BotAccount,
+    ResearchGroup, ResearchInterest, UserGroupMembership, PosterGroupWhyUseful,
+    BotAccount, PendingAssignmentDismissal,
 )
 from .utils_ai import analyze_and_enrich, match_user_tags_to_subfields, generate_why_useful
 from .tasks import process_poster_task, process_bot_poster_task, download_and_handle_media_task
 
-
-def _groups_required(view_func):
-    from functools import wraps
-
-    @wraps(view_func)
-    @login_required(login_url="login")
-    def wrapper(request, *args, **kwargs):
-        if not user_can_interact(request.user):
-            msg = "Your account is not in any research group yet. Ask an administrator to add you before using this feature."
-            wants_json = (
-                request.headers.get("X-Requested-With") == "XMLHttpRequest"
-                or request.method != "GET"
-            )
-            if wants_json:
-                return JsonResponse({"error": "no_groups", "message": msg}, status=403)
-            messages.warning(request, msg)
-            return redirect("dashboard")
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
 logger = logging.getLogger(__name__)
+
+
+def _forbidden(request, redirect_to="dashboard"):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    return redirect(redirect_to)
+
+
+def _gate(predicate, on_fail=None):
+    on_fail = on_fail or (lambda req: _forbidden(req))
+
+    def decorator(view_func):
+        @wraps(view_func)
+        @login_required(login_url="login")
+        def wrapper(request, *args, **kwargs):
+            if not predicate(request.user):
+                return on_fail(request)
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def _no_groups_response(request):
+    msg = "Your account is not in any research group yet. Ask an administrator to add you before using this feature."
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.method != "GET":
+        return JsonResponse({"error": "no_groups", "message": msg}, status=403)
+    messages.warning(request, msg)
+    return redirect("dashboard")
+
+
+_groups_required = _gate(user_can_interact, on_fail=_no_groups_response)
+_admin_required = _gate(is_group_manager)
+_superuser_required = _gate(lambda u: u.is_superuser)
 
 BOT_TOKEN             = settings.BOT_TOKEN
 WHATSAPP_TOKEN        = settings.WHATSAPP_TOKEN
@@ -101,7 +112,6 @@ def _clear_ratelimit(platform, recipient):
 
 
 def _get_bot_user(platform, recipient):
-    """Return the Django user linked to this bot identity, or None."""
     acc = (
         BotAccount.objects
         .filter(platform=platform, recipient=str(recipient))
@@ -112,8 +122,6 @@ def _get_bot_user(platform, recipient):
 
 
 def _link_bot_account(platform, recipient, email):
-    """Create/update a bot-user link if the email matches an existing user.
-    Returns the User on success, None otherwise."""
     User = get_user_model()
     email = (email or "").strip().lower()
     if not email:
@@ -130,20 +138,19 @@ def _link_bot_account(platform, recipient, email):
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-_LINK_CMD_RE = re.compile(r"^/?link(?:@\w+)?\b\s*(.*)$", re.IGNORECASE)
+_LINK_CMD_RE_TELEGRAM = re.compile(r"^/link(?:@\w+)?\b\s*(.*)$", re.IGNORECASE)
+_LINK_CMD_RE_WHATSAPP = re.compile(r"^link\b\s*(.*)$", re.IGNORECASE)
 
 
-def _extract_link_payload(text):
-    """Return the payload after a link command, or None if `text` isn't one.
-    Empty string means the command was sent without an email."""
+def _extract_link_payload(text, platform):
     if not text:
         return None
-    m = _LINK_CMD_RE.match(text.strip())
+    pattern = _LINK_CMD_RE_TELEGRAM if platform == "telegram" else _LINK_CMD_RE_WHATSAPP
+    m = pattern.match(text.strip())
     return m.group(1).strip() if m else None
 
 
 def _handle_link_command(platform, recipient, payload):
-    """Process a /link <email> command. Returns True if handled."""
     email = (payload or "").strip()
     if not email or not EMAIL_RE.match(email):
         send_message(platform, recipient, MESSAGE_TEMPLATES["link_bad_format"][platform])
@@ -175,8 +182,6 @@ def _handle_link_command(platform, recipient, payload):
 
 
 def _require_link_or_notify(platform, recipient):
-    """Check if bot account is linked; if not, send the required prompt and return None.
-    Returns the User on success."""
     user = _get_bot_user(platform, recipient)
     if user is None:
         send_message(platform, recipient, MESSAGE_TEMPLATES["link_required"][platform])
@@ -251,7 +256,6 @@ def get_file_extension(filename, mime_type=None):
 
 
 def _convert_heic_to_jpeg(file_content, filename):
-    """Convert HEIC/HEIF bytes to JPEG. Returns (content, filename) tuple."""
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     if ext not in ("heic", "heif") or not _HEIF_AVAILABLE:
         return file_content, filename
@@ -272,7 +276,7 @@ MESSAGE_TEMPLATES = {
         "telegram": (
             "<b>Welcome to Research Paper Assistant</b>\n\n"
             "🔒 <b>First step:</b> link your account\n"
-            "<code>/link your@email.com</code>  or  <code>link your@email.com</code>\n\n"
+            "<code>/link your@email.com</code>\n\n"
             "Then send a photo of a research poster and I will:\n"
             "  • Extract title, authors and metadata\n"
             "  • Find the published paper link\n"
@@ -286,7 +290,7 @@ MESSAGE_TEMPLATES = {
         "whatsapp": (
             "*Welcome to Research Paper Assistant*\n\n"
             "🔒 *First step:* link your account\n"
-            "`link your@email.com`  or  `/link your@email.com`\n\n"
+            "`link your@email.com`\n\n"
             "Then send a photo of a research poster and I will:\n"
             "  • Extract title, authors and metadata\n"
             "  • Find the published paper link\n"
@@ -325,7 +329,7 @@ MESSAGE_TEMPLATES = {
 
             "<b>All commands:</b>\n"
             "/start — Welcome message\n"
-            "/link &lt;email&gt; — Link your PosterHub account (also works as <code>link &lt;email&gt;</code>)\n"
+            "/link &lt;email&gt; — Link your PosterHub account\n"
             "/help — This help page\n"
             "/dashboard — Open your collection\n"
             "/search &lt;keyword&gt; — Search papers"
@@ -355,7 +359,7 @@ MESSAGE_TEMPLATES = {
             "  search segmentation year:2020-2024\n\n"
 
             "*All commands:*\n"
-            "*link <email>* — Link your PosterHub account (also works as `/link <email>`)\n"
+            "*link <email>* — Link your PosterHub account\n"
             "*help* — This help page\n"
             "*dashboard* — Open your collection\n"
             "*search <keyword>* — Search papers"
@@ -365,13 +369,13 @@ MESSAGE_TEMPLATES = {
         "telegram": (
             "🔒 <b>Account not linked</b>\n\n"
             "Before uploading, link this chat to your PosterHub account:\n"
-            "<code>/link your@email.com</code>  or  <code>link your@email.com</code>\n\n"
+            "<code>/link your@email.com</code>\n\n"
             "Use the email registered on the website."
         ),
         "whatsapp": (
             "🔒 *Account not linked*\n\n"
             "Before uploading, link this chat to your PosterHub account:\n"
-            "`link your@email.com`  or  `/link your@email.com`\n\n"
+            "`link your@email.com`\n\n"
             "Use the email registered on the website."
         ),
     },
@@ -622,8 +626,7 @@ def send_telegram_buttons(chat_id, text, buttons):
 
 def send_confirmation_buttons(platform, recipient, link):
     text = MESSAGE_TEMPLATES["link_confirmation"][platform].replace("{link}", link)
-    # Telegram: disable web preview so the clickable link isn't cluttered
-    # WhatsApp: enable preview_url so the link is rendered as clickable
+
     try:
         if platform == "telegram":
             requests.post(
@@ -714,11 +717,17 @@ def process_uploaded_poster(
         if activity_user and not poster.uploaded_by_id:
             poster.uploaded_by = activity_user
 
+        user_group_ids = list(
+            UserGroupMembership.objects
+            .filter(user=activity_user)
+            .values_list("group_id", flat=True)
+        ) if activity_user else None
+
         try:
             poster.ensure_image_sha256(save=bool(poster.pk))
             if poster.image_sha256:
                 hash_dup = ResearchPoster.find_existing_by_hash(
-                    poster.image_sha256, exclude_id=poster.pk
+                    poster.image_sha256, exclude_id=poster.pk, group_ids=user_group_ids
                 )
                 if hash_dup:
                     logger.info(
@@ -765,9 +774,10 @@ def process_uploaded_poster(
         if extracted_title and extracted_title.lower() not in {"", "untitled"}:
             norm_title = " ".join(extracted_title.lower().split())
             exclude_pk = poster.pk if poster.pk else None
-            existing   = ResearchPoster.objects.filter(
-                title__iexact=extracted_title
-            ).exclude(pk=exclude_pk).first()
+            dup_qs = ResearchPoster.objects.exclude(pk=exclude_pk)
+            if user_group_ids is not None:
+                dup_qs = dup_qs.filter(groups__id__in=user_group_ids)
+            existing = dup_qs.filter(title__iexact=extracted_title).first()
 
             if not existing:
                 words = [w for w in re.findall(r"[a-zA-Z]{4,}", norm_title)]
@@ -775,7 +785,7 @@ def process_uploaded_poster(
                     q = Q()
                     for w in words[:6]:
                         q |= Q(title__icontains=w)
-                    candidates = ResearchPoster.objects.filter(q).exclude(pk=exclude_pk)
+                    candidates = dup_qs.filter(q)
                     for c in candidates:
                         c_norm  = " ".join(c.title.lower().split())
                         c_words = set(re.findall(r"[a-zA-Z]{4,}", c_norm))
@@ -831,27 +841,8 @@ def process_uploaded_poster(
         else:
             poster.notes = enriched_data.get("notes", f"Auto-extracted via {source}")
 
-        # Determine the "analysis group": if the user selected groups at upload,
-        # prefer their primary if it's among the selected, otherwise take the first.
-        # Fallback: the user's primary group (legacy behavior if no group_ids given).
         analysis_group = None
-        analysis_research_interests = ""
-
-        selected_group_ids = list(group_ids) if group_ids else []
-        if selected_group_ids:
-            candidate_groups = list(ResearchGroup.objects.filter(pk__in=selected_group_ids))
-            if activity_user is not None:
-                primary_id = (
-                    UserGroupMembership.objects
-                    .filter(user=activity_user, is_primary=True)
-                    .values_list("group_id", flat=True)
-                    .first()
-                )
-                if primary_id and primary_id in selected_group_ids:
-                    analysis_group = next((g for g in candidate_groups if g.pk == primary_id), None)
-            if analysis_group is None and candidate_groups:
-                analysis_group = candidate_groups[0]
-        elif activity_user is not None:
+        if activity_user is not None:
             primary_membership = (
                 UserGroupMembership.objects
                 .filter(user=activity_user, is_primary=True)
@@ -861,8 +852,12 @@ def process_uploaded_poster(
             if primary_membership:
                 analysis_group = primary_membership.group
 
-        if analysis_group:
-            analysis_research_interests = analysis_group.research_interests or ""
+        if analysis_group is None and group_ids:
+            analysis_group = ResearchGroup.objects.filter(pk__in=group_ids).first()
+
+        analysis_research_interests = (
+            analysis_group.research_interests_text if analysis_group else ""
+        )
 
         poster.why_useful = generate_why_useful(
             summary=poster.summary,
@@ -875,8 +870,8 @@ def process_uploaded_poster(
         poster.analysis_status   = 'ok'
         poster.save()
 
-        if selected_group_ids:
-            poster.groups.set(selected_group_ids)
+        if group_ids:
+            poster.groups.set(group_ids)
 
         if analysis_group and poster.why_useful:
             PosterGroupWhyUseful.objects.update_or_create(
@@ -926,7 +921,7 @@ def _send_analysis_result(platform, recipient, poster):
         msg_parts.append(f"\n💡 {italic(poster.why_useful.strip())}")
 
     msg_parts.append(f"\n{_build_links_section(poster, platform)}")
-    msg_parts.append(italic("Successfully added to your collection"))
+    msg_parts.append(italic("Successfully added to your primary collection"))
     send_message(platform, recipient, "\n".join(msg_parts))
 
 def _save_image_only(image_content, filename, uploaded_by=None, source='web'):
@@ -1313,7 +1308,6 @@ def _handle_search_command(platform, recipient, query):
 
 
 def _filter_tags_against_subfields(raw_tags, subfields_list):
-    """Remove tags already absorbed as subfields, deduplicate, return cleaned tag string."""
     slug_to_label = {s: lbl for s, lbl in ResearchPoster.SUBFIELD_CHOICES}
     absorbed = (
         {slug_to_label.get(s, s).lower() for s in subfields_list}
@@ -1330,127 +1324,115 @@ def _filter_tags_against_subfields(raw_tags, subfields_list):
     return ", ".join(leftover)
 
 
+def _subfield_q(slug):
+    return (
+        Q(subfields=slug)
+        | Q(subfields__startswith=f"{slug},")
+        | Q(subfields__endswith=f",{slug}")
+        | Q(subfields__contains=f",{slug},")
+    )
+
+
+def _multi(params, key):
+    values = params.getlist(key) if hasattr(params, "getlist") else []
+    if not values:
+        single = params.get(key, "")
+        values = single.split(",") if single else []
+    return [v.strip() for v in values if v and v.strip()]
+
+
+def _int_or_none(value):
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None
+
+
 def _apply_filters(queryset, params, favorite_user=None):
-    search = params.get("search", "")
+    search = (params.get("search") or "").strip()
     if search:
         queryset = queryset.filter(
-            Q(title__icontains=search) | Q(authors__icontains=search) |
-            Q(summary__icontains=search) | Q(tags__icontains=search) |
-            Q(subfields__icontains=search)
+            Q(title__icontains=search) | Q(authors__icontains=search)
+            | Q(summary__icontains=search) | Q(tags__icontains=search)
+            | Q(subfields__icontains=search)
         )
 
-    for param, field in (
+    text_filters = (
         ("author",  "authors__icontains"),
         ("summary", "summary__icontains"),
-    ):
-        val = params.get(param, "").strip()
+        ("status",  "validation_status"),
+        ("category", "category"),
+    )
+    for param, field in text_filters:
+        val = (params.get(param) or "").strip()
         if val:
             queryset = queryset.filter(**{field: val})
 
-    date_from = params.get("date_from", "").strip()
-    if date_from:
-        queryset = queryset.filter(created_at__date__gte=date_from)
+    date_filters = (
+        ("date_from", "created_at__date__gte"),
+        ("date_to",   "created_at__date__lte"),
+    )
+    for param, field in date_filters:
+        val = (params.get(param) or "").strip()
+        if val:
+            queryset = queryset.filter(**{field: val})
 
-    date_to = params.get("date_to", "").strip()
-    if date_to:
-        queryset = queryset.filter(created_at__date__lte=date_to)
+    year_filters = (
+        ("year_from", "publication_year__gte"),
+        ("year_to",   "publication_year__lte"),
+    )
+    for param, field in year_filters:
+        val = _int_or_none((params.get(param) or "").strip())
+        if val is not None:
+            queryset = queryset.filter(**{field: val})
 
-    year_from = params.get("year_from", "").strip()
-    if year_from:
-        try:
-            queryset = queryset.filter(publication_year__gte=int(year_from))
-        except (ValueError, TypeError):
-            pass
+    for sf in _multi(params, "subfield"):
+        queryset = queryset.filter(_subfield_q(sf))
 
-    year_to = params.get("year_to", "").strip()
-    if year_to:
-        try:
-            queryset = queryset.filter(publication_year__lte=int(year_to))
-        except (ValueError, TypeError):
-            pass
-
-    status = params.get("status", "")
-    if status:
-        queryset = queryset.filter(validation_status=status)
-
-    category = params.get("category", "")
-    if category:
-        queryset = queryset.filter(category=category)
-
-    subfields_param = params.getlist("subfield") if hasattr(params, "getlist") else []
-    if not subfields_param:
-        sf_single = params.get("subfield", "")
-        if sf_single:
-            subfields_param = sf_single.split(",")
-    for sf in subfields_param:
-        sf = sf.strip()
-        if sf:
-            queryset = queryset.filter(subfields__icontains=sf)
-
-    if params.get("has_github", ""):
+    if params.get("has_github"):
         queryset = queryset.exclude(github_link="").exclude(github_link__isnull=True)
-    if params.get("has_paper", ""):
+    if params.get("has_paper"):
         queryset = queryset.exclude(paper_link="").exclude(paper_link__isnull=True)
 
-    if params.get("favorites", ""):
+    user_scoped = (
+        ("favorites", lambda qs, u: qs.filter(favorites__user=u).distinct()),
+        ("mine",      lambda qs, u: qs.filter(uploaded_by=u)),
+    )
+    for param, apply_fn in user_scoped:
+        if not params.get(param):
+            continue
         if favorite_user and favorite_user.is_authenticated:
-            queryset = queryset.filter(favorites__user=favorite_user).distinct()
+            queryset = apply_fn(queryset, favorite_user)
         else:
-            queryset = queryset.none()
+            return queryset.none()
 
-    if params.get("mine", ""):
-        if favorite_user and favorite_user.is_authenticated:
-            queryset = queryset.filter(uploaded_by=favorite_user)
-        else:
-            queryset = queryset.none()
-
-    # Conference filter (multi-select: OR across selected conferences)
-    conferences = [c.strip() for c in params.getlist("conference") if c.strip()]
+    conferences = _multi(params, "conference")
     if conferences:
         q = Q()
         for c in conferences:
             q |= Q(conference__icontains=c)
         queryset = queryset.filter(q)
 
-    # Group filter (direct M2M: poster ↔ group)
-    group_id = params.get("group", "").strip()
-    if group_id:
-        try:
-            queryset = queryset.filter(groups__id=int(group_id)).distinct()
-        except (ValueError, TypeError):
-            pass
+    group_id = _int_or_none((params.get("group") or "").strip())
+    if group_id is not None:
+        queryset = queryset.filter(groups__id=group_id).distinct()
 
     return queryset
 
 
 def _get_stats(user, params=None):
-    """Stats for the dashboard donut. Always scoped to the user's groups; when
-    ``params`` is provided the same dashboard filters (mine, favorites, group,
-    conference, dates, ...) are applied so the donut reflects the active view.
-    The ``status`` filter is intentionally skipped because the donut itself is
-    the per-status breakdown and applying it would zero out the other slices.
-
-    A user without any group memberships gets all-zero stats — so they cannot
-    see global counts of papers they are not allowed to read.
-    """
-    empty = {"total": 0, "pending": 0, "approved": 0, "rejected": 0, "favorites": 0}
-
     user_group_ids = list(
         UserGroupMembership.objects
         .filter(user=user)
         .values_list("group_id", flat=True)
     )
     if not user_group_ids:
-        return empty
+        return {"total": 0, "pending": 0, "approved": 0, "rejected": 0, "favorites": 0}
 
     qs = ResearchPoster.objects.filter(groups__id__in=user_group_ids).distinct()
 
     if params is not None:
-        # Strip the status filter; everything else mirrors the table's scope.
-        try:
-            params_copy = params.copy()
-        except AttributeError:
-            params_copy = dict(params)
+        params_copy = params.copy() if hasattr(params, "copy") else dict(params)
         if hasattr(params_copy, "pop"):
             params_copy.pop("status", None)
         qs = _apply_filters(qs, params_copy, favorite_user=user)
@@ -1596,11 +1578,8 @@ def upload_poster(request):
         user_group_ids = set(UserGroupMembership.objects.filter(user=request.user).values_list("group_id", flat=True))
 
         def _parse_group_ids(raw_list):
-            """Filter a list of group ids to those owned by the current user."""
             return [int(gid) for gid in raw_list if str(gid).isdigit() and int(gid) in user_group_ids]
 
-        # Per-file groups in multi-upload (group_ids_<i>); fall back to the shared
-        # group_ids field when an index has no override (e.g. legacy clients).
         shared_group_ids = _parse_group_ids(request.POST.getlist("group_ids"))
         per_file_groups = []
         if is_multi:
@@ -1633,7 +1612,6 @@ def upload_poster(request):
             messages.error(request, "Please select at least one image.")
             return redirect("upload")
 
-        # Notes/tags only apply to single uploads
         if is_multi:
             user_notes = ""
             user_tags = ""
@@ -1765,9 +1743,6 @@ def dashboard(request):
         .order_by("-is_primary", "group__name")
     )
     user_groups = [{"id": m.group.pk, "name": m.group.name, "is_primary": m.is_primary} for m in user_memberships]
-
-    # Always restrict to the user's groups so a ?group=<id> in the URL
-    # cannot escape the user's own memberships.
     base_qs = ResearchPoster.objects.select_related("uploaded_by").all()
     group_filter_id = request.GET.get("group", "").strip()
     group_ids = [g["id"] for g in user_groups]
@@ -1805,10 +1780,13 @@ def dashboard(request):
         poster.is_incomplete = not poster.paper_link or not poster.github_link
         poster.is_favorite   = poster.id in favorite_ids
 
-    subfield_params = request.GET.getlist("subfield")
-    if not subfield_params:
-        sf_single       = request.GET.get("subfield", "")
-        subfield_params = [s.strip() for s in sf_single.split(",") if s.strip()] if sf_single else []
+    subfield_params = _multi(request.GET, "subfield")
+    filter_keys = (
+        "search", "status", "category", "author", "summary",
+        "date_from", "date_to", "year_from", "year_to",
+        "has_github", "has_paper", "favorites", "mine",
+        "subfield", "group", "conference",
+    )
 
     context = {
         "posters":            page_obj,
@@ -1828,7 +1806,6 @@ def dashboard(request):
         "subfields_grouped":  ResearchPoster.SUBFIELDS_GROUPED,
         "user_groups":        user_groups,
         "group_filter":       group_filter_id,
-        "is_admin":           request.user.is_staff,
         "is_superuser":       request.user.is_superuser,
         "conference_filter":  ",".join(request.GET.getlist("conference")),
         "author_filter":      request.GET.get("author", ""),
@@ -1840,17 +1817,7 @@ def dashboard(request):
         "sort_by":            sort_by,
         "sort_order":         sort_order,
         "pending_task_id":    request.GET.get("task_id", ""),
-        "has_active_filters": bool(
-            request.GET.get("search") or request.GET.get("status") or
-            request.GET.get("category") or request.GET.get("author") or
-            request.GET.get("summary") or request.GET.get("date_from") or
-            request.GET.get("date_to") or request.GET.get("year_from") or
-            request.GET.get("year_to") or request.GET.get("has_github") or
-            request.GET.get("has_paper") or request.GET.get("favorites") or
-            request.GET.get("mine") or
-            request.GET.get("subfield") or request.GET.get("group") or
-            request.GET.get("conference")
-        ),
+        "has_active_filters": any(request.GET.get(k) for k in filter_keys),
     }
 
     if request.GET.get("_ajax"):
@@ -1881,7 +1848,8 @@ def poster_detail(request, poster_id):
     poster      = get_object_or_404(ResearchPoster.objects.select_related("uploaded_by"), id=poster_id)
     is_favorite = Favorite.objects.filter(user=request.user, poster=poster).exists()
 
-    poster_groups = [{"id": g.pk, "name": g.name} for g in poster.groups.all().order_by("name")]
+    user_group_ids_set = set(UserGroupMembership.objects.filter(user=request.user).values_list("group_id", flat=True))
+    poster_groups = [{"id": g.pk, "name": g.name} for g in poster.groups.filter(pk__in=user_group_ids_set).order_by("name")]
     poster_group_ids = {g["id"] for g in poster_groups}
 
     user_memberships = (
@@ -1896,8 +1864,7 @@ def poster_detail(request, poster_id):
         for m in user_memberships
     ]
     can_edit_groups = (
-        request.user.is_staff
-        or request.user.is_superuser
+        request.user.is_superuser
         or any(g["is_assigned"] for g in user_groups_for_edit)
     )
 
@@ -2059,7 +2026,6 @@ def update_tags(request, poster_id):
     if len(tags) > 200:
         return JsonResponse({"success": False, "message": "Tags too long (max 200 characters)."}, status=400)
 
-    # Match tags to subfields/category (same logic as upload)
     if tags:
         merged = match_user_tags_to_subfields(tags, poster.subfields)
         if merged:
@@ -2330,52 +2296,52 @@ def export_approved_json(request):
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
-
-# ---------------------------------------------------------------------------
-# Group management views (admin-only)
-# ---------------------------------------------------------------------------
-
-def _admin_required(view_func):
-    """Decorator: login_required + is_staff check."""
-    from functools import wraps
-
-    @wraps(view_func)
-    @login_required(login_url="login")
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_staff:
-            return JsonResponse({"error": "Forbidden"}, status=403) if request.headers.get("X-Requested-With") == "XMLHttpRequest" else redirect("dashboard")
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
-def _superuser_required(view_func):
-    """Decorator: login_required + is_superuser check."""
-    from functools import wraps
-
-    @wraps(view_func)
-    @login_required(login_url="login")
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_superuser:
-            return JsonResponse({"error": "Forbidden"}, status=403) if request.headers.get("X-Requested-With") == "XMLHttpRequest" else redirect("dashboard")
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
 @_admin_required
 def group_list(request):
-    groups = ResearchGroup.objects.prefetch_related("memberships__user").all()
+    search = (request.GET.get("q") or "").strip()
+    groups_qs = ResearchGroup.objects.prefetch_related("memberships__user").all()
+    if search:
+        groups_qs = groups_qs.filter(
+            Q(name__icontains=search)
+            | Q(interests__text__icontains=search)
+            | Q(memberships__user__username__icontains=search)
+            | Q(memberships__user__first_name__icontains=search)
+            | Q(memberships__user__last_name__icontains=search)
+        ).distinct()
+
+    try:
+        per_page = int(request.GET.get("per_page", 25))
+    except ValueError:
+        per_page = 25
+    per_page = max(5, min(per_page, 100))
+    paginator = Paginator(groups_qs, per_page)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+
     User = get_user_model()
     all_users = User.objects.filter(is_active=True).order_by("username")
     pending_users = (
         User.objects
-        .filter(is_active=True, group_memberships__isnull=True)
+        .filter(is_active=True, group_memberships__isnull=True, pending_dismissal__isnull=True)
         .order_by("-date_joined", "username")
     )
+
+    paginate_qs_base = f"q={search}" if search else ""
     return render(request, "groups/group_list.html", {
-        "groups": groups,
+        "groups": page_obj.object_list,
         "all_users": all_users,
         "pending_users": pending_users,
+        "search_query": search,
+        "page_obj": page_obj,
+        "per_page": per_page,
+        "paginate_label": "groups",
+        "paginate_qs_base": paginate_qs_base,
     })
+
+
+def _split_interests(blob):
+    if not blob:
+        return []
+    return [ln.strip() for ln in blob.splitlines() if ln.strip()]
 
 
 @_admin_required
@@ -2383,14 +2349,16 @@ def group_create(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
     name = (request.POST.get("name") or "").strip()
-    research_interests = (request.POST.get("research_interests") or "").strip()
+    interest_lines = _split_interests(request.POST.get("research_interests"))
     if not name:
         messages.error(request, "Group name is required.")
         return redirect("group_list")
     if ResearchGroup.objects.filter(name__iexact=name).exists():
         messages.error(request, f'Group "{name}" already exists.')
         return redirect("group_list")
-    ResearchGroup.objects.create(name=name, research_interests=research_interests)
+    group = ResearchGroup.objects.create(name=name)
+    for line in interest_lines:
+        ResearchInterest.objects.create(group=group, text=line)
     messages.success(request, f'Group "{name}" created.')
     return redirect("group_list")
 
@@ -2400,7 +2368,6 @@ def group_edit(request, group_id):
     group = get_object_or_404(ResearchGroup, pk=group_id)
     if request.method == "POST":
         name = (request.POST.get("name") or "").strip()
-        research_interests = (request.POST.get("research_interests") or "").strip()
         if not name:
             messages.error(request, "Group name is required.")
             return redirect("group_list")
@@ -2409,17 +2376,59 @@ def group_edit(request, group_id):
             messages.error(request, f'Group "{name}" already exists.')
             return redirect("group_list")
         group.name = name
-        group.research_interests = research_interests
         group.save()
         messages.success(request, f'Group "{group.name}" updated.')
-        return redirect("group_list")
+        return redirect("group_edit", group_id=group.pk)
     User = get_user_model()
     all_users = User.objects.filter(is_active=True).order_by("username")
     return render(request, "groups/group_edit.html", {
         "group": group,
         "all_users": all_users,
         "current_members": list(group.memberships.select_related("user").all()),
+        "interests": list(group.interests.all()),
     })
+
+
+@_admin_required
+def interest_add(request, group_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    group = get_object_or_404(ResearchGroup, pk=group_id)
+    lines = _split_interests(request.POST.get("text"))
+    if not lines:
+        messages.error(request, "Research interest text is required.")
+        return redirect("group_edit", group_id=group.pk)
+    for line in lines:
+        ResearchInterest.objects.create(group=group, text=line)
+    label = "interests" if len(lines) > 1 else "interest"
+    messages.success(request, f"Added {len(lines)} research {label}.")
+    return redirect("group_edit", group_id=group.pk)
+
+
+@_admin_required
+def interest_edit(request, interest_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    interest = get_object_or_404(ResearchInterest, pk=interest_id)
+    text = (request.POST.get("text") or "").strip()
+    if not text:
+        messages.error(request, "Research interest cannot be empty.")
+        return redirect("group_edit", group_id=interest.group_id)
+    interest.text = text
+    interest.save(update_fields=["text", "updated_at"])
+    messages.success(request, "Research interest updated.")
+    return redirect("group_edit", group_id=interest.group_id)
+
+
+@_admin_required
+def interest_delete(request, interest_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    interest = get_object_or_404(ResearchInterest, pk=interest_id)
+    group_id = interest.group_id
+    interest.delete()
+    messages.success(request, "Research interest removed.")
+    return redirect("group_edit", group_id=group_id)
 
 
 @_admin_required
@@ -2456,6 +2465,8 @@ def group_add_member(request, group_id):
         )
         (added if created else already).append(user)
 
+    PendingAssignmentDismissal.objects.filter(user__in=added).delete()
+
     if added:
         names = ", ".join((u.get_full_name().title() or u.username) for u in added)
         messages.success(request, f'Added to "{group.name}": {names}.')
@@ -2463,6 +2474,21 @@ def group_add_member(request, group_id):
         names = ", ".join((u.get_full_name().title() or u.username) for u in already)
         messages.info(request, f'Already members of "{group.name}": {names}.')
     return redirect("group_edit", group_id=group.pk)
+
+
+@_admin_required
+def dismiss_pending_user(request, user_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    User = get_user_model()
+    target = get_object_or_404(User, pk=user_id)
+    PendingAssignmentDismissal.objects.get_or_create(
+        user=target,
+        defaults={"dismissed_by": request.user},
+    )
+    name = target.get_full_name().title() or target.username
+    messages.success(request, f"{name} skipped — won't appear in the pending list.")
+    return redirect("group_list")
 
 
 @_admin_required
@@ -2476,19 +2502,14 @@ def group_remove_member(request, group_id, user_id):
 
 @_admin_required
 def group_set_primary(request, group_id, user_id):
-    """Set this group as primary for the given user."""
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
     membership = get_object_or_404(UserGroupMembership, group_id=group_id, user_id=user_id)
     membership.is_primary = True
-    membership.save()  # save() enforces single-primary constraint
+    membership.save()
     messages.success(request, "Primary group updated.")
     return redirect("group_edit", group_id=group_id)
 
-
-# ---------------------------------------------------------------------------
-# User-facing: set own primary group
-# ---------------------------------------------------------------------------
 
 @_groups_required
 def set_my_primary_group(request):
@@ -2506,14 +2527,9 @@ def set_my_primary_group(request):
     membership.save()
     return JsonResponse({"success": True})
 
-
-# ---------------------------------------------------------------------------
-# AJAX: regenerate why_useful for a poster + group
-# ---------------------------------------------------------------------------
-
 @_groups_required
 def poster_why_useful_for_group(request, poster_id):
-    """Return (or generate) the why_useful text for a poster in a specific group context."""
+
     poster = get_object_or_404(ResearchPoster, pk=poster_id)
     group_id = request.GET.get("group_id", "")
 
@@ -2533,7 +2549,7 @@ def poster_why_useful_for_group(request, poster_id):
         summary=poster.summary,
         user_notes=poster.notes.strip() if poster.notes else "",
         user_tags="",
-        research_interests=group.research_interests,
+        research_interests=group.research_interests_text,
     )
 
     PosterGroupWhyUseful.objects.update_or_create(
@@ -2546,12 +2562,7 @@ def poster_why_useful_for_group(request, poster_id):
 
 @_groups_required
 def update_poster_groups(request, poster_id):
-    """Update the M2M assignment of a poster to the user's research groups.
 
-    Only memberships in groups the requester actually belongs to can be
-    toggled — other groups stay as they are, so a user cannot accidentally
-    pull a paper out of a colleague's group.
-    """
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
@@ -2564,7 +2575,7 @@ def update_poster_groups(request, poster_id):
     )
     current_group_ids = set(poster.groups.values_list("pk", flat=True))
 
-    if not (request.user.is_staff or request.user.is_superuser):
+    if not request.user.is_superuser:
         if not (user_group_ids & current_group_ids):
             return JsonResponse({"error": "Forbidden"}, status=403)
 
@@ -2582,9 +2593,7 @@ def update_poster_groups(request, poster_id):
             requested.add(int(gid))
         except (ValueError, TypeError):
             continue
-
-    # Restrict toggles to the user's own groups; preserve memberships in
-    # groups the user isn't part of.
+            
     allowed_new = requested & user_group_ids
     preserved = current_group_ids - user_group_ids
     final_ids = sorted(allowed_new | preserved)
@@ -2618,11 +2627,12 @@ def my_groups(request):
         .select_related("group")
         .order_by("-is_primary", "group__name")
     )
-    referer = request.META.get("HTTP_REFERER", "")
+    from urllib.parse import urlparse
+    referer_path = urlparse(request.META.get("HTTP_REFERER", "")).path or ""
     back_target = "dashboard"
-    if "/upload" in referer:
+    if referer_path == "/" or referer_path.startswith("/?"):
         back_target = "upload"
-    elif "/conference" in referer:
+    elif referer_path.startswith("/conference"):
         back_target = "conference"
     return render(request, "my_groups.html", {
         "memberships": memberships,
@@ -2632,21 +2642,51 @@ def my_groups(request):
 
 @_superuser_required
 def user_admin_list(request):
+    from .access import GROUP_MANAGER_ROLE
     User = get_user_model()
-    users = (
+    search = (request.GET.get("q") or "").strip()
+    users_qs = (
         User.objects
         .filter(is_active=True)
-        .prefetch_related("group_memberships__group", "uploaded_posters")
+        .prefetch_related("group_memberships__group", "uploaded_posters", "groups")
         .order_by("-is_superuser", "-is_staff", "username")
     )
+    if search:
+        users_qs = users_qs.filter(
+            Q(username__icontains=search)
+            | Q(first_name__icontains=search)
+            | Q(last_name__icontains=search)
+            | Q(email__icontains=search)
+            | Q(group_memberships__group__name__icontains=search)
+        ).distinct()
+
+    try:
+        per_page = int(request.GET.get("per_page", 25))
+    except ValueError:
+        per_page = 25
+    per_page = max(5, min(per_page, 100))
+    paginator = Paginator(users_qs, per_page)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+
+    users = list(page_obj.object_list)
     for u in users:
         u.group_names = [m.group.name for m in u.group_memberships.all()]
         u.uploaded_count = u.uploaded_posters.count()
-    return render(request, "users/user_list.html", {"users": users})
+        u.is_group_manager_role = any(g.name == GROUP_MANAGER_ROLE for g in u.groups.all())
+
+    paginate_qs_base = f"q={search}" if search else ""
+    return render(request, "users/user_list.html", {
+        "users": users,
+        "search_query": search,
+        "page_obj": page_obj,
+        "per_page": per_page,
+        "paginate_label": "users",
+        "paginate_qs_base": paginate_qs_base,
+    })
 
 
 @_superuser_required
-def user_toggle_staff(request, user_id):
+def user_toggle_superuser(request, user_id):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
     User = get_user_model()
@@ -2654,14 +2694,43 @@ def user_toggle_staff(request, user_id):
     if target.pk == request.user.pk:
         messages.error(request, "You cannot change your own admin status.")
         return redirect("user_admin_list")
-    if target.is_superuser:
-        messages.error(request, "Cannot modify superuser status from this page.")
-        return redirect("user_admin_list")
-    target.is_staff = not target.is_staff
-    target.save(update_fields=["is_staff"])
-    action = "promoted to admin" if target.is_staff else "demoted from admin"
     name = target.get_full_name().title() or target.username
-    messages.success(request, f"{name} {action}.")
+    if target.is_superuser:
+        active_supers = User.objects.filter(is_active=True, is_superuser=True).count()
+        if active_supers <= 1:
+            messages.error(request, "Cannot demote the last remaining admin.")
+            return redirect("user_admin_list")
+        target.is_superuser = False
+        target.is_staff = False
+        target.save(update_fields=["is_superuser", "is_staff"])
+        messages.success(request, f"{name} demoted from admin.")
+    else:
+        target.is_superuser = True
+        target.is_staff = True
+        target.save(update_fields=["is_superuser", "is_staff"])
+        messages.success(request, f"{name} promoted to admin.")
+    return redirect("user_admin_list")
+
+
+@_superuser_required
+def user_toggle_group_manager(request, user_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    from django.contrib.auth.models import Group
+    from .access import GROUP_MANAGER_ROLE
+    User = get_user_model()
+    target = get_object_or_404(User, pk=user_id)
+    if target.pk == request.user.pk:
+        messages.error(request, "You cannot change your own group-manager status.")
+        return redirect("user_admin_list")
+    role_group, _ = Group.objects.get_or_create(name=GROUP_MANAGER_ROLE)
+    name = target.get_full_name().title() or target.username
+    if target.groups.filter(pk=role_group.pk).exists():
+        target.groups.remove(role_group)
+        messages.success(request, f"{name} removed from group managers.")
+    else:
+        target.groups.add(role_group)
+        messages.success(request, f"{name} added to group managers.")
     return redirect("user_admin_list")
 
 
@@ -2738,7 +2807,7 @@ def telegram_webhook(request):
 
         elif "text" in message:
             text = message["text"].strip()
-            link_payload = _extract_link_payload(text)
+            link_payload = _extract_link_payload(text, "telegram")
             if link_payload is not None:
                 _handle_link_command("telegram", chat_id, link_payload)
             elif not _handle_pending_validation_text("telegram", chat_id, text):
@@ -2820,7 +2889,7 @@ def whatsapp_webhook(request):
         elif msg_type == "text":
             text_body = message["text"]["body"].strip()
             lower = text_body.lower()
-            link_payload = _extract_link_payload(text_body)
+            link_payload = _extract_link_payload(text_body, "whatsapp")
             if link_payload is not None:
                 _handle_link_command("whatsapp", phone, link_payload)
             elif not _handle_pending_validation_text("whatsapp", phone, text_body):

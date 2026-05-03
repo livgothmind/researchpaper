@@ -9,6 +9,22 @@
     .users-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
     .users-header h1 { font-size: 1.5em; font-weight: 700; color: var(--text-strong); }
     .users-help { font-size: 0.85em; color: var(--text-muted); margin-bottom: 16px; line-height: 1.55; }
+    .search-form { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .search-form .search-input-wrap { position: relative; flex: 1; min-width: 220px; }
+    .search-form .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
+    .search-form input[type="search"] { width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.9em; font-family: inherit; box-sizing: border-box; }
+    .search-form input[type="search"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
+    .search-meta { font-size: 0.82em; color: var(--text-muted); margin-bottom: 14px; }
+    .search-meta a { color: var(--primary); text-decoration: none; margin-left: 6px; }
+    .search-meta a:hover { text-decoration: underline; }
+    .empty-row td { text-align: center; color: var(--text-faint); padding: 28px 16px; font-size: 0.9em; }
+    .user-row-actions { display: inline-flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+    .user-row-actions .group-btn { padding: 5px 10px; font-size: 0.76em; }
+    .user-row-actions .group-btn.role-up { color: var(--primary-darker); border-color: var(--primary-muted); }
+    .user-row-actions .group-btn.role-up:hover { border-color: var(--primary); background: var(--primary-faint); color: var(--primary-darker); }
+    .group-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+    .group-chip { padding: 1px 8px; border-radius: 20px; font-size: 0.74em; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted); }
+    .group-chip-none { color: #b45309; border-color: rgba(180,83,9,0.35); background: rgba(234,179,8,0.06); font-style: italic; }
     .user-table { width: 100%; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-card); border-collapse: separate; border-spacing: 0; }
     .user-table th, .user-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.88em; vertical-align: middle; }
     .user-table th { background: var(--bg-surface); font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
@@ -17,8 +33,11 @@
     .role-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 0.72em; font-weight: 700; letter-spacing: 0.02em; }
     .role-super { background: #fee2e2; color: #991b1b; }
     .role-admin { background: var(--primary-faint); color: var(--primary-darker); }
+    .role-manager { background: rgba(59,130,246,0.12); color: #1d4ed8; border: 1px solid rgba(59,130,246,0.35); }
     .role-user  { background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border); }
+    .role-stack { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; }
     [data-theme="dark"] .role-super { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    [data-theme="dark"] .role-manager { background: rgba(59,130,246,0.18); color: #93c5fd; border-color: rgba(59,130,246,0.45); }
     .group-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.78em; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-surface); color: var(--text-primary); transition: all 0.18s; text-decoration: none; }
     .group-btn:hover { border-color: var(--primary); color: var(--primary); }
     .group-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
@@ -33,6 +52,21 @@
     [data-theme="dark"] .flash-alert.error   { color: #fca5a5; }
     .flash-alert .flash-close { margin-left: auto; background: none; border: none; cursor: pointer; opacity: 0.55; color: inherit; font-size: 1.1em; line-height: 1; padding: 2px 6px; }
     .flash-alert .flash-close:hover { opacity: 1; }
+
+    @media (max-width: 640px) {
+        .users-container { padding: 0 0 40px; }
+        .users-help { font-size: 0.82em; }
+        .user-table, .user-table tbody, .user-table tr, .user-table td { display: block; width: 100%; }
+        .user-table thead { display: none; }
+        .user-table tr { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); margin-bottom: 10px; padding: 12px 14px; box-shadow: var(--shadow-card); overflow: hidden; }
+        .user-table tr:hover td { background: transparent; }
+        .user-table td { padding: 4px 0; border-bottom: none; font-size: 0.86em; display: flex; align-items: flex-start; gap: 8px; }
+        .user-table td::before { content: attr(data-label); font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); min-width: 70px; flex-shrink: 0; padding-top: 2px; }
+        .user-table td[data-label=""] { display: block; padding-top: 10px; margin-top: 6px; border-top: 1px solid var(--border); }
+        .user-table td[data-label=""]::before { display: none; }
+        .user-row-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+        .group-chips { flex-wrap: wrap; }
+    }
 </style>
 {% endblock %}
 
@@ -52,10 +86,25 @@
         </div>
 
         <p class="users-help">
-            Admins can create research groups and assign members. Only superusers can promote, demote, or remove users
-            from this page. Deleting a user wipes their group memberships, favorites and bot accounts, but preserves any
-            papers they uploaded (attribution is cleared).
+            Group managers (members of <code>GestoreGruppi</code>) can create research groups and assign
+            members. Only admins (Django superusers) can promote / demote users, toggle group-manager
+            rights, or delete accounts. Deleting a user wipes their group memberships, favorites and bot
+            accounts, but preserves any papers they uploaded (attribution is cleared).
         </p>
+
+        <form method="GET" action="" class="search-form" role="search">
+            <div class="search-input-wrap">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Search by name, username, email, or group..." autocomplete="off">
+            </div>
+        </form>
+
+        {% if search_query %}
+        <div class="search-meta">
+            {{ users|length }} result{{ users|length|pluralize }} for &ldquo;{{ search_query }}&rdquo;
+            <a href="{% url 'user_admin_list' %}">Clear</a>
+        </div>
+        {% endif %}
 
         {% if messages %}
         {% for message in messages %}
@@ -82,40 +131,55 @@
             <tbody>
                 {% for u in users %}
                 <tr>
-                    <td>
+                    <td data-label="Name">
                         {% if u.first_name or u.last_name %}
                             {{ u.first_name|title }} {{ u.last_name|title }}
                         {% else %}
                             <span style="color:var(--text-faint);">—</span>
                         {% endif %}
                     </td>
-                    <td style="color:var(--text-muted); font-family:ui-monospace,monospace; font-size:0.85em;">{{ u.username }}</td>
-                    <td style="color:var(--text-muted); font-size:0.85em;">{{ u.email|default:"—" }}</td>
-                    <td style="color:var(--text-muted); font-size:0.85em;">
-                        {% if u.group_names %}
-                            {{ u.group_names|join:", " }}
-                        {% else %}
-                            <span style="color:#b45309;" title="No group — cannot access papers">none</span>
-                        {% endif %}
+                    <td data-label="Username" style="color:var(--text-muted); font-family:ui-monospace,monospace; font-size:0.85em;">{{ u.username }}</td>
+                    <td data-label="Email" style="color:var(--text-muted); font-size:0.85em; word-break:break-all;">{{ u.email|default:"—" }}</td>
+                    <td data-label="Groups">
+                        <span class="group-chips">
+                            {% for gname in u.group_names %}
+                                <span class="group-chip">{{ gname }}</span>
+                            {% empty %}
+                                <span class="group-chip group-chip-none" title="No group — cannot access papers">no group</span>
+                            {% endfor %}
+                        </span>
                     </td>
-                    <td style="text-align:center; color:var(--text-muted); font-size:0.85em;">{{ u.uploaded_count }}</td>
-                    <td>
+                    <td data-label="Uploads" style="text-align:center; color:var(--text-muted); font-size:0.85em;">{{ u.uploaded_count }}</td>
+                    <td data-label="Role">
                         {% if u.is_superuser %}
-                            <span class="role-badge role-super">Superuser</span>
-                        {% elif u.is_staff %}
-                            <span class="role-badge role-admin">Admin</span>
+                            <span class="role-badge role-super">Admin</span>
+                        {% elif u.is_group_manager_role %}
+                            <span class="role-badge role-manager" title="Member of GestoreGruppi">Group Manager</span>
                         {% else %}
                             <span class="role-badge role-user">User</span>
                         {% endif %}
                     </td>
-                    <td style="text-align:right; white-space:nowrap;">
+                    <td data-label="">
+                        <div class="user-row-actions">
                         {% if u.pk == request.user.pk %}
                             <span style="font-size:0.78em; color:var(--text-faint);">(you)</span>
-                        {% elif u.is_superuser %}
-                            <span style="font-size:0.78em; color:var(--text-faint);">Protected</span>
                         {% else %}
-                            {% if u.is_staff %}
-                            <form method="POST" action="{% url 'user_toggle_staff' u.pk %}" style="display:inline;"
+                            {% if u.is_group_manager_role %}
+                            <form method="POST" action="{% url 'user_toggle_group_manager' u.pk %}" style="display:inline;"
+                                  data-confirm="Remove {{ u.get_full_name|default:u.username|escapejs }} from group managers?&#10;&#10;They will lose the ability to create / edit / delete research groups."
+                                  data-confirm-title="Remove group manager"
+                                  data-confirm-label="Remove">
+                                {% csrf_token %}
+                                <button type="submit" class="group-btn danger" title="Remove from GestoreGruppi">Remove Manager</button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="{% url 'user_toggle_group_manager' u.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="group-btn" title="Add to GestoreGruppi (can manage research groups)">Make Manager</button>
+                            </form>
+                            {% endif %}
+                            {% if u.is_superuser %}
+                            <form method="POST" action="{% url 'user_toggle_superuser' u.pk %}" style="display:inline;"
                                   data-confirm="Remove admin rights from {{ u.get_full_name|default:u.username|escapejs }}?"
                                   data-confirm-title="Demote admin"
                                   data-confirm-label="Demote">
@@ -123,27 +187,42 @@
                                 <button type="submit" class="group-btn danger">Demote</button>
                             </form>
                             {% else %}
-                            <form method="POST" action="{% url 'user_toggle_staff' u.pk %}" style="display:inline;">
+                            <form method="POST" action="{% url 'user_toggle_superuser' u.pk %}" style="display:inline;"
+                                  data-confirm="Promote {{ u.get_full_name|default:u.username|escapejs }} to ADMIN?&#10;&#10;Admins are Django superusers and can do everything, including managing users, groups and content. Only do this for someone you fully trust."
+                                  data-confirm-title="Promote to Admin"
+                                  data-confirm-label="Promote">
                                 {% csrf_token %}
-                                <button type="submit" class="group-btn primary">Promote to Admin</button>
+                                <button type="submit" class="group-btn role-up" title="Grant full administrative rights">Make Admin</button>
                             </form>
-                            {% endif %}
-                            <form method="POST" action="{% url 'user_delete' u.pk %}" style="display:inline; margin-left:6px;"
+                            <form method="POST" action="{% url 'user_delete' u.pk %}" style="display:inline;"
                                   data-confirm="Delete {{ u.get_full_name|default:u.username|escapejs }}?&#10;&#10;This removes the account, group memberships, favorites and bot links. Uploaded papers are kept but lose attribution."
                                   data-confirm-title="Delete user"
                                   data-confirm-label="Delete">
                                 {% csrf_token %}
-                                <button type="submit" class="group-btn danger" title="Remove user from the platform">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
-                                    Delete
+                                <button type="submit" class="group-btn danger" title="Remove user from the platform" aria-label="Delete">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                             </form>
+                            {% endif %}
+                        {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr class="empty-row">
+                    <td colspan="7">
+                        {% if search_query %}
+                            No users match &ldquo;{{ search_query }}&rdquo;.
+                        {% else %}
+                            No users found.
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        {% include "_pagination_simple.html" %}
 
     </div>
 </div>

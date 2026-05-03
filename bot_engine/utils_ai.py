@@ -66,29 +66,26 @@ def _ss_headers():
     return {"x-api-key": _SS_API_KEY} if _SS_API_KEY else {}
 
 
+def _slugify(s):
+    return str(s).strip().lower().replace(" ", "_").replace("-", "_")
+
+
 def _parse_subfields(raw_subfields):
     if isinstance(raw_subfields, str):
-        items = [
-            s.strip().lower().replace(" ", "_").replace("-", "_")
-            for s in raw_subfields.split(",") if s.strip()
-        ]
+        items = [_slugify(s) for s in raw_subfields.split(",") if s.strip()]
     elif isinstance(raw_subfields, list):
-        items = [
-            str(s).strip().lower().replace(" ", "_").replace("-", "_")
-            for s in raw_subfields if s
-        ]
+        items = [_slugify(s) for s in raw_subfields if s]
     else:
         return ""
-    seen: set[str] = set()
-    valid = []
+    seen, valid = set(), []
     for s in items:
         if s in VALID_SUBFIELDS and s not in seen:
             seen.add(s)
             valid.append(s)
-    return ",".join(valid) if valid else ""
+    return ",".join(valid)
 
 
-def _fallback(error_message):
+def _fallback():
     return {
         "_ai_error":          True,
         "is_research_poster": True,
@@ -139,7 +136,7 @@ def _encode_image_to_base64(image_path):
 
 def extract_poster_info(image_path):
     if not API_KEY_CONFIGURED or _openai_client is None:
-        return _fallback("OpenAI API not configured")
+        return _fallback()
     try:
         data_url = _encode_image_to_base64(image_path)
         response = _openai_client.chat.completions.create(
@@ -154,13 +151,11 @@ def extract_poster_info(image_path):
             max_tokens=1024,
             temperature=0.2,
         )
-        text  = response.choices[0].message.content or ""
+        text = response.choices[0].message.content or ""
         clean = text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean)
-    except json.JSONDecodeError:
-        return _fallback("Invalid JSON from AI")
-    except Exception as e:
-        return _fallback(str(e))
+    except Exception:
+        return _fallback()
 
 
 
@@ -343,8 +338,6 @@ def _find_pdf_via_arxiv(title):
     except Exception as e:
         logger.debug("arXiv title search failed: %s", e)
     return ""
-
-
 
 
 def _get_pdf_from_stamp(stamp_url):
@@ -969,23 +962,16 @@ def match_user_tags_to_subfields(user_tags, existing_subfields_csv=""):
 
 
 def generate_why_useful(summary="", user_notes="", user_tags="", research_interests=""):
-    """Genera perché il paper è utile combinando summary AI + note + tag utente + interessi gruppo."""
     if not API_KEY_CONFIGURED or _openai_client is None:
         return ""
 
-    parts = []
-    if research_interests and research_interests.strip():
-        parts.append(f"Research group interests:\n{research_interests.strip()}")
-    if summary and summary.strip():
-        parts.append(f"Abstract/summary:\n{summary.strip()}")
-    if user_notes and user_notes.strip():
-        parts.append(f"User notes:\n{user_notes.strip()}")
-    elif not research_interests and summary:
-        # Fallback: if no user notes and no group context, use summary as main input
-        pass
-    if user_tags and user_tags.strip():
-        parts.append(f"User tags:\n{user_tags.strip()}")
-
+    sections = (
+        ("Research group interests", research_interests),
+        ("Abstract/summary",         summary),
+        ("User notes",               user_notes),
+        ("User tags",                user_tags),
+    )
+    parts = [f"{label}:\n{value.strip()}" for label, value in sections if value and value.strip()]
     if not parts:
         return ""
 
@@ -1005,10 +991,7 @@ def generate_why_useful(summary="", user_notes="", user_tags="", research_intere
         return ""
 
 
-
 def _resolve_year(ai_year, paper_result, paper_link):
-    """Resolve publication year from multiple sources."""
-
     if ai_year and str(ai_year).strip().isdigit():
         return int(str(ai_year).strip()[:4])
 
@@ -1097,17 +1080,19 @@ def analyze_and_enrich(image_path, overrides=None):
             unique.append(a)
     authors = ", ".join(unique)
 
+    description_fns = (
+        lambda: _generate_description_from_pdf(pdf_url) if pdf_url else "",
+        lambda: _generate_description_from_pdf(pdf_url_hint) if (pdf_url_hint and pdf_url_hint != pdf_url) else "",
+        lambda: _scrape_description_from_site(paper_link) if paper_link else "",
+        lambda: _scrape_description_from_site(f"https://doi.org/{doi}") if doi else "",
+        lambda: abstract_from_api or "",
+        lambda: _generate_description_from_poster(image_path),
+    )
     description = ""
-    for _key, fn in (
-        ("pdf",      lambda: _generate_description_from_pdf(pdf_url) if pdf_url else ""),
-        ("pdf_hint", lambda: _generate_description_from_pdf(pdf_url_hint) if (pdf_url_hint and pdf_url_hint != pdf_url) else ""),
-        ("site",     lambda: _scrape_description_from_site(paper_link) if paper_link else ""),
-        ("doi",      lambda: _scrape_description_from_site(f"https://doi.org/{doi}") if doi else ""),
-        ("api",      lambda: abstract_from_api or ""),
-        ("poster",   lambda: _generate_description_from_poster(image_path)),
-    ):
-        if not description:
-            description = fn() or ""
+    for fn in description_fns:
+        description = fn() or ""
+        if description:
+            break
 
     return {
         "is_research_poster": info.get("is_research_poster", True),

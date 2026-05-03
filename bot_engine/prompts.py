@@ -1,7 +1,4 @@
 
-# ---------------------------------------------------------------------------
-# Poster image analysis prompt (GPT-4o Vision)
-# ---------------------------------------------------------------------------
 POSTER_PROMPT = """
 Analyze this image. Determine if it contains any scientific or academic content
 with readable text. This includes: research posters, paper screenshots, article
@@ -46,20 +43,28 @@ Set is_research_poster to false ONLY if the image has no scientific text at all
 If a field is not visible, use empty string "" (or empty list [] for subfields).
 """
 
-# ---------------------------------------------------------------------------
-# Why-useful one-liner generation
-# ---------------------------------------------------------------------------
 WHY_USEFUL_PROMPT = """
 You are an academic research assistant.
-Given a paper abstract and optional context (user notes, tags, or a research group description),
-write ONE sentence (max 25 words) that explains why this paper is relevant and useful.
-If a research group description is provided, tailor the explanation to that group's interests.
-Return ONLY the plain-text sentence, no labels, no bullet points.
+
+You will receive:
+- A paper abstract/summary (always).
+- Optionally: user notes, user tags, and a "Research group interests" block.
+
+The "Research group interests" block may list MULTIPLE distinct topics, typically
+one per line. Treat each line as a separate candidate research direction.
+Pick the ONE topic (at most two, only if equally relevant) that most clearly
+overlaps with what the paper is actually about. Ignore the other interests
+that have nothing to do with the paper - do NOT try to mention them, do NOT
+average across all of them.
+
+Write ONE sentence (max 30-40 words) that explains why the paper is relevant and
+useful, specifically connecting the paper's content to the selected interest(s).
+If none of the listed interests reasonably overlap with the paper, fall back to
+a generic relevance statement based on the abstract alone.
+
+Return ONLY the plain-text sentence. No labels, no bullet points, no quotes.
 """
 
-# ---------------------------------------------------------------------------
-# Summary generation from PDF text
-# ---------------------------------------------------------------------------
 DESCRIPTION_FROM_PDF_PROMPT = """
 You are a research paper summariser.
 Below is the extracted text from a scientific PDF.
@@ -71,9 +76,6 @@ Write in third person, in a neutral academic tone.
 Return ONLY the plain-text description, nothing else.
 """
 
-# ---------------------------------------------------------------------------
-# Summary generation from scraped web-page abstract
-# ---------------------------------------------------------------------------
 DESCRIPTION_FROM_SCRAPE_PROMPT = """
 You are a research paper summariser.
 Below is the abstract or description scraped from the paper's web page.
@@ -95,26 +97,7 @@ Return ONLY the plain-text summary, nothing else.
 """
 
 
-# ---------------------------------------------------------------------------
-# User-tag → subfield-slug matching
-# ---------------------------------------------------------------------------
 def build_tag_match_prompt(user_tags: str, all_valid_slugs: list[str]) -> str:
-    """
-    Build the prompt that asks GPT to map free-text user tags to subfield slugs.
-
-    Parameters
-    ----------
-    user_tags : str
-        Comma-separated string of user-typed tags.
-    all_valid_slugs : list[str]
-        Slugs that are valid AND not already present in the poster's subfields
-        (so GPT only returns genuinely new ones).
-
-    Returns
-    -------
-    str
-        Prompt string ready to be sent to GPT.
-    """
     return (
         f"User tags: {user_tags}\n"
         f"Valid slugs (already-existing ones excluded): {', '.join(all_valid_slugs)}\n\n"
@@ -124,9 +107,6 @@ def build_tag_match_prompt(user_tags: str, all_valid_slugs: list[str]) -> str:
     )
 
 
-# ---------------------------------------------------------------------------
-# Conference paper lookup prompt
-# ---------------------------------------------------------------------------
 CONFERENCE_EXTRACT_PROMPT = """You are an expert at reading academic conference programs, schedules and proceedings.
 
 Given text extracted from a conference program (PDF or website), find the specific paper the user is looking for.
@@ -176,9 +156,6 @@ Rules:
 - NEVER assign metadata from one paper to another."""
 
 
-# ---------------------------------------------------------------------------
-# Conference similar papers prompt
-# ---------------------------------------------------------------------------
 CONFERENCE_SIMILAR_PROMPT = """You are an expert at analyzing academic conference programs.
 
 Given text from a conference program and a set of tags/topics, find papers that are thematically similar to the user's paper.

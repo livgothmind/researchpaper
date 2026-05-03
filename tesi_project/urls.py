@@ -45,16 +45,19 @@ urlpatterns = [
     path("groups/<int:group_id>/add-member/",                views.group_add_member,    name="group_add_member"),
     path("groups/<int:group_id>/remove-member/<int:user_id>/", views.group_remove_member, name="group_remove_member"),
     path("groups/<int:group_id>/set-primary/<int:user_id>/", views.group_set_primary,   name="group_set_primary"),
+    path("groups/pending/<int:user_id>/dismiss/",            views.dismiss_pending_user, name="dismiss_pending_user"),
+    path("groups/<int:group_id>/interests/add/",             views.interest_add,        name="interest_add"),
+    path("interests/<int:interest_id>/edit/",                views.interest_edit,       name="interest_edit"),
+    path("interests/<int:interest_id>/delete/",              views.interest_delete,     name="interest_delete"),
     path("api/set-my-primary-group/",                        views.set_my_primary_group, name="set_my_primary_group"),
     path("api/poster/<int:poster_id>/why-useful/",           views.poster_why_useful_for_group, name="poster_why_useful_for_group"),
     path("poster/<int:poster_id>/update-groups/",            views.update_poster_groups,        name="update_poster_groups"),
 
-    # User self-service (any logged-in user)
     path("my-groups/",                                       views.my_groups,           name="my_groups"),
 
-    # User/admin management (superuser only)
     path("users/",                                           views.user_admin_list,     name="user_admin_list"),
-    path("users/<int:user_id>/toggle-staff/",                views.user_toggle_staff,   name="user_toggle_staff"),
+    path("users/<int:user_id>/toggle-superuser/",            views.user_toggle_superuser, name="user_toggle_superuser"),
+    path("users/<int:user_id>/toggle-group-manager/",        views.user_toggle_group_manager, name="user_toggle_group_manager"),
     path("users/<int:user_id>/delete/",                      views.user_delete,         name="user_delete"),
 
     path("telegram-webhook/",  views.telegram_webhook,  name="telegram_webhook"),

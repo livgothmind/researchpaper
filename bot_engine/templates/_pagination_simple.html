@@ -1,0 +1,38 @@
+{% if page_obj %}
+<div class="pagination-container">
+    <div class="pagination-info">
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} {{ paginate_label|default:"items" }}
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination-controls">
+        {% if page_obj.has_previous %}
+            <a class="page-btn" href="?page=1{% if paginate_qs_base %}&amp;{{ paginate_qs_base }}{% endif %}&amp;per_page={{ per_page }}" title="First page">«</a>
+            <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if paginate_qs_base %}&amp;{{ paginate_qs_base }}{% endif %}&amp;per_page={{ per_page }}" title="Previous">‹</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="page-btn page-btn-active">{{ num }}</span>
+            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                <a class="page-btn" href="?page={{ num }}{% if paginate_qs_base %}&amp;{{ paginate_qs_base }}{% endif %}&amp;per_page={{ per_page }}">{{ num }}</a>
+            {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+                <span class="page-ellipsis">…</span>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+            <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if paginate_qs_base %}&amp;{{ paginate_qs_base }}{% endif %}&amp;per_page={{ per_page }}" title="Next">›</a>
+            <a class="page-btn" href="?page={{ page_obj.paginator.num_pages }}{% if paginate_qs_base %}&amp;{{ paginate_qs_base }}{% endif %}&amp;per_page={{ per_page }}" title="Last page">»</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    <form method="get" class="pagination-per-page">
+        {% for k, vlist in request.GET.lists %}{% if k != "page" and k != "per_page" %}{% for v in vlist %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+        <label>Per page:</label>
+        <select name="per_page" onchange="this.form.submit()">
+            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+    </form>
+</div>
+{% endif %}
