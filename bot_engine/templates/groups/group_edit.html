@@ -3,53 +3,7 @@
 
 {% block title %}Edit {{ group.name }} — PaperProject{% endblock %}
 
-{% block extra_head %}
-<style>
-    .groups-container { max-width: 800px; margin: 0 auto; padding: 0 0 60px; }
-    .section-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 22px 26px; margin-bottom: 16px; box-shadow: var(--shadow-card); }
-    .section-title { font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-    .form-field { flex: 1; min-width: 200px; }
-    .form-field label { display: block; font-size: 0.78em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
-    .form-field input, .form-field textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; box-sizing: border-box; }
-    .form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .group-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 0.82em; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-surface); color: var(--text-primary); transition: all 0.18s; text-decoration: none; }
-    .group-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .group-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
-    .group-btn.primary:hover { box-shadow: 0 4px 16px var(--primary-glow); }
-    .group-btn.danger { color: #ef4444; }
-    .group-btn.danger:hover { border-color: #ef4444; background: rgba(239,68,68,0.06); }
-    .group-btn.small { padding: 4px 10px; font-size: 0.76em; }
-    .group-btn::before { display: none; }
-    .member-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-    .member-row:last-child { border-bottom: none; }
-    .member-name { flex: 1; font-size: 0.9em; color: var(--text); font-weight: 500; }
-    .member-badge { font-size: 0.72em; padding: 2px 8px; border-radius: 12px; background: var(--primary-faint); color: var(--primary-darker); font-weight: 600; }
-    .add-member-form { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); }
-    .add-member-form select { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; flex: 1; min-width: 220px; min-height: 140px; font-family: inherit; }
-    .add-member-form select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .add-member-form option { padding: 6px 10px; }
-    .add-member-hint { width: 100%; font-size: 0.75em; color: var(--text-faint); margin-top: 2px; }
-    .add-member-side { display: flex; flex-direction: column; gap: 10px; min-width: 150px; }
-    .interest-row { display: flex; align-items: stretch; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-    .interest-row:last-of-type { border-bottom: none; }
-    .interest-row form.edit-form { display: flex; flex: 1; gap: 8px; align-items: stretch; }
-    .interest-row input[type="text"] { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; }
-    .interest-row input[type="text"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .interest-row form.delete-form { display: flex; }
-    .add-interest-form { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
-    .add-interest-form textarea { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; resize: vertical; min-height: 38px; }
-    .add-interest-form textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .interests-hint { font-size: 0.78em; color: var(--text-faint); margin-bottom: 10px; line-height: 1.5; }
-    .flash-alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-surface); }
-    .flash-alert.success { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); color: #065f46; }
-    .flash-alert.error   { border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08);  color: #991b1b; }
-    [data-theme="dark"] .flash-alert.success { color: #6ee7b7; }
-    [data-theme="dark"] .flash-alert.error   { color: #fca5a5; }
-    .flash-alert .flash-close { margin-left: auto; background: none; border: none; cursor: pointer; opacity: 0.55; color: inherit; font-size: 1.1em; line-height: 1; padding: 2px 6px; }
-    .flash-alert .flash-close:hover { opacity: 1; }
-</style>
-{% endblock %}
+
 
 {% block content %}
 <div class="container dashboard">

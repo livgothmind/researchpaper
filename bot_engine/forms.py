@@ -57,7 +57,7 @@ class PosterUploadForm(forms.ModelForm):
 
 
 class SubfieldsMultipleWidget(forms.CheckboxSelectMultiple):
-    template_name = "subfields_grouped.html"
+    template_name = "_subfields_grouped.html"
 
     def __init__(self, grouped_choices=None, *args, **kwargs):
         self.grouped_choices = grouped_choices or ResearchPoster.SUBFIELDS_GROUPED

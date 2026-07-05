@@ -1,4 +1,3 @@
-
 function initTagAutocomplete(inputId, opts) {
     opts = opts || {};
     var input       = document.getElementById(inputId);

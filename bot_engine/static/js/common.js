@@ -1,4 +1,3 @@
-
 function getCSRFToken() {
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
     if (el) return el.value;
@@ -71,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
         _lbApply();
     }, { passive: false });
 
-    /* Click to zoom in/out — ignore if user dragged */
+
     img.addEventListener('click', function(e) {
         e.stopPropagation();
         if (_lb.didDrag) { _lb.didDrag = false; return; }
@@ -79,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
         else { _lb.scale = 2.5; img.style.cursor = 'grab'; _lbApply(); }
     });
 
-    /* Drag to pan when zoomed */
+   
     img.addEventListener('mousedown', function(e) {
         if (_lb.scale <= 1) return;
         e.preventDefault();
@@ -102,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (_lb.dragging) { _lb.dragging = false; img.style.cursor = _lb.scale > 1 ? 'grab' : 'zoom-in'; }
     });
 
-    /* Touch: pinch-to-zoom + drag */
+   
     var lastDist = 0;
     lb.addEventListener('touchstart', function(e) {
         if (e.touches.length === 2) {
@@ -128,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, { passive: false });
     lb.addEventListener('touchend', function() { _lb.dragging = false; lastDist = 0; });
 
-    /* Escape */
+   
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && lb.classList.contains('active')) closeLightbox();
     });

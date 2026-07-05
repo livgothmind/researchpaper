@@ -3,72 +3,6 @@
 
 {% block title %}Manage Users — PaperProject{% endblock %}
 
-{% block extra_head %}
-<style>
-    .users-container { max-width: 960px; margin: 0 auto; padding: 0 0 60px; }
-    .users-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
-    .users-header h1 { font-size: 1.5em; font-weight: 700; color: var(--text-strong); }
-    .users-help { font-size: 0.85em; color: var(--text-muted); margin-bottom: 16px; line-height: 1.55; }
-    .search-form { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
-    .search-form .search-input-wrap { position: relative; flex: 1; min-width: 220px; }
-    .search-form .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
-    .search-form input[type="search"] { width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.9em; font-family: inherit; box-sizing: border-box; }
-    .search-form input[type="search"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .search-meta { font-size: 0.82em; color: var(--text-muted); margin-bottom: 14px; }
-    .search-meta a { color: var(--primary); text-decoration: none; margin-left: 6px; }
-    .search-meta a:hover { text-decoration: underline; }
-    .empty-row td { text-align: center; color: var(--text-faint); padding: 28px 16px; font-size: 0.9em; }
-    .user-row-actions { display: inline-flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
-    .user-row-actions .group-btn { padding: 5px 10px; font-size: 0.76em; }
-    .user-row-actions .group-btn.role-up { color: var(--primary-darker); border-color: var(--primary-muted); }
-    .user-row-actions .group-btn.role-up:hover { border-color: var(--primary); background: var(--primary-faint); color: var(--primary-darker); }
-    .group-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
-    .group-chip { padding: 1px 8px; border-radius: 20px; font-size: 0.74em; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted); }
-    .group-chip-none { color: #b45309; border-color: rgba(180,83,9,0.35); background: rgba(234,179,8,0.06); font-style: italic; }
-    .user-table { width: 100%; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-card); border-collapse: separate; border-spacing: 0; }
-    .user-table th, .user-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.88em; vertical-align: middle; }
-    .user-table th { background: var(--bg-surface); font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
-    .user-table tr:last-child td { border-bottom: none; }
-    .user-table tr:hover td { background: var(--bg-surface); }
-    .role-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 0.72em; font-weight: 700; letter-spacing: 0.02em; }
-    .role-super { background: #fee2e2; color: #991b1b; }
-    .role-admin { background: var(--primary-faint); color: var(--primary-darker); }
-    .role-manager { background: rgba(59,130,246,0.12); color: #1d4ed8; border: 1px solid rgba(59,130,246,0.35); }
-    .role-user  { background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border); }
-    .role-stack { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; }
-    [data-theme="dark"] .role-super { background: rgba(239,68,68,0.15); color: #fca5a5; }
-    [data-theme="dark"] .role-manager { background: rgba(59,130,246,0.18); color: #93c5fd; border-color: rgba(59,130,246,0.45); }
-    .group-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.78em; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-surface); color: var(--text-primary); transition: all 0.18s; text-decoration: none; }
-    .group-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .group-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
-    .group-btn.primary:hover { box-shadow: 0 4px 16px var(--primary-glow); }
-    .group-btn.danger { color: #ef4444; border-color: rgba(239,68,68,0.4); }
-    .group-btn.danger:hover { border-color: #ef4444; background: rgba(239,68,68,0.06); }
-    .group-btn::before { display: none; }
-    .flash-alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-surface); }
-    .flash-alert.success { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); color: #065f46; }
-    .flash-alert.error   { border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08);  color: #991b1b; }
-    [data-theme="dark"] .flash-alert.success { color: #6ee7b7; }
-    [data-theme="dark"] .flash-alert.error   { color: #fca5a5; }
-    .flash-alert .flash-close { margin-left: auto; background: none; border: none; cursor: pointer; opacity: 0.55; color: inherit; font-size: 1.1em; line-height: 1; padding: 2px 6px; }
-    .flash-alert .flash-close:hover { opacity: 1; }
-
-    @media (max-width: 640px) {
-        .users-container { padding: 0 0 40px; }
-        .users-help { font-size: 0.82em; }
-        .user-table, .user-table tbody, .user-table tr, .user-table td { display: block; width: 100%; }
-        .user-table thead { display: none; }
-        .user-table tr { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); margin-bottom: 10px; padding: 12px 14px; box-shadow: var(--shadow-card); overflow: hidden; }
-        .user-table tr:hover td { background: transparent; }
-        .user-table td { padding: 4px 0; border-bottom: none; font-size: 0.86em; display: flex; align-items: flex-start; gap: 8px; }
-        .user-table td::before { content: attr(data-label); font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); min-width: 70px; flex-shrink: 0; padding-top: 2px; }
-        .user-table td[data-label=""] { display: block; padding-top: 10px; margin-top: 6px; border-top: 1px solid var(--border); }
-        .user-table td[data-label=""]::before { display: none; }
-        .user-row-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
-        .group-chips { flex-wrap: wrap; }
-    }
-</style>
-{% endblock %}
 
 {% block content %}
 <div class="container dashboard">
@@ -222,7 +156,7 @@
             </tbody>
         </table>
 
-        {% include "_pagination_simple.html" %}
+        {% include "_pagination_links.html" %}
 
     </div>
 </div>

@@ -254,9 +254,9 @@ PaperProject/
 │       ├── base.html
 │       ├── dashboard.html
 │       ├── _dashboard_partial.html
-│       ├── _pagination_partial.html         # AJAX pagination (dashboard)
-│       ├── _pagination_simple.html          # href-based pagination (users / groups)
-│       ├── subfields_grouped.html           # custom widget template
+│       ├── _pagination_ajax.html            # AJAX pagination (dashboard)
+│       ├── _pagination_links.html           # href-based pagination (users / groups)
+│       ├── _subfields_grouped.html          # custom widget template
 │       ├── upload.html
 │       ├── poster_detail.html
 │       ├── edit_poster.html

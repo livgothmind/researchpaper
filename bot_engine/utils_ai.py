@@ -18,7 +18,6 @@ from .prompts import (
     WHY_USEFUL_PROMPT,
     DESCRIPTION_FROM_PDF_PROMPT,
     DESCRIPTION_FROM_SCRAPE_PROMPT,
-    build_tag_match_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -934,31 +933,6 @@ def _generate_description_from_poster(image_path):
     except Exception as e:
         logger.warning("Poster image summary fallback failed: %s", e)
         return ""
-
-
-def match_user_tags_to_subfields(user_tags, existing_subfields_csv=""):
-    if not user_tags or not user_tags.strip():
-        return existing_subfields_csv
-    if not API_KEY_CONFIGURED or _openai_client is None:
-        return existing_subfields_csv
-
-    existing_slugs = [s.strip() for s in existing_subfields_csv.split(",") if s.strip()]
-    all_valid      = sorted(VALID_SUBFIELDS - set(existing_slugs))
-
-    try:
-        response = _openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": build_tag_match_prompt(user_tags, all_valid)}],
-            max_tokens=60,
-            temperature=0,
-        )
-        raw       = (response.choices[0].message.content or "").strip()
-        new_slugs = [s for s in _parse_subfields(raw).split(",") if s.strip()]
-        combined  = existing_slugs + [s for s in new_slugs if s not in existing_slugs]
-        return ",".join(combined[:6])
-    except Exception as e:
-        logger.warning("Tag-matching GPT call failed: %s", e)
-        return existing_subfields_csv
 
 
 def generate_why_useful(summary="", user_notes="", user_tags="", research_interests=""):

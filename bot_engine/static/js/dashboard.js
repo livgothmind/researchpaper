@@ -1,4 +1,3 @@
-
 const F = {
     status: '',
     category: '',
@@ -171,7 +170,6 @@ function applyFilters(options = {}) {
         });
 }
 
-/* Re-fetch data when returning to dashboard via back/forward or tab switch */
 window.addEventListener('pageshow', (e) => {
     if (e.persisted) applyFilters({ pushHistory: false, showLoading: false });
 });
@@ -725,7 +723,7 @@ async function checkLiveStatus() {
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             redirect: 'manual',
         });
-        
+
         if (res.type === 'opaqueredirect' || res.status === 0
             || res.status === 401 || res.status === 302) {
             stopLivePolling();
@@ -962,7 +960,7 @@ function toggleFavorite(posterId, button) {
             button.classList.toggle('favorited', data.is_favorite);
             button.title = data.is_favorite ? 'Remove from favorites' : 'Add to favorites';
 
-        
+
             const row    = button.closest('tr');
             const idCell = row ? row.querySelector('td:nth-child(2)') : null;
             const indicators = idCell ? idCell.querySelector('.id-cell-indicators') : null;
@@ -985,7 +983,7 @@ function toggleFavorite(posterId, button) {
                 }
             } else if (starEl) {
                 starEl.remove();
-                if (indicators && indicators.children.length === 0) 
+                if (indicators && indicators.children.length === 0)
                     indicators.remove();
             }
 
@@ -1315,7 +1313,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-   
+
     const toast = document.getElementById('toast');
     if (toast) {
         const delay = toast.classList.contains('toast-warning') ? 5000 : 3000;
@@ -1325,7 +1323,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }, delay);
     }
 
- 
+
     if (localStorage.getItem('activitySidebarHidden') === 'true') {
         const al = document.getElementById('activityList');
         const tb = document.getElementById('toggleActivityBtn');
@@ -1333,7 +1331,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (tb) { tb.textContent = '▶'; tb.title = 'Show activity log'; }
     }
 
-    
+
     const hasAdvancedFilters = !!(F.author || F.summary || F.date_from || F.date_to || F.year_from || F.year_to);
     const wasOpen = localStorage.getItem('advancedFiltersOpen') === 'true';
     if (hasAdvancedFilters || wasOpen) {
@@ -1343,7 +1341,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (ai) ai.textContent = '▲';
     }
 
-    
+
     (function startUploadPolling() {
         const params = new URLSearchParams(window.location.search);
         const taskId = params.get('task_id');
@@ -1356,7 +1354,7 @@ window.addEventListener('DOMContentLoaded', () => {
             window.location.pathname + (params.toString() ? '?' + params.toString() : '')
         );
 
-        
+
         _showLiveBanner();
 
         const warningMsgs = {

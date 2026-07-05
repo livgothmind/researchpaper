@@ -38,7 +38,7 @@ from .models import (
     ResearchGroup, ResearchInterest, UserGroupMembership, PosterGroupWhyUseful,
     BotAccount, PendingAssignmentDismissal,
 )
-from .utils_ai import analyze_and_enrich, match_user_tags_to_subfields, generate_why_useful
+from .utils_ai import analyze_and_enrich, generate_why_useful
 from .tasks import process_poster_task, process_bot_poster_task, download_and_handle_media_task
 
 logger = logging.getLogger(__name__)
@@ -826,15 +826,17 @@ def process_uploaded_poster(
 
         poster.derive_category_from_subfields()
 
-        if user_tags and user_tags.strip():
-            merged = match_user_tags_to_subfields(user_tags, poster.subfields)
-            if merged:
-                poster.subfields = merged
-                poster.derive_category_from_subfields()
-
-            poster.tags = _filter_tags_against_subfields(user_tags, poster.subfields_list)
-        elif not poster.tags:
-            poster.tags = enriched_data.get("tags", "")
+        ai_tags = (enriched_data.get("tags", "") or "").strip()
+        user_tag_input = (user_tags or "").strip()
+        seen, combined = set(), []
+        for tag_source in (user_tag_input, ai_tags):
+            for t in tag_source.split(","):
+                t = t.strip()
+                key = t.lower()
+                if t and key not in seen:
+                    seen.add(key)
+                    combined.append(t)
+        poster.tags = ", ".join(combined)
 
         if user_notes and user_notes.strip():
             poster.notes = user_notes.strip()
@@ -859,12 +861,15 @@ def process_uploaded_poster(
             analysis_group.research_interests_text if analysis_group else ""
         )
 
-        poster.why_useful = generate_why_useful(
-            summary=poster.summary,
-            user_notes=user_notes.strip() if user_notes and user_notes.strip() else "",
-            user_tags=user_tags.strip() if user_tags and user_tags.strip() else "",
-            research_interests=analysis_research_interests,
-        )
+        if analysis_research_interests and analysis_research_interests.strip():
+            poster.why_useful = generate_why_useful(
+                summary=poster.summary,
+                user_notes=user_notes.strip() if user_notes and user_notes.strip() else "",
+                user_tags=user_tags.strip() if user_tags and user_tags.strip() else "",
+                research_interests=analysis_research_interests,
+            )
+        else:
+            poster.why_useful = ""
 
         poster.validation_status = "pending"
         poster.analysis_status   = 'ok'
@@ -1305,23 +1310,6 @@ def _handle_search_command(platform, recipient, query):
         lines.append("")
 
     send_message(platform, recipient, "\n".join(lines).strip())
-
-
-def _filter_tags_against_subfields(raw_tags, subfields_list):
-    slug_to_label = {s: lbl for s, lbl in ResearchPoster.SUBFIELD_CHOICES}
-    absorbed = (
-        {slug_to_label.get(s, s).lower() for s in subfields_list}
-        | {s.lower() for s in subfields_list}
-    )
-    seen = set()
-    leftover = []
-    for t in raw_tags.split(","):
-        t = t.strip()
-        key = t.lower()
-        if key and key not in absorbed and key not in seen:
-            seen.add(key)
-            leftover.append(t)
-    return ", ".join(leftover)
 
 
 def _subfield_q(slug):
@@ -1822,7 +1810,7 @@ def dashboard(request):
 
     if request.GET.get("_ajax"):
         table_html        = render_to_string("_dashboard_partial.html", context, request=request)
-        pagination_html   = render_to_string("_pagination_partial.html", context, request=request)
+        pagination_html   = render_to_string("_pagination_ajax.html", context, request=request)
         cat               = context["category_filter"]
         subfields_for_cat = []
         if cat:
@@ -1849,8 +1837,20 @@ def poster_detail(request, poster_id):
     is_favorite = Favorite.objects.filter(user=request.user, poster=poster).exists()
 
     user_group_ids_set = set(UserGroupMembership.objects.filter(user=request.user).values_list("group_id", flat=True))
-    poster_groups = [{"id": g.pk, "name": g.name} for g in poster.groups.filter(pk__in=user_group_ids_set).order_by("name")]
-    poster_group_ids = {g["id"] for g in poster_groups}
+    assigned_user_groups = list(poster.groups.filter(pk__in=user_group_ids_set).order_by("name"))
+    poster_groups = [{"id": g.pk, "name": g.name} for g in assigned_user_groups]
+    poster_group_ids = set(poster.groups.values_list("pk", flat=True))
+
+    default_why_group_id = None
+    if len(assigned_user_groups) == 1:
+        default_why_group_id = assigned_user_groups[0].pk
+    elif len(assigned_user_groups) > 1:
+        primary = UserGroupMembership.objects.filter(user=request.user, is_primary=True).first()
+        assigned_pks = {g.pk for g in assigned_user_groups}
+        if primary and primary.group_id in assigned_pks:
+            default_why_group_id = primary.group_id
+        else:
+            default_why_group_id = assigned_user_groups[0].pk
 
     user_memberships = (
         UserGroupMembership.objects
@@ -1873,6 +1873,7 @@ def poster_detail(request, poster_id):
         "is_favorite":    is_favorite,
         "tags_display":   poster.tags_list,
         "poster_groups":  poster_groups,
+        "default_why_group_id": default_why_group_id,
         "user_groups_for_edit": user_groups_for_edit,
         "can_edit_groups":      can_edit_groups,
     })
@@ -2026,17 +2027,8 @@ def update_tags(request, poster_id):
     if len(tags) > 200:
         return JsonResponse({"success": False, "message": "Tags too long (max 200 characters)."}, status=400)
 
-    if tags:
-        merged = match_user_tags_to_subfields(tags, poster.subfields)
-        if merged:
-            poster.subfields = merged
-            poster.derive_category_from_subfields()
-
-        poster.tags = _filter_tags_against_subfields(tags, poster.subfields_list)
-    else:
-        poster.tags = ""
-
-    poster.save(update_fields=["tags", "subfields", "category", "updated_at"])
+    poster.tags = tags
+    poster.save(update_fields=["tags", "updated_at"])
     ActivityLog.objects.create(
         user=request.user, poster=poster, action="updated",
         poster_title=poster.title, details="Tags updated",
@@ -2541,6 +2533,11 @@ def poster_why_useful_for_group(request, poster_id):
     if not poster.groups.filter(pk=group.pk).exists():
         return JsonResponse({"error": "Group not assigned to this paper"}, status=403)
 
+    research_interests = group.research_interests_text
+    if not research_interests:
+        PosterGroupWhyUseful.objects.filter(poster=poster, group=group).delete()
+        return JsonResponse({"why_useful": "", "no_interests": True})
+
     cached = PosterGroupWhyUseful.objects.filter(poster=poster, group=group).first()
     if cached and cached.why_useful:
         return JsonResponse({"why_useful": cached.why_useful, "cached": True})
@@ -2549,7 +2546,7 @@ def poster_why_useful_for_group(request, poster_id):
         summary=poster.summary,
         user_notes=poster.notes.strip() if poster.notes else "",
         user_tags="",
-        research_interests=group.research_interests_text,
+        research_interests=research_interests,
     )
 
     PosterGroupWhyUseful.objects.update_or_create(
@@ -2596,6 +2593,8 @@ def update_poster_groups(request, poster_id):
             
     allowed_new = requested & user_group_ids
     preserved = current_group_ids - user_group_ids
+    if not allowed_new and not preserved:
+        return JsonResponse({"success": False, "message": "Select at least one group."}, status=400)
     final_ids = sorted(allowed_new | preserved)
 
     poster.groups.set(final_ids)
@@ -2616,6 +2615,7 @@ def update_poster_groups(request, poster_id):
     return JsonResponse({
         "success": True,
         "groups": [{"id": g["pk"], "name": g["name"]} for g in final_groups],
+        "user_groups": [{"id": g["pk"], "name": g["name"]} for g in final_groups if g["pk"] in user_group_ids],
     })
 
 

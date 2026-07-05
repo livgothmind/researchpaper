@@ -3,535 +3,24 @@
 
 {% block title %}{{ poster.title }} — PaperProject{% endblock %}
 
-{% block extra_head %}
-<style>
-    .detail-container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 0 0 60px;
-    }
-
-    .detail-back {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        color: var(--text-muted);
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 0.86em;
-        padding: 10px 0;
-        margin-bottom: 18px;
-        transition: color 0.2s ease;
-    }
-
-    .detail-back:hover {
-        color: var(--primary);
-        text-decoration: underline;
-    }
-
-    .detail-back svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-    .detail-hero {
-        position: relative;
-        overflow: hidden;
-        background: var(--bg-card);
-        border-radius: var(--radius-xl);
-        border: 1px solid var(--border-card);
-        box-shadow: var(--shadow-card);
-        padding: 32px 36px 28px;
-        margin-bottom: 16px;
-        animation: fadeInUp 0.4s ease-out both;
-    }
-
-    .detail-hero::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: var(--gradient-hero);
-    }
-
-    .detail-hero-top {
-        display: flex;
-        gap: 36px;
-        align-items: flex-start;
-    }
-
-    .detail-poster-wrap { flex-shrink: 0; width: 240px; }
-
-    .detail-poster-img {
-        width: 100%;
-        height: auto;
-        display: block;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-md);
-        cursor: zoom-in;
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
-    }
-
-    .detail-poster-img:hover {
-        transform: translateY(-2px) scale(1.012);
-        box-shadow: 0 12px 32px rgba(0,0,0,0.14);
-    }
-
-    .detail-poster-placeholder {
-        width: 100%;
-        aspect-ratio: 4 / 5;
-        border-radius: 12px;
-        background: var(--bg-surface);
-        border: 1px dashed var(--border);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-faint);
-        font-size: 2.5em;
-    }
-
-    .detail-main-info {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .detail-title-row {
-        display: flex;
-        align-items: baseline;
-        gap: 14px;
-        flex-wrap: wrap;
-        margin-bottom: 6px;
-    }
-
-    .detail-title-row .detail-title {
-        margin-bottom: 0;
-    }
-
-    .detail-title-badges {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-    }
-
-    .detail-status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 0.76em;
-        font-weight: 600;
-        border: 1px solid currentColor;
-    }
-
-    .detail-status-pill.status-approved { background: var(--approved-bg); color: var(--approved-text); }
-    .detail-status-pill.status-pending  { background: var(--pending-bg);  color: var(--pending-text); }
-    .detail-status-pill.status-rejected { background: var(--rejected-bg); color: var(--rejected-text); }
-
-    .detail-alert-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 0.76em;
-        font-weight: 600;
-    }
-
-    .detail-alert-pill.failed    { background: var(--pending-bg); color: var(--pending-text); }
-    .detail-alert-pill.processing {
-        background: rgba(59,130,246,0.08);
-        color: #2563eb;
-    }
-
-    [data-theme="dark"] .detail-alert-pill.processing {
-        background: rgba(59,130,246,0.12);
-        color: #60a5fa;
-    }
-
-    .detail-category-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 10px;
-    }
-
-    .detail-category-row .category-badge {
-        font-size: 0.72em;
-        padding: 4px 10px;
-        border-radius: 6px;
-        margin-bottom: 0;
-    }
-
-    .detail-fav-indicator {
-        margin-left: auto;
-        font-size: 1em;
-        color: var(--favorite);
-        display: inline-block;
-    }
-
-    .detail-fav-indicator-large {
-        position: absolute;
-        top: -18px;
-        right: -18px;
-        z-index: 2;
-        font-size: 2.2em;
-        background: var(--bg-card);
-        border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(61,90,81,0.10);
-        padding: 4px;
-        transition: transform 0.18s;
-    }
-    .detail-fav-indicator-large svg {
-        width: 38px;
-        height: 38px;
-        display: block;
-    }
-    .detail-fav-indicator-large:hover {
-        transform: scale(1.08) rotate(-6deg);
-        box-shadow: 0 6px 18px rgba(245,158,11,0.18);
-    }
-
-    .detail-title {
-        font-size: 1.55em;
-        font-weight: 700;
-        color: var(--text-strong);
-        line-height: 1.25;
-        letter-spacing: -0.025em;
-        margin: 0 0 8px;
-        word-break: break-word;
-    }
-
-    .detail-authors {
-        font-size: 0.88em;
-        color: var(--text-muted);
-        line-height: 1.5;
-        margin-bottom: 18px;
-    }
-
-    .detail-divider {
-        height: 1px;
-        background: var(--border);
-        margin: 0 0 16px;
-        opacity: 0.5;
-    }
-
-    .detail-tags-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 18px;
-    }
-
-    .detail-tag-item {
-        display: inline-flex;
-        align-items: center;
-        height: 28px;
-        padding: 0 12px;
-        border-radius: var(--radius-pill);
-        font-size: 0.76em;
-        font-weight: 600;
-        background: var(--bg-surface);
-        color: var(--text-muted);
-        border: 1px solid var(--border);
-        white-space: nowrap;
-        transition: all 0.2s ease;
-        letter-spacing: 0.01em;
-    }
-
-    .detail-tag-item::before {
-        content: '#';
-        opacity: 0.35;
-        font-weight: 700;
-        margin-right: 2px;
-    }
-
-    .detail-tag-item:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--accent-muted);
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.12);
-    }
-
-    .detail-tag-item.subfield {
-        background: var(--primary-faint);
-        color: var(--primary-darker);
-        border-color: var(--primary-muted);
-    }
-
-    .detail-groups-row {
-        align-items: center;
-        margin-top: -8px;
-    }
-
-    .detail-groups-label {
-        font-size: 0.7em;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-muted);
-        font-weight: 700;
-        margin-right: 4px;
-    }
-
-    .detail-tag-item.group-chip {
-        background: var(--primary-glow, rgba(249, 115, 22, 0.12));
-        color: var(--primary);
-        border-color: var(--primary);
-        text-decoration: none;
-    }
-
-    .detail-tag-item.group-chip::before {
-        content: '';
-        margin-right: 0;
-    }
-
-    .detail-tag-item.group-chip:hover {
-        background: var(--primary);
-        color: white;
-        border-color: var(--primary);
-        box-shadow: 0 2px 8px var(--primary-glow);
-    }
-
-    .detail-tag-item.subfield::before {
-        content: '';
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--primary);
-        opacity: 0.6;
-        margin-right: 6px;
-    }
-
-    .detail-tag-item.subfield:hover {
-        background: var(--primary-muted);
-        border-color: var(--primary);
-        color: var(--primary-dark);
-        box-shadow: 0 2px 8px var(--primary-glow);
-    }
-
-    [data-theme="dark"] .detail-tag-item.subfield {
-        color: var(--text-label);
-    }
-
-    .detail-actions-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 18px;
-    }
-
-    .detail-action-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        height: 36px;
-        padding: 0 16px;
-        border-radius: var(--radius-sm);
-        font-size: 0.82em;
-        font-weight: 600;
-        text-decoration: none;
-        cursor: pointer;
-        border: 1.5px solid var(--border);
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        transition: all 0.18s ease;
-        white-space: nowrap;
-        box-shadow: none;
-    }
-
-    .detail-action-btn::before { display: none; }
-    .detail-action-btn svg     { width: 14px; height: 14px; flex-shrink: 0; }
-
-    .detail-action-btn:hover {
-        border-color: var(--primary);
-        color: var(--primary);
-        transform: translateY(-1px);
-        box-shadow: none;
-    }
-
-    .detail-action-btn.primary {
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        border-color: var(--border);
-        box-shadow: none;
-    }
-
-    .detail-action-btn.primary:hover {
-        border-color: var(--primary);
-        color: var(--primary);
-        box-shadow: none;
-    }
-
-    .detail-action-btn.ghost {
-        background: var(--bg-surface);
-        color: var(--text-primary);
-        border-color: var(--border);
-    }
-
-    .detail-action-btn.ghost:hover {
-        color: var(--primary);
-        border-color: var(--primary);
-        box-shadow: none;
-        transform: translateY(-1px);
-    }
-
-    .detail-meta-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.78em;
-        color: var(--text-faint);
-        font-weight: 500;
-    }
-
-    .detail-meta-row svg { width: 12px; height: 12px; flex-shrink: 0; }
-    .detail-meta-sep     { color: var(--border); }
-
-    .detail-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-        margin-bottom: 16px;
-        animation: fadeInUp 0.4s ease-out 0.06s both;
-    }
-
-    .detail-section {
-        background: var(--bg-card);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-card);
-        box-shadow: var(--shadow-card);
-        padding: 22px 24px;
-        transition: box-shadow 0.25s ease, transform 0.25s ease;
-    }
-
-    .detail-section:hover {
-        box-shadow: var(--shadow-md);
-        transform: translateY(-1px);
-    }
-
-    .detail-section.full-width { grid-column: 1 / -1; }
-
-    .detail-section-title {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 0.72em;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--primary);
-        margin-bottom: 12px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .detail-section-title svg { color: var(--primary); }
-
-    .detail-section-title svg      { width: 13px; height: 13px; flex-shrink: 0; }
-    .detail-section-body           { font-size: 0.93em; color: var(--text); line-height: 1.78; }
-    .detail-section-body.empty     { color: var(--text-faint); font-style: italic; font-size: 0.88em; }
-    .detail-notes-text             { font-size: 0.93em; color: var(--text); line-height: 1.72; white-space: pre-wrap; }
-
-    .detail-action-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 16px;
-        animation: fadeInUp 0.4s ease-out 0.12s both;
-    }
-
-    .detail-action-bar .d-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        height: 36px;
-        padding: 0 16px;
-        border-radius: var(--radius-sm);
-        font-size: 0.82em;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        border: 1.5px solid transparent;
-        transition: all 0.18s ease;
-        white-space: nowrap;
-        box-shadow: none;
-    }
-
-    .detail-action-bar .d-btn::before  { display: none; }
-    .detail-action-bar .d-btn svg      { width: 15px; height: 15px; flex-shrink: 0; }
-    .detail-action-bar .d-btn:hover    { transform: translateY(-1px); }
-    .detail-action-bar .d-btn:disabled,
-    .detail-action-bar .d-btn.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; transform: none !important; filter: grayscale(0.4); }
-
-    .detail-action-bar .d-btn-primary  { background: var(--gradient-brand); color: #fff; border-color: var(--primary); box-shadow: 0 2px 8px var(--primary-muted); }
-    .detail-action-bar .d-btn-primary:hover  { box-shadow: 0 4px 16px var(--primary-glow); }
-
-    .detail-action-bar .d-btn-warning  { background: transparent; color: #d97706; border-color: #d97706; }
-    .detail-action-bar .d-btn-warning:hover  { background: rgba(245,158,11,0.08); }
-
-    .detail-action-bar .d-btn-stop     { background: transparent; color: var(--rejected); border-color: var(--rejected); }
-    .detail-action-bar .d-btn-stop:hover     { background: rgba(239,68,68,0.08); }
-
-    .detail-action-bar .d-btn-danger   { background: transparent; color: var(--rejected); border-color: var(--border); }
-    .detail-action-bar .d-btn-danger:hover   { border-color: var(--rejected); background: rgba(239,68,68,0.06); }
-
-    /* Tag remove button */
-    .tag-remove-btn {
-        background: none; border: none; color: inherit; opacity: 0.5;
-        font-size: 1.1em; cursor: pointer; padding: 0 0 0 4px; line-height: 1;
-        transition: opacity 0.15s;
-    }
-    .tag-remove-btn::before { display: none; }
-    .tag-remove-btn:hover { opacity: 1; transform: none; box-shadow: none; }
-
-    /* Inline tag editor */
-    .tag-editor-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-    .tag-editor-input {
-        flex: 1; padding: 7px 12px; border: 1.5px solid var(--border);
-        border-radius: var(--radius-sm); font-size: 0.86em;
-        background: var(--bg-input); color: var(--text);
-        font-family: inherit; box-sizing: border-box;
-        transition: border-color 0.2s;
-    }
-    .tag-editor-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .tag-editor-btn {
-        padding: 7px 14px; border-radius: var(--radius-sm); font-size: 0.82em;
-        font-weight: 600; cursor: pointer; border: 1.5px solid var(--border);
-        background: var(--bg-surface); color: var(--text-primary);
-        transition: all 0.18s; white-space: nowrap;
-    }
-    .tag-editor-btn::before { display: none; }
-    .tag-editor-btn:hover { border-color: var(--primary); color: var(--primary); box-shadow: none; transform: none; }
-
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container dashboard">
     <div class="detail-container max-sm:tw-px-0 max-sm:tw-pb-10">
 
-        <div class="detail-back" style="margin-bottom: 10px;">
-            <a href="{% url 'dashboard' %}" class="nav-link" onclick="if(document.referrer && document.referrer.includes('/dashboard')){event.preventDefault();history.back();}" style="display:inline-flex;align-items:center;gap:6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                </svg>
-                Back to Dashboard
-            </a>
-        </div>
+        <a href="{% url 'dashboard' %}" class="detail-back nav-link" data-back-to-dashboard>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back to Dashboard
+        </a>
 
         <div class="detail-hero max-md:tw-p-[20px_18px] max-sm:tw-p-[14px_12px] max-sm:tw-rounded-xl">
             <div class="detail-hero-top max-md:tw-flex-col max-md:tw-gap-5 max-sm:tw-gap-4 max-sm:tw-items-stretch">
 
-                <div class="detail-poster-wrap max-md:tw-w-full max-md:tw-max-w-[300px] max-md:tw-mx-auto max-sm:tw-max-w-[260px]" style="position:relative;">
+                <div class="detail-poster-wrap max-md:tw-w-full max-md:tw-max-w-[300px] max-md:tw-mx-auto max-sm:tw-max-w-[260px]">
                     {% if is_favorite %}
                         <span class="detail-fav-indicator detail-fav-indicator-large" title="Starred" aria-label="starred">
-                            <svg viewBox="0 0 1024 1024" width="38" height="38" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;">
+                            <svg viewBox="0 0 1024 1024" width="38" height="38" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/>
                             </svg>
                         </span>
@@ -546,7 +35,7 @@
                 <div class="detail-main-info">
 
                     <div class="detail-title-row">
-                        <h1 class="detail-title max-md:tw-text-[1.3em] max-sm:tw-text-[1.05em] max-sm:tw-leading-snug">{{ poster.title }}{% if poster.is_new %} <span class="new-badge" style="vertical-align: middle; margin-left: 0.4em;">NEW</span>{% endif %}</h1>
+                        <h1 class="detail-title max-md:tw-text-[1.3em] max-sm:tw-text-[1.05em] max-sm:tw-leading-snug">{{ poster.title }}{% if poster.is_new %} <span class="new-badge">NEW</span>{% endif %}</h1>
                         <div class="detail-title-badges">
                             {% if poster.analysis_status == 'failed' %}
                                 <span class="detail-alert-pill failed">⚠ Analysis failed</span>
@@ -557,9 +46,9 @@
                     </div>
 
                     {% if poster.authors %}
-                        <div class="detail-authors">{{ poster.authors }}{% if poster.publication_year %} <span style="opacity:.55;font-size:.88em;">({{ poster.publication_year }})</span>{% endif %}</div>
+                        <div class="detail-authors">{{ poster.authors }}{% if poster.publication_year %} <span class="year-soft">({{ poster.publication_year }})</span>{% endif %}</div>
                     {% elif poster.publication_year %}
-                        <div class="detail-authors" style="opacity:.55;font-size:.88em;">{{ poster.publication_year }}</div>
+                        <div class="detail-authors year-only">{{ poster.publication_year }}</div>
                     {% endif %}
 
                     <div class="detail-divider"></div>
@@ -582,15 +71,15 @@
                     {% if poster_groups or can_edit_groups %}
                         <div class="detail-tags-row detail-groups-row max-sm:tw-gap-1 max-sm:tw-flex-wrap" id="detailGroupsRow">
                             <span class="detail-groups-label">Groups</span>
-                            <span id="detailGroupsChips" style="display:contents;">
+                            <span id="detailGroupsChips">
                                 {% for g in poster_groups %}
                                     <a href="{% url 'dashboard' %}?group={{ g.id }}" class="detail-tag-item group-chip" title="Filter dashboard by {{ g.name }}">{{ g.name }}</a>
                                 {% empty %}
-                                    <span id="detailGroupsEmpty" style="font-size:0.82em; color:var(--text-faint); font-style:italic;">Not assigned to any group yet.</span>
+                                    <span id="detailGroupsEmpty" class="detail-groups-empty">Not assigned to any group yet.</span>
                                 {% endfor %}
                             </span>
                             {% if can_edit_groups %}
-                            <button type="button" id="editGroupsBtn" onclick="openGroupsEditor()" title="Edit assigned groups" style="display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border:1.5px solid var(--border); border-radius:20px; background:var(--bg-input); color:var(--text-muted); font-size:0.74em; font-weight:600; cursor:pointer; transition:all 0.18s;">
+                            <button type="button" id="editGroupsBtn" class="detail-groups-edit-btn" title="Edit assigned groups">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -602,22 +91,22 @@
                     {% endif %}
 
                     {% if can_edit_groups %}
-                    <div id="groupsEditorPanel" style="display:none; margin-top:10px; padding:14px 16px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md);">
-                        <div style="font-size:0.78em; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:10px;">Assign this paper to your groups</div>
-                        <div id="groupsEditorChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                    <div id="groupsEditorPanel" class="groups-editor-panel">
+                        <div class="groups-editor-title">Assign this paper to your groups</div>
+                        <div id="groupsEditorChips" class="groups-editor-chips">
                             {% for g in user_groups_for_edit %}
-                                <label class="group-chip" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1.5px solid var(--border); border-radius:20px; background:var(--bg-input); cursor:pointer; font-size:0.82em;">
-                                    <input type="checkbox" data-group-id="{{ g.id }}" {% if g.is_assigned %}checked{% endif %} style="accent-color:var(--primary);">
-                                    {{ g.name }}{% if g.is_primary %} <span style="color:var(--primary); font-size:0.9em;">★</span>{% endif %}
+                                <label class="groups-editor-chip">
+                                    <input type="checkbox" data-group-id="{{ g.id }}" {% if g.is_assigned %}checked{% endif %}>
+                                    {{ g.name }}{% if g.is_primary %} <span class="groups-editor-chip-primary">★</span>{% endif %}
                                 </label>
                             {% empty %}
-                                <span style="font-size:0.82em; color:var(--text-faint);">You don't belong to any group yet.</span>
+                                <span class="groups-editor-empty">You don't belong to any group yet.</span>
                             {% endfor %}
                         </div>
-                        <div style="display:flex; gap:8px;">
-                            <button type="button" id="saveGroupsBtn" onclick="saveGroupAssignments()" class="detail-action-btn" style="font-size:0.78em;">Save</button>
-                            <button type="button" onclick="closeGroupsEditor()" class="detail-action-btn" style="font-size:0.78em;">Cancel</button>
-                            <span id="groupsEditorStatus" style="font-size:0.78em; color:var(--text-faint); align-self:center; margin-left:6px;"></span>
+                        <div class="groups-editor-actions">
+                            <button type="button" id="saveGroupsBtn" class="detail-action-btn">Save</button>
+                            <button type="button" id="cancelGroupsBtn" class="detail-action-btn">Cancel</button>
+                            <span id="groupsEditorStatus" class="groups-editor-status"></span>
                         </div>
                     </div>
                     {% endif %}
@@ -650,7 +139,7 @@
                         {% endif %}
 
                         {% if not poster.paper_link and not poster.github_link %}
-                            <span style="font-size:0.82em; color:var(--text-faint); align-self:center;">No external links available.</span>
+                            <span class="detail-actions-empty">No external links available.</span>
                         {% endif %}
                     </div>
 
@@ -702,16 +191,15 @@
             </div>
 
             <div class="detail-section max-sm:tw-p-3 max-sm:tw-rounded-lg">
-                <div class="detail-section-title max-sm:tw-text-[0.72em]" style="display:flex;align-items:center;justify-content:space-between;">
-                    <span style="display:flex;align-items:center;gap:7px;">
+                <div class="detail-section-title with-actions max-sm:tw-text-[0.72em]">
+                    <span class="detail-section-title-label">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                         </svg>
                         Why Useful
                     </span>
                     {% if poster_groups %}
-                    <select id="whyUsefulGroupSelect" onchange="loadWhyUsefulForGroup(this.value)" style="font-size:0.88em;padding:3px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-weight:500;max-width:200px;text-transform:none;letter-spacing:normal;">
-                        <option value="">Default</option>
+                    <select id="whyUsefulGroupSelect" class="why-useful-select" data-default="{{ default_why_group_id|default:'' }}">
                         {% for g in poster_groups %}
                             <option value="{{ g.id }}">{{ g.name }}</option>
                         {% endfor %}
@@ -725,7 +213,7 @@
                         <div class="detail-section-body empty">No evaluation available.</div>
                     {% endif %}
                 </div>
-                <div id="whyUsefulLoading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:0.88em;">
+                <div id="whyUsefulLoading" class="why-useful-loading">
                     Generating...
                 </div>
             </div>
@@ -755,19 +243,19 @@
                 </div>
                 <div class="detail-tags-row" id="tagsDisplay">
                     {% for tag in tags_display %}
-                        <span class="detail-tag-item detail-tag-removable" data-tag="{{ tag }}">{{ tag }} <button class="tag-remove-btn" onclick="removeTag(this)">&times;</button></span>
+                        <span class="detail-tag-item detail-tag-removable" data-tag="{{ tag }}">{{ tag }} <button class="tag-remove-btn" data-action="remove-tag">&times;</button></span>
                     {% endfor %}
                     {% if not tags_display %}
                         <span class="detail-section-body empty" id="tagsEmpty">No tags yet.</span>
                     {% endif %}
                 </div>
                 <div class="tag-editor-row">
-                    <div style="position:relative;flex:1;">
+                    <div class="tag-editor-input-wrap">
                         <input type="text" class="tag-editor-input" id="tagEditorInput"
                                placeholder="Add tags: e.g. brain tumor, segmentation…"
                                maxlength="200">
                     </div>
-                    <button type="button" class="tag-editor-btn" onclick="addTags({{ poster.id }})">Add</button>
+                    <button type="button" id="addTagsBtn" class="tag-editor-btn">Add</button>
                 </div>
             </div>
 
@@ -865,205 +353,13 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/poster-detail.js' %}"></script>
-<script src="{% static 'js/tag-autocomplete.js' %}"></script>
 <script>
-(function() {
-    /* Inline tag editor */
-    if (typeof initTagAutocomplete === 'function') {
-        initTagAutocomplete('tagEditorInput');
-    }
-
-    var _posterId = {{ poster.id }};
-
-    function _getCurrentTags() {
-        return Array.from(document.querySelectorAll('#tagsDisplay .detail-tag-removable'))
-            .map(function(el) { return el.dataset.tag; });
-    }
-
-    function _renderTags(tagsList) {
-        var display = document.getElementById('tagsDisplay');
-        display.innerHTML = '';
-        if (tagsList && tagsList.length) {
-            tagsList.forEach(function(tag) {
-                var span = document.createElement('span');
-                span.className = 'detail-tag-item detail-tag-removable';
-                span.dataset.tag = tag;
-                span.innerHTML = tag + ' <button class="tag-remove-btn" onclick="removeTag(this)">&times;</button>';
-                display.appendChild(span);
-            });
-        } else {
-            var empty = document.createElement('span');
-            empty.className = 'detail-section-body empty';
-            empty.textContent = 'No tags yet.';
-            display.appendChild(empty);
-        }
-    }
-
-    function _saveTags(tagsString, customMsg, fallbackTags) {
-        fetch('/update-tags/' + _posterId + '/', {
-            method: 'POST', credentials: 'same-origin',
-            headers: { 'X-CSRFToken': getCSRFToken(), 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tags: tagsString }),
-        })
-        .then(function(r) {
-            return r.json().then(function (data) { return { ok: r.ok, data: data }; });
-        })
-        .then(function(res) {
-            if (!res.ok || !res.data || !res.data.success) {
-                showToast((res.data && res.data.message) || 'Error', 'error');
-                if (fallbackTags) _renderTags(fallbackTags);
-                return;
-            }
-            _renderTags(res.data.tags_list);
-            showToast(customMsg || res.data.message);
-        })
-        .catch(function() {
-            showToast('Network error', 'error');
-            if (fallbackTags) _renderTags(fallbackTags);
-        });
-    }
-
-    window.removeTag = function(btn) {
-        var tagEl = btn.closest('.detail-tag-removable');
-        var removed = tagEl.dataset.tag;
-        var before = _getCurrentTags();
-        var remaining = before.filter(function(t) { return t !== removed; });
-        _renderTags(remaining); // optimistic
-        _saveTags(remaining.join(', '), 'Tag "' + removed + '" removed', before);
+    window.posterDetailConfig = {
+        posterId: {{ poster.id }},
+        whyUsefulUrl: '/api/poster/{{ poster.id }}/why-useful/',
+        updateGroupsUrl: '{% url "update_poster_groups" poster.id %}'
     };
-
-    window.addTags = function() {
-        var input = document.getElementById('tagEditorInput');
-        if (!input || !input.value.trim()) return;
-        var before = _getCurrentTags();
-        var existing = before.slice();
-        var newTags = input.value.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
-        var existingLower = existing.map(function(t) { return t.toLowerCase(); });
-        newTags.forEach(function(t) {
-            if (existingLower.indexOf(t.toLowerCase()) === -1) { existing.push(t); existingLower.push(t.toLowerCase()); }
-        });
-        input.value = '';
-        _renderTags(existing); // optimistic — show chip immediately
-        _saveTags(existing.join(', '), null, before);
-    };
-})();
-
-/* Why Useful group switcher */
-var _whyUsefulDefault = document.getElementById('whyUsefulContent') ? document.getElementById('whyUsefulContent').innerHTML : '';
-var _whyUsefulCache = {};
-
-window.loadWhyUsefulForGroup = function(groupId) {
-    var contentEl = document.getElementById('whyUsefulContent');
-    var loadingEl = document.getElementById('whyUsefulLoading');
-    if (!groupId) {
-        contentEl.innerHTML = _whyUsefulDefault;
-        contentEl.style.display = '';
-        loadingEl.style.display = 'none';
-        return;
-    }
-    if (_whyUsefulCache[groupId]) {
-        _renderWhyUseful(contentEl, _whyUsefulCache[groupId]);
-        loadingEl.style.display = 'none';
-        return;
-    }
-    contentEl.style.display = 'none';
-    loadingEl.style.display = '';
-    fetch('/api/poster/{{ poster.id }}/why-useful/?group_id=' + groupId, {
-        credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        var text = data.why_useful || '';
-        _whyUsefulCache[groupId] = text;
-        _renderWhyUseful(contentEl, text);
-        loadingEl.style.display = 'none';
-    })
-    .catch(function() {
-        contentEl.innerHTML = '<div class="detail-section-body empty">Failed to load.</div>';
-        contentEl.style.display = '';
-        loadingEl.style.display = 'none';
-    });
-};
-
-function _renderWhyUseful(el, text) {
-    if (text) {
-        el.innerHTML = '<div class="detail-section-body">' + text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
-    } else {
-        el.innerHTML = '<div class="detail-section-body empty">No evaluation available for this group.</div>';
-    }
-    el.style.display = '';
-}
-
-/* ── Edit assigned groups ── */
-function openGroupsEditor() {
-    var panel = document.getElementById('groupsEditorPanel');
-    if (panel) panel.style.display = 'block';
-    var btn = document.getElementById('editGroupsBtn');
-    if (btn) btn.style.display = 'none';
-    var status = document.getElementById('groupsEditorStatus');
-    if (status) status.textContent = '';
-}
-function closeGroupsEditor() {
-    var panel = document.getElementById('groupsEditorPanel');
-    if (panel) panel.style.display = 'none';
-    var btn = document.getElementById('editGroupsBtn');
-    if (btn) btn.style.display = '';
-}
-function saveGroupAssignments() {
-    var checkboxes = document.querySelectorAll('#groupsEditorChips input[type="checkbox"]');
-    var ids = [];
-    checkboxes.forEach(function (cb) { if (cb.checked) ids.push(parseInt(cb.dataset.groupId, 10)); });
-
-    var saveBtn = document.getElementById('saveGroupsBtn');
-    var status = document.getElementById('groupsEditorStatus');
-    if (saveBtn) saveBtn.disabled = true;
-    if (status) { status.textContent = 'Saving…'; status.style.color = 'var(--text-faint)'; }
-
-    var csrf = document.querySelector('input[name="csrfmiddlewaretoken"]');
-    fetch('{% url "update_poster_groups" poster.id %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrf ? csrf.value : '',
-        },
-        body: JSON.stringify({ group_ids: ids }),
-    })
-    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-    .then(function (res) {
-        if (saveBtn) saveBtn.disabled = false;
-        if (!res.ok || !res.data || !res.data.success) {
-            if (status) {
-                status.textContent = (res.data && res.data.message) || 'Failed to save.';
-                status.style.color = '#dc2626';
-            }
-            return;
-        }
-        var chipsRow = document.getElementById('detailGroupsChips');
-        if (chipsRow) {
-            chipsRow.innerHTML = '';
-            if (res.data.groups.length === 0) {
-                chipsRow.innerHTML = '<span id="detailGroupsEmpty" style="font-size:0.82em; color:var(--text-faint); font-style:italic;">Not assigned to any group yet.</span>';
-            } else {
-                res.data.groups.forEach(function (g) {
-                    var a = document.createElement('a');
-                    a.href = '/dashboard/?group=' + g.id;
-                    a.className = 'detail-tag-item group-chip';
-                    a.title = 'Filter dashboard by ' + g.name;
-                    a.textContent = g.name;
-                    chipsRow.appendChild(a);
-                });
-            }
-        }
-        if (status) { status.textContent = 'Saved.'; status.style.color = '#16a34a'; }
-        setTimeout(closeGroupsEditor, 600);
-    })
-    .catch(function () {
-        if (saveBtn) saveBtn.disabled = false;
-        if (status) { status.textContent = 'Network error.'; status.style.color = '#dc2626'; }
-    });
-}
 </script>
+<script src="{% static 'js/tag-autocomplete.js' %}"></script>
+<script src="{% static 'js/poster-detail.js' %}?v=20260505a"></script>
 {% endblock %}

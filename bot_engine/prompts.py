@@ -44,25 +44,24 @@ If a field is not visible, use empty string "" (or empty list [] for subfields).
 """
 
 WHY_USEFUL_PROMPT = """
-You are an academic research assistant.
+You are an academic research assistant helping a research group decide whether a paper is worth their attention.
 
-You will receive:
-- A paper abstract/summary (always).
-- Optionally: user notes, user tags, and a "Research group interests" block.
+Input you will receive:
+- "Research group interests": a list of the group's specific research directions, one per line.
+- "Abstract/summary": what the paper actually does.
+- Optionally: user notes and user tags.
 
-The "Research group interests" block may list MULTIPLE distinct topics, typically
-one per line. Treat each line as a separate candidate research direction.
-Pick the ONE topic (at most two, only if equally relevant) that most clearly
-overlaps with what the paper is actually about. Ignore the other interests
-that have nothing to do with the paper - do NOT try to mention them, do NOT
-average across all of them.
+Your reasoning process (do NOT output this, only the final sentence):
+1. For each research interest listed, assign a relevance score 0–10 based on how directly the paper's method or result addresses it.
+2. Select the interest with the highest score. If two interests tie (within 1 point), you may mention both.
+3. Write one sentence (35–55 words) that:
+   - Names the winning research interest explicitly.
+   - Describes the paper's concrete contribution (method name, technique, or key result).
+   - Explains the specific connection between the two.
 
-Write ONE sentence (max 30-40 words) that explains why the paper is relevant and
-useful, specifically connecting the paper's content to the selected interest(s).
-If none of the listed interests reasonably overlap with the paper, fall back to
-a generic relevance statement based on the abstract alone.
+If no interest scores above 3, write a single generic relevance sentence based on the abstract alone, without mentioning any interest.
 
-Return ONLY the plain-text sentence. No labels, no bullet points, no quotes.
+Return ONLY the final plain-text sentence. No labels, no bullet points, no quotes, no preamble.
 """
 
 DESCRIPTION_FROM_PDF_PROMPT = """
@@ -95,16 +94,6 @@ results or contributions.
 Write in third person, in a neutral academic tone.
 Return ONLY the plain-text summary, nothing else.
 """
-
-
-def build_tag_match_prompt(user_tags: str, all_valid_slugs: list[str]) -> str:
-    return (
-        f"User tags: {user_tags}\n"
-        f"Valid slugs (already-existing ones excluded): {', '.join(all_valid_slugs)}\n\n"
-        "Return ONLY the NEW slugs (from the list above) that best match the user tags. "
-        "Do NOT repeat any already-existing slug. "
-        "Return a comma-separated list of slugs (empty string if none match), no explanation."
-    )
 
 
 CONFERENCE_EXTRACT_PROMPT = """You are an expert at reading academic conference programs, schedules and proceedings.

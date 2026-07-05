@@ -3,86 +3,6 @@
 
 {% block title %}Groups — PaperProject{% endblock %}
 
-{% block extra_head %}
-<style>
-    .groups-container { max-width: 960px; margin: 0 auto; padding: 0 0 60px; }
-    .groups-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .groups-header h1 { font-size: 1.5em; font-weight: 700; color: var(--text-strong); }
-    .search-form { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; }
-    .search-form .search-input-wrap { position: relative; flex: 1; min-width: 220px; }
-    .search-form .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
-    .search-form input[type="search"] { width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.9em; font-family: inherit; box-sizing: border-box; }
-    .search-form input[type="search"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .search-meta { font-size: 0.82em; color: var(--text-muted); margin-bottom: 14px; }
-    .search-meta a { color: var(--primary); text-decoration: none; margin-left: 6px; }
-    .search-meta a:hover { text-decoration: underline; }
-    .group-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 14px; box-shadow: var(--shadow-card); transition: box-shadow 0.2s, transform 0.2s; }
-    .group-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-    .group-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
-    .group-card-name { font-size: 1.1em; font-weight: 700; color: var(--text-strong); }
-    .group-card-desc { font-size: 0.88em; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px; }
-    .group-card-members { font-size: 0.8em; color: var(--text-faint); }
-    .group-actions { display: flex; gap: 6px; }
-    .group-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: var(--radius-sm); font-size: 0.8em; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg-surface); color: var(--text-primary); transition: all 0.18s; text-decoration: none; }
-    .group-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
-    .group-btn.danger { color: #ef4444; }
-    .group-btn.danger:hover { border-color: #ef4444; background: rgba(239,68,68,0.06); }
-    .group-btn.primary { background: var(--gradient-brand); color: #fff; border-color: var(--primary); }
-    .group-btn.primary:hover { box-shadow: 0 4px 16px var(--primary-glow); }
-    .group-btn::before { display: none; }
-    .create-form { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 20px; box-shadow: var(--shadow-card); }
-    .create-form h3 { font-size: 0.9em; font-weight: 700; color: var(--text-strong); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-    .create-form .form-stack { display: flex; flex-direction: column; gap: 14px; }
-    .create-form .form-actions { margin-top: 4px; display: flex; justify-content: flex-end; }
-    .form-field { display: flex; flex-direction: column; min-width: 0; }
-    .form-field label { display: block; font-size: 0.78em; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-    .form-field label .label-hint { font-weight: 400; color: var(--text-faint); margin-left: 4px; }
-    .form-field input, .form-field textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.88em; font-family: inherit; box-sizing: border-box; line-height: 1.45; }
-    .form-field textarea { resize: vertical; min-height: 84px; }
-    .form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    .create-form .group-btn.primary { padding: 9px 22px; font-size: 0.85em; }
-    .member-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 0.78em; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted); margin-right: 4px; margin-bottom: 4px; }
-    .member-chip.is-primary { background: var(--primary-faint); border-color: var(--primary-muted); color: var(--primary-darker); font-weight: 600; }
-    .flash-alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88em; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--bg-surface); }
-    .flash-alert.success { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); color: #065f46; }
-    .flash-alert.error   { border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08);  color: #991b1b; }
-    [data-theme="dark"] .flash-alert.success { color: #6ee7b7; }
-    [data-theme="dark"] .flash-alert.error   { color: #fca5a5; }
-    .flash-alert .flash-close { margin-left: auto; background: none; border: none; cursor: pointer; opacity: 0.55; color: inherit; font-size: 1.1em; line-height: 1; padding: 2px 6px; }
-    .flash-alert .flash-close:hover { opacity: 1; }
-
-    .pending-card { background: var(--bg-card); border: 1px solid rgba(234,179,8,0.45); border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 18px; box-shadow: var(--shadow-card); }
-    .pending-card .pending-title { font-size: 0.82em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b45309; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
-    .pending-card .pending-sub { font-size: 0.82em; color: var(--text-muted); margin-bottom: 12px; }
-    .pending-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--border); flex-wrap: wrap; }
-    .pending-row:first-of-type { border-top: none; }
-    .pending-name { flex: 1; min-width: 180px; font-size: 0.9em; color: var(--text); font-weight: 500; }
-    .pending-name .pending-username { color: var(--text-faint); font-size: 0.82em; font-family: ui-monospace, monospace; margin-left: 4px; }
-    .pending-name .pending-email { display: block; color: var(--text-faint); font-size: 0.78em; margin-top: 1px; }
-    .pending-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .pending-form { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
-    .pending-form select { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text); font-size: 0.82em; min-width: 0; width: 200px; font-family: inherit; }
-    .pending-form button { white-space: nowrap; flex-shrink: 0; }
-    .pending-form select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-muted); }
-    [data-theme="dark"] .pending-card .pending-title { color: #fbbf24; }
-
-    @media (max-width: 640px) {
-        .groups-container { padding: 0 0 40px; }
-        .group-card { padding: 14px 16px; }
-        .group-card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-        .group-actions { width: 100%; }
-        .group-actions .group-btn { flex: 1; justify-content: center; }
-        .pending-row { flex-direction: column; align-items: flex-start; gap: 8px; }
-        .pending-name { min-width: 0; width: 100%; }
-        .pending-actions { width: 100%; flex-direction: column; }
-        .pending-form { width: 100%; flex-wrap: wrap; }
-        .pending-form select { flex: 1; min-width: 0; width: 100%; }
-        .pending-form button { width: 100%; justify-content: center; }
-        .create-form { padding: 16px; }
-        .create-form .group-btn.primary { width: 100%; justify-content: center; }
-    }
-</style>
-{% endblock %}
 
 {% block content %}
 <div class="container dashboard">
@@ -241,28 +161,12 @@
         </div>
         {% endfor %}
 
-        {% include "_pagination_simple.html" %}
+        {% include "_pagination_links.html" %}
 
     </div>
 </div>
 
-<script>
-    function onPendingGroupChange(select) {
-        var form = select.closest('form');
-        if (!form) return;
-        if (select.value) {
-            form.setAttribute('action', select.value);
-        }
-    }
-    document.querySelectorAll('form.pending-form').forEach(function (form) {
-        form.addEventListener('submit', function (e) {
-            var sel = form.querySelector('select[name="group_select"]');
-            if (sel && sel.value) {
-                form.setAttribute('action', sel.value);
-            } else {
-                e.preventDefault();
-            }
-        });
-    });
-</script>
+{% block extra_js %}
+<script src="{% static 'js/group-list.js' %}"></script>
+{% endblock %}
 {% endblock %}

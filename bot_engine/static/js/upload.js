@@ -136,7 +136,7 @@ function renderPreviews() {
     var hintMulti   = document.getElementById('groupsHintMulti');
 
     if (selectedFiles.length === 1) {
-        /* Single file: show full preview + notes/tags + groups */
+
         extrasPanel.style.display = 'block';
         if (groupsField) groupsField.style.display = '';
         if (notesField)  notesField.style.display  = '';
@@ -147,7 +147,7 @@ function renderPreviews() {
         var file = selectedFiles[0];
         var heic = isHeicFile(file);
 
-        /* Clean up any previous HEIC placeholder */
+
         var oldPh = dropPreview.querySelector('.heic-placeholder');
         if (oldPh) oldPh.remove();
 
@@ -186,8 +186,6 @@ function renderPreviews() {
             tempImg.src = tempUrl;
         }
     } else {
-        /* Multiple files: per-file rows with their own group chips. The shared
-           "Assign to groups" panel is hidden because each row carries its own. */
         extrasPanel.style.display = 'none';
         dropPreview.style.display = 'none';
         metaBox.style.display     = 'none';
@@ -277,7 +275,6 @@ function renderPreviews() {
         multiPreview.style.display = 'block';
     }
 
-    /* Update submit button text */
     var submitBtn = document.getElementById('submitBtn');
     submitBtn.textContent = selectedFiles.length > 1
         ? 'Analyze ' + selectedFiles.length + ' Posters'
@@ -326,7 +323,6 @@ dropZone.addEventListener('drop', function (e) {
     }
 });
 
-/* ── Progress helpers ── */
 var progressWrap   = document.getElementById('uploadProgressWrap');
 var progressFill   = document.getElementById('progressFill');
 var progressPct    = document.getElementById('progressPct');
@@ -362,12 +358,10 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
     showProgress();
 
     var formData = new FormData(document.getElementById('uploadForm'));
-    /* Re-add files in current order */
     formData.delete('image');
     selectedFiles.forEach(function (f) { formData.append('image', f); });
 
     if (selectedFiles.length > 1) {
-        /* Multi-upload: per-file group selection overrides the shared one. */
         formData.delete('group_ids');
         selectedFiles.forEach(function (f, i) {
             var sel = groupsByFile.get(f);
@@ -411,7 +405,7 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
                     showError(data.message || 'Upload failed. Please try again.');
                     return;
                 }
-            } catch (e) { /* fall through */ }
+            } catch (e) {  }
         }
         if (xhr.status >= 200 && xhr.status < 400) {
             window.location.href = xhr.responseURL || '/dashboard/';
@@ -446,4 +440,20 @@ document.getElementById('uploadForm').addEventListener('submit', function (e) {
     }
     bindCounter('id_notes', 'notesCharCount', 500);
     bindCounter('id_tags', 'tagsCharCount', 200);
+})();
+
+(function () {
+    function bindToggle(buttonId, bodyId) {
+        var btn = document.getElementById(buttonId);
+        var body = document.getElementById(bodyId);
+        if (!btn || !body) return;
+        btn.addEventListener('click', function () {
+            var open = btn.classList.toggle('open');
+            body.style.display = open ? 'block' : 'none';
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        bindToggle('tipsToggle', 'tipsBody');
+        bindToggle('recentToggle', 'recentList');
+    });
 })();
