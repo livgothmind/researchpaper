@@ -1,4 +1,3 @@
-
 <p align="center">
   <img
     src="bot_engine/static/images/posterhub.png"
