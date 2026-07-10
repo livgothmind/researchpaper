@@ -1,4 +1,11 @@
-# Research Paper Assistant
+
+<p align="center">
+  <img
+    src="bot_engine/static/images/posterhub.png"
+    alt="PosterHub"
+    width="100%">
+</p>
+# PosterHub: Research Paper Assistant
 
 A Django web application for building a searchable, AI-powered library of scientific research posters and papers. Upload a poster via the web, Telegram, or WhatsApp: the system extracts metadata, finds the published paper, searches for the code repository, and saves everything in a structured dashboard.
 
